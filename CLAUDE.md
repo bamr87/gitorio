@@ -13,7 +13,7 @@ frontend is fully static; GitHub is the database, the event bus, and the compute
 | **Belt** | An edge: event/data flow between machines |
 | **Blueprint** | The graph, stored as `.factory/blueprint.json` in the *target* repo (versioned, shareable as an encoded string) |
 | **Assembly line** | One connected subgraph → compiles to one workflow file `factory--<slug>.yml` |
-| **Power** | `ANTHROPIC_API_KEY` repo secret — machines are greyed out without it |
+| **Power** | Claude auth repo secret — `CLAUDE_CODE_OAUTH_TOKEN` (default) or `ANTHROPIC_API_KEY` (fallback); machines are greyed out without it |
 | **Telemetry** | Actions run data polled from the API, rendered as machine status LEDs |
 
 ## Architecture in ten lines
@@ -21,7 +21,7 @@ frontend is fully static; GitHub is the database, the event bus, and the compute
 1. Static React app (Vite + `@xyflow/react`) — deployable to GitHub Pages, zero backend.
 2. The canvas edits a **Blueprint** (JSON, schema in `schema/blueprint.schema.json`).
 3. The **compiler** (`app/src/compiler/compile.ts`) is a pure function: Blueprint → `{filename, yaml, diagnostics}[]`.
-4. Compiled workflows use **`anthropics/claude-code-action@v1`** as the agent runtime.
+4. Compiled workflows use **`anthropics/claude-code-action@v1`** as the agent runtime, authenticated by **`CLAUDE_CODE_OAUTH_TOKEN`** (default) with **`ANTHROPIC_API_KEY`** as fallback.
 5. Downstream sinks of an agent become the agent's **obligations** (prompt contract) plus scoped `--allowedTools` grants.
 6. Trigger→sink chains with no agent compile to deterministic `gh` CLI steps.
 7. The app reads/writes blueprints, prompts, and workflow files in target repos via the GitHub REST API (Octokit, fine-grained PAT first, GitHub App device flow later).
@@ -40,7 +40,7 @@ to see what phase we're in.
 4. **Verify, don't recall.** Before changing anything that touches `anthropics/claude-code-action`, fetch its current `action.yml` and docs from the official repo (`https://github.com/anthropics/claude-code-action`). Input names have changed between versions (`direct_prompt`/`allowed_tools` are deprecated → `prompt`/`claude_args`). Same rule for Octokit endpoints: check `https://docs.github.com/en/rest` when unsure.
 5. **Least privilege, always.** Compiled workflows get a computed `permissions:` block — only what the sinks need. Agent tools are granted via narrow `--allowedTools` patterns like `Bash(gh issue comment:*)`, never blanket Bash.
 6. **Loop guards are mandatory.** Any workflow triggered by comments/issues that can also *write* comments/issues must guard on `github.event.*.user.type != 'Bot'` (or actor checks). The compiler must refuse to emit an unguarded feedback loop.
-7. **Secrets never touch the blueprint, the code, or localStorage.** PATs live in `sessionStorage` at most. `ANTHROPIC_API_KEY` is only ever referenced as `${{ secrets.ANTHROPIC_API_KEY }}` in generated YAML, or provisioned via the encrypted-secret API (libsodium sealed box).
+7. **Secrets never touch the blueprint, the code, or localStorage.** PATs live in `sessionStorage` at most (or a DEV-only `.env`, guarded so it can never reach a build). The Claude auth secrets (`CLAUDE_CODE_OAUTH_TOKEN` default, `ANTHROPIC_API_KEY` fallback) are only ever referenced as `${{ secrets.* }}` in generated YAML, or provisioned via the encrypted-secret API (libsodium sealed box).
 8. **Definition of done for a new machine type:** registry entry (`machines/registry.ts`) + config fields + compiler emitter + invariant test + one sentence in `docs/ARCHITECTURE.md` machine catalog + it renders on the canvas. Use `/add-machine` for the checklist.
 9. **Untrusted content is untrusted.** Issue bodies, PR diffs, comments are attacker-controlled input to agents. Never widen tool grants to "make the prompt work"; tighten the prompt instead. Fork PRs don't get secrets — see ARCHITECTURE § Security.
 10. **End every session with `/session-log`** — draft a post to `blog/drafts/` (frontmatter `draft: true`, include a *Working-with-AI tip* section) and append a dated entry to `docs/DECISIONS.md` if any decision was made or reversed.
@@ -74,7 +74,8 @@ npm run build      # typecheck + production build to app/dist
 - ✅ GitHub connect MVP (seed 03): fetch-based `github/` client (PAT in sessionStorage),
   preflight checklist, load `.factory/blueprint.json` into the canvas, **Deploy** blueprint
   + `factory--*.yml` via the contents API (commit or PR mode), sealed-box power hookup
-  (`ANTHROPIC_API_KEY`), and a drift banner. Pure planner (`deploy.ts`) split from I/O
+  (`CLAUDE_CODE_OAUTH_TOKEN` default / `ANTHROPIC_API_KEY` fallback), and a drift banner.
+  Pure planner (`deploy.ts`) split from I/O
   executor (`execute.ts`). Verified green: 49 tests, typecheck, prod build, browser smoke.
   Live end-to-end demo needs a user PAT + scratch repo.
 - ✅ Telemetry MVP (seed 04): ETag-conditional polling of `factory--*` runs

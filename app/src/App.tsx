@@ -177,7 +177,7 @@ export default function App() {
               {observeLoading ? 'Importing…' : observeMode === 'observe' ? '← Exit observe' : '🛰 Observe'}
             </button>
           )}
-          <span className="power" title="Power = ANTHROPIC_API_KEY secret on the target repo.">
+          <span className="power" title="Power = Claude auth secret on the target repo (CLAUDE_CODE_OAUTH_TOKEN, or ANTHROPIC_API_KEY fallback).">
             <span className={`led led--${power === 'on' ? 'on' : power === 'off' ? 'off' : 'idle'}`} />
             {power === 'on' ? 'power' : power === 'off' ? 'no power' : '—'}
           </span>

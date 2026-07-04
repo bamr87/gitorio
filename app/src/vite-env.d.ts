@@ -11,7 +11,11 @@ interface ImportMetaEnv {
   readonly VITE_GH_PAT?: string;
   /** DEV-ONLY: owner/repo to auto-connect for local testing (e.g. bamr87/lifehacker.dev). */
   readonly VITE_GH_REPO?: string;
-  /** DEV-ONLY: pre-fills the power-hookup key field. Never set this for a build. */
+  /** DEV-ONLY: pre-fills the power-hookup field when "Claude Code OAuth" is selected (the
+   *  default). From `claude setup-token`. Never set this for a build. */
+  readonly VITE_CLAUDE_CODE_OAUTH_TOKEN?: string;
+  /** DEV-ONLY: pre-fills the power-hookup field when "Anthropic API key" (fallback) is
+   *  selected. Never set this for a build. */
   readonly VITE_ANTHROPIC_API_KEY?: string;
 }
 

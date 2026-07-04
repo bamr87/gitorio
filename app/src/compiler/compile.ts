@@ -383,7 +383,11 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         name: `⚙ agent.claude (${agent.id})`,
         uses: 'anthropics/claude-code-action@v1',
         with: {
-          anthropic_api_key: '${{ secrets.ANTHROPIC_API_KEY }}',
+          // Power: default to the Claude Code OAuth token (`claude setup-token`), fall back
+          // to ANTHROPIC_API_KEY. The expression passes the API key ONLY when the OAuth
+          // secret is unset, so exactly one input is ever non-empty (no precedence ambiguity).
+          claude_code_oauth_token: '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}',
+          anthropic_api_key: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}",
           prompt,
           claude_args: claudeArgs,
         },

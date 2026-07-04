@@ -271,6 +271,10 @@ body {
   margin: 14px 0 0; padding: 12px; border: 1px dashed var(--copper-dim); border-radius: 6px;
 }
 .power-hookup__title { font-family: var(--readout); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--copper); }
+.power-hookup__choice { display: flex; gap: 16px; margin: 10px 0 2px; font-size: 12px; color: var(--ink); }
+.power-hookup__choice label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.power-hookup__choice input { width: auto; }
+.power-hookup__choice .dim { color: var(--dim); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* ── telemetry panel (floating, non-blocking) ────────────────────────── */
 .telemetry {

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 
 // DEV-ONLY secrets that must NEVER end up in a client bundle (golden rule #7). Vite inlines
 // every VITE_* var at build time, so we hard-fail the build if one of these is set.
-const DEV_ONLY_SECRETS = ['VITE_GH_PAT', 'VITE_ANTHROPIC_API_KEY'];
+const DEV_ONLY_SECRETS = ['VITE_GH_PAT', 'VITE_CLAUDE_CODE_OAUTH_TOKEN', 'VITE_ANTHROPIC_API_KEY'];
 
 export default defineConfig(({ command, mode }) => {
   // loadEnv merges .env files with matching process.env vars (e.g. CI's VITE_BASE).

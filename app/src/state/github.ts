@@ -67,9 +67,12 @@ export const useGithubStore = create<GithubState>((set, get) => ({
     try {
       const client = await connectWithPat(token.trim());
       const preflight = await client.preflight(repo);
+      // Power = the agent can authenticate to Claude: the default CLAUDE_CODE_OAUTH_TOKEN
+      // secret, OR the ANTHROPIC_API_KEY fallback.
       let power: Power = 'unknown';
       try {
-        power = (await client.hasSecret(repo, 'ANTHROPIC_API_KEY')) ? 'on' : 'off';
+        const hasOauth = await client.hasSecret(repo, 'CLAUDE_CODE_OAUTH_TOKEN');
+        power = hasOauth || (await client.hasSecret(repo, 'ANTHROPIC_API_KEY')) ? 'on' : 'off';
       } catch {
         power = 'unknown';
       }

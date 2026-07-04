@@ -21,9 +21,11 @@ These are the guarantees the codebase must never break — a change that weakens
 security regression:
 
 1. **Secrets never touch the blueprint, the code, or `localStorage`.** Fine-grained PATs
-   live in `sessionStorage` at most. `ANTHROPIC_API_KEY` is only ever referenced as
-   `${{ secrets.ANTHROPIC_API_KEY }}` in generated YAML, or provisioned via the
-   encrypted-secret API (libsodium sealed box) — never logged, never persisted client-side.
+   live in `sessionStorage` at most (or a DEV-only `.env` that a build guard keeps out of
+   any bundle). The Claude auth secrets — `CLAUDE_CODE_OAUTH_TOKEN` (default) and
+   `ANTHROPIC_API_KEY` (fallback) — are only ever referenced as `${{ secrets.* }}` in
+   generated YAML, or provisioned via the encrypted-secret API (libsodium sealed box) —
+   never logged, never persisted client-side.
 2. **Least privilege.** Every compiled workflow gets a *computed* `permissions:` block
    granting only what its sinks require, and agent tools are granted via narrow
    `--allowedTools` patterns (e.g. `Bash(gh issue comment:*)`), never blanket `Bash`.

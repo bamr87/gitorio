@@ -33,6 +33,21 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-04 — ADR-012: Agent auth defaults to Claude Code OAuth token, ANTHROPIC_API_KEY fallback
+GitFactory's generated workflows (and the power hookup) now default to
+**`CLAUDE_CODE_OAUTH_TOKEN`** (from `claude setup-token` — a Claude Code subscription token)
+with **`ANTHROPIC_API_KEY`** as the fallback, matching the `claude-run` convention proven in
+`lifehacker.dev`. Verified against the live `claude-code-action@v1` `action.yml` (golden rule
+#4): both `claude_code_oauth_token` and `anthropic_api_key` are optional inputs; the former
+is "an alternative to" the latter. The compiler emits BOTH, but the API key uses the
+expression `${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}`
+so it is non-empty ONLY when the OAuth secret is unset — exactly one auth input is ever
+populated, avoiding any action-side precedence ambiguity and never sending both. The
+power-hookup UI provisions either secret (OAuth default), the power LED lights when either
+exists, and dev `.env` gains `VITE_CLAUDE_CODE_OAUTH_TOKEN` (build-guarded like the other
+secrets). Alt: pass only the OAuth token (rejected — breaks API-key users); pass both
+unconditionally (rejected — relies on unverified action precedence).
+
 ## 2026-07-04 — ADR-011: Observe mode reverse-imports workflows as a fleet map, not authoring machines
 To make GitFactory plug-and-play against ANY repo (starting with the real, hand-built
 `lifehacker.dev`), added a read-only **Observe mode** that reverse-imports

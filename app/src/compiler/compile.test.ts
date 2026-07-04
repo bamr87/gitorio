@@ -52,11 +52,16 @@ describe('compile: integrated agent line (trigger → agent → sinks)', () => {
 
   it('uses claude-code-action@v1 with prompt + claude_args (v1 interface, not deprecated inputs)', () => {
     expect(wf.yaml).toContain('anthropics/claude-code-action@v1');
-    expect(wf.yaml).toContain('anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}');
     expect(wf.yaml).toContain('--model claude-sonnet-4-6');
     expect(wf.yaml).toContain('--max-turns 8');
     expect(wf.yaml).not.toContain('direct_prompt');
     expect(wf.yaml).not.toContain('allowed_tools:');
+  });
+
+  it('defaults agent auth to Claude Code OAuth token with an ANTHROPIC_API_KEY fallback', () => {
+    expect(wf.yaml).toContain('claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}');
+    // API key is the fallback, passed only when the OAuth secret is unset
+    expect(wf.yaml).toContain("secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY");
   });
 
   it('references the repo prompt file instead of inlining it', () => {

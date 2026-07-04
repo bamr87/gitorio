@@ -5,8 +5,8 @@
 //
 // Security (CLAUDE.md golden rule #7): the PAT lives in sessionStorage at most and is
 // held in a closure by the client; it never appears in these types, in the blueprint,
-// or in any persisted state. ANTHROPIC_API_KEY plaintext is passed straight into
-// sealSecret and never stored.
+// or in any persisted state. The Claude auth secret (CLAUDE_CODE_OAUTH_TOKEN or the
+// ANTHROPIC_API_KEY fallback) plaintext is passed straight into sealSecret and never stored.
 
 /** An `owner/repo` pair. */
 export interface RepoRef {

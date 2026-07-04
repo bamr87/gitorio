@@ -72,8 +72,9 @@ This repo is designed to be **built by Claude Code, session by session**:
    ```
 3. `.claude/commands/` — `/add-machine`, `/compile-check`, `/session-log`.
 
-Powering a deployed factory requires an `ANTHROPIC_API_KEY` Actions secret on the
-target repo (the app calls this "connecting power").
+Powering a deployed factory requires a Claude auth Actions secret on the target repo
+(the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude
+setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
 
 ## Status
 

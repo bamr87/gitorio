@@ -26,6 +26,9 @@ export function DeployModal({ onClose }: { onClose: () => void }) {
   const [deployError, setDeployError] = useState<string | null>(null);
 
   const keyRef = useRef<HTMLInputElement>(null);
+  const [powerSecret, setPowerSecret] = useState<'CLAUDE_CODE_OAUTH_TOKEN' | 'ANTHROPIC_API_KEY'>(
+    'CLAUDE_CODE_OAUTH_TOKEN',
+  );
   const [powerBusy, setPowerBusy] = useState(false);
   const [powerMsg, setPowerMsg] = useState<string | null>(null);
 
@@ -71,7 +74,7 @@ export function DeployModal({ onClose }: { onClose: () => void }) {
     if (!client || !repo) return;
     const key = keyRef.current?.value ?? '';
     if (!key.trim()) {
-      setPowerMsg('Paste an ANTHROPIC_API_KEY value.');
+      setPowerMsg(`Paste a ${powerSecret} value.`);
       return;
     }
     setPowerBusy(true);
@@ -79,10 +82,10 @@ export function DeployModal({ onClose }: { onClose: () => void }) {
     try {
       const pk = await client.getActionsPublicKey(repo);
       const encrypted = sealSecret(pk.key, key.trim());
-      await client.putSecret(repo, 'ANTHROPIC_API_KEY', encrypted, pk.keyId);
+      await client.putSecret(repo, powerSecret, encrypted, pk.keyId);
       if (keyRef.current) keyRef.current.value = ''; // never retain plaintext
       setPower('on');
-      setPowerMsg('Power connected ⚡ — the factory can run.');
+      setPowerMsg(`Power connected ⚡ — ${powerSecret} set. The factory can run.`);
     } catch (e) {
       setPowerMsg(errMessage(e));
     } finally {
@@ -147,21 +150,52 @@ export function DeployModal({ onClose }: { onClose: () => void }) {
                   <span className={`led led--${power === 'on' ? 'on' : power === 'off' ? 'bad' : 'warn'}`} /> Power ·{' '}
                   {power === 'on' ? 'connected' : power === 'off' ? 'not set' : 'unknown'}
                 </div>
+                <div className="power-hookup__choice">
+                  <label>
+                    <input
+                      type="radio"
+                      name="powerSecret"
+                      checked={powerSecret === 'CLAUDE_CODE_OAUTH_TOKEN'}
+                      onChange={() => setPowerSecret('CLAUDE_CODE_OAUTH_TOKEN')}
+                    />
+                    Claude Code OAuth <span className="dim">default</span>
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="powerSecret"
+                      checked={powerSecret === 'ANTHROPIC_API_KEY'}
+                      onChange={() => setPowerSecret('ANTHROPIC_API_KEY')}
+                    />
+                    Anthropic API key <span className="dim">fallback</span>
+                  </label>
+                </div>
                 <label className="field">
-                  <span className="field__label">ANTHROPIC_API_KEY</span>
+                  <span className="field__label">{powerSecret}</span>
                   <input
+                    key={powerSecret}
                     ref={keyRef}
                     type="password"
                     autoComplete="off"
-                    placeholder="sk-ant-… (sealed-box, never stored)"
-                    defaultValue={import.meta.env.DEV ? import.meta.env.VITE_ANTHROPIC_API_KEY : undefined}
+                    placeholder={
+                      powerSecret === 'CLAUDE_CODE_OAUTH_TOKEN'
+                        ? 'from `claude setup-token` (sealed-box, never stored)'
+                        : 'sk-ant-… (sealed-box, never stored)'
+                    }
+                    defaultValue={
+                      import.meta.env.DEV
+                        ? powerSecret === 'CLAUDE_CODE_OAUTH_TOKEN'
+                          ? import.meta.env.VITE_CLAUDE_CODE_OAUTH_TOKEN
+                          : import.meta.env.VITE_ANTHROPIC_API_KEY
+                        : undefined
+                    }
                   />
                   <span className="field__help">
-                    Encrypted in-browser with the repo public key (libsodium sealed box) and PUT as an Actions secret. The
-                    plaintext never touches app state, storage, or the blueprint.
+                    Encrypted in-browser with the repo public key (libsodium sealed box) and PUT as the{' '}
+                    <b>{powerSecret}</b> Actions secret. The plaintext never touches app state, storage, or the blueprint.
                   </span>
                 </label>
-                <button className="btn" onClick={connectPower} disabled={powerBusy}>
+                <button type="button" className="btn" onClick={connectPower} disabled={powerBusy}>
                   {powerBusy ? 'Provisioning…' : '⚡ Connect power'}
                 </button>
                 {powerMsg && <p className="modal__note">{powerMsg}</p>}

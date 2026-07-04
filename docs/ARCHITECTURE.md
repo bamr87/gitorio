@@ -38,11 +38,15 @@ There is deliberately **no application server**. Three consequences:
 | 1 | **GitHub App + device flow** | Device flow needs no client secret, so it works from a pure static site. User-to-server token; installation picker becomes the "factory site selector". |
 | 2 (optional) | Thin Cloudflare Worker | Only for (a) web-flow OAuth code exchange (nicer UX) and (b) webhook → SSE relay for push telemetry. Core product must keep working without it. |
 
-**Power hookup** (`ANTHROPIC_API_KEY`): the UI can provision the Actions secret
-directly — `GET /repos/{o}/{r}/actions/secrets/public-key`, encrypt the key with a
-libsodium **sealed box** (`tweetnacl` + `tweetnacl-sealedbox-js` in the browser), then
-`PUT /repos/{o}/{r}/actions/secrets/ANTHROPIC_API_KEY`. Fallback: instruct the user to
-add it manually in repo settings. The plaintext key is never persisted anywhere.
+**Power hookup** (Claude auth): the default secret is **`CLAUDE_CODE_OAUTH_TOKEN`** (from
+`claude setup-token`, a Claude Code subscription token), with **`ANTHROPIC_API_KEY`** as the
+fallback — mirroring the `claude-run` convention proven in `lifehacker.dev`. The UI can
+provision either directly — `GET /repos/{o}/{r}/actions/secrets/public-key`, encrypt the
+value with a libsodium **sealed box** (`tweetnacl` + `tweetnacl-sealedbox-js` in the
+browser), then `PUT /repos/{o}/{r}/actions/secrets/{SECRET_NAME}`. Fallback: instruct the
+user to add it manually in repo settings. The plaintext is never persisted anywhere.
+Compiled workflows reference the OAuth token first and pass the API key only when the OAuth
+secret is unset, so exactly one auth input is ever non-empty (no action-side ambiguity).
 
 ## 3. Data model — the Blueprint
 
@@ -149,6 +153,13 @@ still untrusted input once fetched — see §8).
 ```
 
 The UI compares the hash on load; mismatch ⇒ "manual edits detected" drift warning.
+
+**Agent auth (default OAuth, API fallback).** The emitted step passes
+`claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}` plus
+`anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}`
+— the API key is supplied only when the OAuth secret is unset, so exactly one auth input is
+ever non-empty. Both are optional inputs on `claude-code-action@v1`
+(`claude_code_oauth_token` is documented as "alternative to anthropic_api_key").
 
 **Verify before templating.** The action's inputs changed at v1 (`direct_prompt`,
 `allowed_tools`, `model`, `max_turns` are deprecated in favor of `prompt` and
