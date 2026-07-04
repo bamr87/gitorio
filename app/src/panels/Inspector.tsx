@@ -89,7 +89,7 @@ export function Inspector() {
               label: 'Target repo',
               kind: 'text',
               placeholder: 'owner/name',
-              help: 'Connecting for real lands in seed 03.',
+              help: 'Metadata only. Use Connect (top bar) to load/deploy against a live repo.',
             }}
             value={meta.repo}
             onChange={(v) => setMeta({ repo: String(v) })}

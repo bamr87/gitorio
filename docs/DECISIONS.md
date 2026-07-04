@@ -33,6 +33,24 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-03 — ADR-008: GitHub I/O via a thin fetch client + tweetnacl sealed box (MVP / seed 03)
+Implemented the Phase-3 MVP (connect → load/deploy → power). Two shape decisions:
+(1) **fetch, not Octokit.** The transport client (`app/src/github/client.ts`) is a thin
+typed wrapper over `fetch` against `api.github.com`, not `@octokit/rest`. Why: keeps the
+static bundle lean, avoids Octokit's browser/ESM friction, and makes the whole client
+trivially mockable via an injected `fetchImpl` (17 unit tests, zero network). Cost: we
+hand-roll pagination/retries if ever needed (backlog).
+(2) **tweetnacl sealed box** (`tweetnacl` + `tweetnacl-sealedbox-js`) for the power hookup,
+per ARCHITECTURE §2 — encrypt `ANTHROPIC_API_KEY` in-browser against the repo public key
+and PUT it; plaintext is read from an uncontrolled input and never enters React state or
+storage. Architecture: a fixed contract (`github/types.ts`) let the client/crypto/deploy
+modules be built in parallel by separate agents; the pure planner (`deploy.ts`) is split
+from the I/O executor (`execute.ts`). Preflight approximates Workflows-write as equal to
+Contents-write (REST can't cheaply distinguish them); a failed deploy surfaces the real
+gap. Prompt-file *writing* is deferred to Prompt Studio (Phase 5) — deploy only warns on
+missing prompt refs. Alt considered: Octokit + libsodium-wrappers (rejected: heavier,
+wasm, harder to mock for a zero-backend static app).
+
 ## 2026-07-03 — ADR-007: Repo root is `gitorio/`; scaffold flattened up one level
 The starter unpacked into `gitorio/gitfactory/`, leaving a duplicate `CLAUDE.md`,
 the session-0 blog post, and `gitfactory-starter.zip` stranded in the outer folder.

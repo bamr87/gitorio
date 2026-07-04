@@ -1,0 +1,185 @@
+// Shared contract for the GitHub I/O layer (seed 03).
+// This file is the seam between the transport client, the crypto helper, and the
+// deploy planner — each is implemented against these types. No I/O here; pure types
+// + a couple of tiny pure helpers so the modules agree on shapes.
+//
+// Security (CLAUDE.md golden rule #7): the PAT lives in sessionStorage at most and is
+// held in a closure by the client; it never appears in these types, in the blueprint,
+// or in any persisted state. ANTHROPIC_API_KEY plaintext is passed straight into
+// sealSecret and never stored.
+
+/** An `owner/repo` pair. */
+export interface RepoRef {
+  owner: string;
+  repo: string;
+}
+
+/** Parse `"owner/repo"` (tolerating a full GitHub URL or surrounding whitespace). */
+export function parseRepo(input: string): RepoRef | null {
+  const cleaned = input
+    .trim()
+    .replace(/^https?:\/\/github\.com\//i, '')
+    .replace(/\.git$/i, '')
+    .replace(/\/$/, '');
+  const m = /^([A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)\/([A-Za-z0-9._-]+)$/.exec(cleaned);
+  if (!m) return null;
+  return { owner: m[1], repo: m[2] };
+}
+
+/** `owner/repo` string form. */
+export function repoSlug(r: RepoRef): string {
+  return `${r.owner}/${r.repo}`;
+}
+
+/** Per-permission preflight state. `unknown` = we could not determine it. */
+export type PermState = 'ok' | 'missing' | 'unknown';
+
+/**
+ * Result of checking a fine-grained PAT against a specific repo. The app needs, at a
+ * minimum, Contents (RW) + Workflows (RW) to deploy; the rest gate optional features.
+ */
+export interface Preflight {
+  repo: RepoRef;
+  contents: PermState; // RW — blueprint + prompt files
+  workflows: PermState; // RW — pushing .github/workflows/factory--*.yml
+  issues: PermState; // RW — issue-writing sinks at runtime
+  pullRequests: PermState; // RW — PR-mode deploys + PR sinks
+  actions: PermState; // R — telemetry (seed 04)
+  secrets: PermState; // RW — in-app power hookup
+  /** True when the minimum-to-deploy permissions (contents + workflows) are present. */
+  canDeploy: boolean;
+}
+
+/** A file read from the repo. `sha` is the blob sha required to update or delete it. */
+export interface RepoFile {
+  path: string;
+  /** Decoded UTF-8 text. */
+  content: string;
+  sha: string;
+}
+
+/** One entry in a directory listing. */
+export interface RepoDirEntry {
+  path: string;
+  name: string;
+  sha: string;
+  type: 'file' | 'dir';
+}
+
+/** GitHub Actions repo public key for sealed-box secret encryption. */
+export interface ActionsPublicKey {
+  key: string; // base64 libsodium public key
+  keyId: string;
+}
+
+/** Where a deploy commit lands. `commit` = default branch; `pr` = new branch + PR. */
+export type DeployMode = 'commit' | 'pr';
+
+/** A single file the deploy will create or update. */
+export interface DeployWrite {
+  path: string;
+  content: string;
+  /** Blob sha of the existing file, when updating; omitted when creating. */
+  sha?: string;
+  reason: 'blueprint' | 'workflow' | 'prompt';
+}
+
+/** A file the deploy will delete (an assembly line that no longer exists). */
+export interface DeployDelete {
+  path: string;
+  sha: string;
+  reason: 'stale-workflow';
+}
+
+/**
+ * The full set of changes a deploy will make, computed by diffing freshly compiled
+ * output against what is currently in the repo. Rendered as a review diff before commit.
+ */
+export interface DeployPlan {
+  writes: DeployWrite[];
+  deletes: DeployDelete[];
+  /** Non-fatal notes, e.g. a referenced prompt file that is missing from the repo. */
+  warnings: string[];
+}
+
+/**
+ * Drift for one deployed workflow: the blueprint hash embedded in its generated header
+ * versus the hash of the current blueprint's freshly compiled output.
+ */
+export interface DriftItem {
+  path: string;
+  /** Hash parsed from the deployed file's header, or null if unparseable/absent. */
+  deployedHash: string | null;
+  compiledHash: string;
+  drifted: boolean;
+}
+
+/**
+ * Transport surface. Implemented by a thin fetch-based client (no Octokit dep — keeps
+ * the static bundle lean and trivially mockable via `globalThis.fetch`). Every method
+ * rejects with a {@link GithubError} on non-2xx.
+ */
+export interface GithubClient {
+  /** Authenticated login (from GET /user at connect time). */
+  readonly login: string;
+
+  /** Best-effort permission check for a repo. Never throws for permission gaps; maps them to `missing`. */
+  preflight(repo: RepoRef): Promise<Preflight>;
+
+  /** Read a file, or `null` if it does not exist (404). Throws on other errors. */
+  getFile(repo: RepoRef, path: string, ref?: string): Promise<RepoFile | null>;
+
+  /** List a directory, or `[]` if it does not exist. */
+  listDir(repo: RepoRef, path: string, ref?: string): Promise<RepoDirEntry[]>;
+
+  /** Create or update a file (Contents API). Pass `sha` to update, `branch` to target a branch. */
+  putFile(
+    repo: RepoRef,
+    path: string,
+    content: string,
+    message: string,
+    opts?: { sha?: string; branch?: string },
+  ): Promise<void>;
+
+  /** Delete a file (Contents API). */
+  deleteFile(
+    repo: RepoRef,
+    path: string,
+    sha: string,
+    message: string,
+    opts?: { branch?: string },
+  ): Promise<void>;
+
+  /** Default branch name (e.g. `main`). */
+  getDefaultBranch(repo: RepoRef): Promise<string>;
+
+  /** Create a new branch `newBranch` pointing at the tip of `fromBranch`. */
+  createBranch(repo: RepoRef, newBranch: string, fromBranch: string): Promise<void>;
+
+  /** Open a pull request; returns the html_url. */
+  createPullRequest(
+    repo: RepoRef,
+    args: { title: string; head: string; base: string; body?: string },
+  ): Promise<string>;
+
+  /** Repo public key for sealed-box secret encryption. */
+  getActionsPublicKey(repo: RepoRef): Promise<ActionsPublicKey>;
+
+  /** Whether an Actions secret with this name exists (metadata only; value never returned). */
+  hasSecret(repo: RepoRef, name: string): Promise<boolean>;
+
+  /** Create/update an Actions secret with an already sealed-box-encrypted value. */
+  putSecret(repo: RepoRef, name: string, encryptedValue: string, keyId: string): Promise<void>;
+}
+
+/** Error carrying the HTTP status so callers can branch on 401/403/404/422. */
+export class GithubError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly url: string,
+  ) {
+    super(message);
+    this.name = 'GithubError';
+  }
+}

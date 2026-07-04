@@ -1,13 +1,328 @@
-// GitHub I/O — lands in seed 03 (docs/ARCHITECTURE.md §2–3).
+// GitHub I/O — the fetch-based transport client (seed 03, docs/ARCHITECTURE.md §2–3).
 //
-// Planned surface (keep this contract when implementing):
-//   connectWithPat(token) → session (sessionStorage only; never localStorage)
-//   preflight(repo)       → permission checklist {contents, issues, prs, actions, workflows, secrets}
-//   loadFactory(repo)     → { blueprint, prompts } from .factory/*
-//   deploy(repo, plan)    → single commit or PR: blueprint + factory--*.yml + prompts (+ deletions)
-//   connectPower(repo, apiKey) → sealed-box PUT of ANTHROPIC_API_KEY (tweetnacl), plaintext never stored
-//   listRuns(repo)        → factory--* workflow runs w/ ETag conditional requests (seed 04)
+// No Octokit dependency: a thin `fetch` wrapper keeps the static bundle lean and is
+// trivially mockable via an injected `fetch`. Implements the shared GithubClient
+// contract in ./types.ts — do not widen that surface here.
+//
+// Security (CLAUDE.md golden rule #7): the PAT is captured in the request closure
+// returned by `connectWithPat` and is never stored on the client object, in module
+// state, or anywhere persisted. It exists only as the `Bearer` header on live requests.
 
-export function notYet(): never {
-  throw new Error('GitHub I/O lands in seed 03 — see seeds/03-github-connect.md');
+import type {
+  ActionsPublicKey,
+  GithubClient,
+  PermState,
+  Preflight,
+  RepoDirEntry,
+  RepoFile,
+  RepoRef,
+} from './types';
+import { GithubError } from './types';
+
+const BASE = 'https://api.github.com';
+
+/** A token-bound request function. `<T>` is the parsed JSON body (or `undefined` for empty responses). */
+type RequestFn = <T>(method: string, path: string, body?: unknown) => Promise<T>;
+
+// ── low-level transport ────────────────────────────────────────────────
+
+/** Best-effort human-readable message from an error response body (`{message}` or raw text). */
+async function readError(res: Response): Promise<string> {
+  let detail = '';
+  try {
+    const text = await res.text();
+    if (text) {
+      try {
+        const parsed = JSON.parse(text) as { message?: unknown };
+        detail = typeof parsed.message === 'string' ? parsed.message : text;
+      } catch {
+        detail = text;
+      }
+    }
+  } catch {
+    /* body already consumed or unreadable — status alone will have to do */
+  }
+  return `GitHub ${res.status}${detail ? `: ${detail}` : ''}`;
+}
+
+/** Build a request helper that closes over `token` + `fetchImpl`. Throws GithubError on non-2xx. */
+function makeRequest(token: string, fetchImpl: typeof fetch): RequestFn {
+  return async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const url = `${BASE}${path}`;
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+    const init: RequestInit = { method, headers };
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify(body);
+    }
+    const res = await fetchImpl(url, init);
+    if (!res.ok) {
+      throw new GithubError(await readError(res), res.status, url);
+    }
+    if (res.status === 204) return undefined as T;
+    const text = await res.text();
+    return (text ? (JSON.parse(text) as T) : (undefined as T));
+  };
+}
+
+// ── encoding helpers (mirror blueprint/types.ts base64 idiom, UTF-8-safe) ──
+
+/** UTF-8 text → base64 (TextEncoder → binary string → btoa). */
+function encodeBase64Utf8(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let bin = '';
+  bytes.forEach((b) => (bin += String.fromCharCode(b)));
+  return btoa(bin);
+}
+
+/** base64 (Contents API returns it line-wrapped) → UTF-8 text. */
+function decodeBase64Utf8(b64: string): string {
+  const bin = atob(b64.replace(/\n/g, ''));
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+/** Percent-encode each path segment while preserving `/` separators. */
+function encodePath(path: string): string {
+  return path
+    .split('/')
+    .map((seg) => encodeURIComponent(seg))
+    .join('/');
+}
+
+// ── client construction ────────────────────────────────────────────────
+
+/**
+ * Connect with a fine-grained PAT. Resolves the authenticated `login` via GET /user,
+ * then returns a client that closes over the token. `opts.fetchImpl` allows injecting a
+ * fetch for tests (defaults to `globalThis.fetch`).
+ */
+export async function connectWithPat(
+  token: string,
+  opts?: { fetchImpl?: typeof fetch },
+): Promise<GithubClient> {
+  const fetchImpl = opts?.fetchImpl ?? globalThis.fetch;
+  if (!token || !token.trim()) {
+    throw new GithubError('No token provided.', 0, `${BASE}/user`);
+  }
+  const request = makeRequest(token, fetchImpl);
+
+  let login: string;
+  try {
+    const user = await request<{ login: string }>('GET', '/user');
+    login = user.login;
+  } catch (err) {
+    if (err instanceof GithubError && err.status === 401) {
+      throw new GithubError('Bad token (401): the PAT is invalid or expired.', 401, `${BASE}/user`);
+    }
+    throw err;
+  }
+
+  return buildClient(login, request);
+}
+
+function buildClient(login: string, request: RequestFn): GithubClient {
+  /** GET a probe URL; never throws. 200 → ok, 403 → missing, anything else → unknown. */
+  const probe = async (path: string): Promise<PermState> => {
+    try {
+      await request('GET', path);
+      return 'ok';
+    } catch (err) {
+      if (err instanceof GithubError && err.status === 403) return 'missing';
+      return 'unknown';
+    }
+  };
+
+  const contentsPath = (repo: RepoRef, path: string, ref?: string): string =>
+    `/repos/${repo.owner}/${repo.repo}/contents/${encodePath(path)}` +
+    (ref ? `?ref=${encodeURIComponent(ref)}` : '');
+
+  const client: GithubClient = {
+    login,
+
+    async preflight(repo: RepoRef): Promise<Preflight> {
+      let push = false;
+      let accessible = false;
+      try {
+        const data = await request<{ permissions?: { push?: boolean } }>(
+          'GET',
+          `/repos/${repo.owner}/${repo.repo}`,
+        );
+        accessible = true;
+        push = data.permissions?.push === true;
+      } catch {
+        accessible = false;
+      }
+
+      if (!accessible) {
+        // GET /repos 404/403 (or worse) — report nothing available rather than throwing.
+        return {
+          repo,
+          contents: 'missing',
+          workflows: 'missing',
+          issues: 'unknown',
+          pullRequests: 'unknown',
+          actions: 'unknown',
+          secrets: 'unknown',
+          canDeploy: false,
+        };
+      }
+
+      const contents: PermState = push ? 'ok' : 'missing';
+      // Approximation: the Contents API cannot cheaply distinguish "may write workflow
+      // files" from "may write files" — .github/workflows write is gated behind the same
+      // push permission at REST level. Mirror the contents state.
+      const workflows: PermState = contents;
+      const [actions, secrets] = await Promise.all([
+        probe(`/repos/${repo.owner}/${repo.repo}/actions/permissions`),
+        probe(`/repos/${repo.owner}/${repo.repo}/actions/secrets/public-key`),
+      ]);
+
+      return {
+        repo,
+        contents,
+        workflows,
+        // Best-effort: push implies issue/PR write is likely available; otherwise unknown.
+        issues: push ? 'ok' : 'unknown',
+        pullRequests: push ? 'ok' : 'unknown',
+        actions,
+        secrets,
+        canDeploy: contents === 'ok',
+      };
+    },
+
+    async getFile(repo: RepoRef, path: string, ref?: string): Promise<RepoFile | null> {
+      try {
+        const data = await request<{ content?: string; sha: string }>(
+          'GET',
+          contentsPath(repo, path, ref),
+        );
+        return { path, content: decodeBase64Utf8(data.content ?? ''), sha: data.sha };
+      } catch (err) {
+        if (err instanceof GithubError && err.status === 404) return null;
+        throw err;
+      }
+    },
+
+    async listDir(repo: RepoRef, path: string, ref?: string): Promise<RepoDirEntry[]> {
+      try {
+        const data = await request<
+          Array<{ path: string; name: string; sha: string; type: string }> | unknown
+        >('GET', contentsPath(repo, path, ref));
+        if (!Array.isArray(data)) return [];
+        return data.map((e) => ({
+          path: e.path,
+          name: e.name,
+          sha: e.sha,
+          type: e.type === 'dir' ? 'dir' : 'file',
+        }));
+      } catch (err) {
+        if (err instanceof GithubError && err.status === 404) return [];
+        throw err;
+      }
+    },
+
+    async putFile(
+      repo: RepoRef,
+      path: string,
+      content: string,
+      message: string,
+      opts?: { sha?: string; branch?: string },
+    ): Promise<void> {
+      const body: Record<string, unknown> = {
+        message,
+        content: encodeBase64Utf8(content),
+      };
+      if (opts?.sha) body.sha = opts.sha;
+      if (opts?.branch) body.branch = opts.branch;
+      await request('PUT', `/repos/${repo.owner}/${repo.repo}/contents/${encodePath(path)}`, body);
+    },
+
+    async deleteFile(
+      repo: RepoRef,
+      path: string,
+      sha: string,
+      message: string,
+      opts?: { branch?: string },
+    ): Promise<void> {
+      const body: Record<string, unknown> = { message, sha };
+      if (opts?.branch) body.branch = opts.branch;
+      await request(
+        'DELETE',
+        `/repos/${repo.owner}/${repo.repo}/contents/${encodePath(path)}`,
+        body,
+      );
+    },
+
+    async getDefaultBranch(repo: RepoRef): Promise<string> {
+      const data = await request<{ default_branch: string }>(
+        'GET',
+        `/repos/${repo.owner}/${repo.repo}`,
+      );
+      return data.default_branch;
+    },
+
+    async createBranch(repo: RepoRef, newBranch: string, fromBranch: string): Promise<void> {
+      const ref = await request<{ object: { sha: string } }>(
+        'GET',
+        `/repos/${repo.owner}/${repo.repo}/git/ref/heads/${encodePath(fromBranch)}`,
+      );
+      await request('POST', `/repos/${repo.owner}/${repo.repo}/git/refs`, {
+        ref: `refs/heads/${newBranch}`,
+        sha: ref.object.sha,
+      });
+    },
+
+    async createPullRequest(
+      repo: RepoRef,
+      args: { title: string; head: string; base: string; body?: string },
+    ): Promise<string> {
+      const data = await request<{ html_url: string }>(
+        'POST',
+        `/repos/${repo.owner}/${repo.repo}/pulls`,
+        { title: args.title, head: args.head, base: args.base, body: args.body },
+      );
+      return data.html_url;
+    },
+
+    async getActionsPublicKey(repo: RepoRef): Promise<ActionsPublicKey> {
+      const data = await request<{ key: string; key_id: string }>(
+        'GET',
+        `/repos/${repo.owner}/${repo.repo}/actions/secrets/public-key`,
+      );
+      return { key: data.key, keyId: data.key_id };
+    },
+
+    async hasSecret(repo: RepoRef, name: string): Promise<boolean> {
+      try {
+        await request(
+          'GET',
+          `/repos/${repo.owner}/${repo.repo}/actions/secrets/${encodeURIComponent(name)}`,
+        );
+        return true;
+      } catch (err) {
+        if (err instanceof GithubError && err.status === 404) return false;
+        throw err;
+      }
+    },
+
+    async putSecret(
+      repo: RepoRef,
+      name: string,
+      encryptedValue: string,
+      keyId: string,
+    ): Promise<void> {
+      await request(
+        'PUT',
+        `/repos/${repo.owner}/${repo.repo}/actions/secrets/${encodeURIComponent(name)}`,
+        { encrypted_value: encryptedValue, key_id: keyId },
+      );
+    },
+  };
+
+  return client;
 }

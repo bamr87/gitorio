@@ -17,6 +17,8 @@
     "@xyflow/react": "^12.11.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-sealedbox-js": "^1.2.0",
     "yaml": "^2.9.0",
     "zustand": "^5.0.14"
   },

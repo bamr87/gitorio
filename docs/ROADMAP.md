@@ -21,11 +21,15 @@ Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and
 - [ ] Permissions/concurrency computed per component; generated header + hash
 - [ ] Output verified against examples/compiled/ and current claude-code-action docs
 
-## Phase 3 — GitHub connect (seeds/03)
-- [ ] PAT auth (sessionStorage), repo picker, permission preflight check
-- [ ] Load/save blueprint + prompts + workflows via contents API (commit or PR mode)
-- [ ] Power hookup: sealed-box secret provisioning for ANTHROPIC_API_KEY
-- [ ] Drift detection: hash mismatch banner when workflows were hand-edited
+## Phase 3 — GitHub connect (seeds/03) — MVP ✅
+- [x] PAT auth (sessionStorage), repo entry, permission preflight checklist
+- [x] Load/save blueprint + workflows via contents API (commit or PR mode)
+      — prompt *content* editing/writing lands with Prompt Studio (Phase 5); deploy
+      warns on referenced-but-missing prompt files
+- [x] Power hookup: sealed-box secret provisioning for ANTHROPIC_API_KEY (tweetnacl)
+- [x] Drift detection: hash-mismatch banner when deployed workflows were hand-edited
+- Note: repo *picker* is a text field for the MVP (list picker = backlog); live
+  end-to-end demo on a scratch repo pending a user PAT.
 
 ## Phase 4 — Telemetry (seeds/04)
 - [ ] Runs polling with ETag conditional requests; status LEDs on machines

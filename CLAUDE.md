@@ -70,10 +70,14 @@ npm run build      # typecheck + production build to app/dist
   import/export/encode, compiler v0 with invariant tests, example factory dogfooded in `.factory/`.
 - ✅ Foundation: repo is under git (root = `gitorio/`, `app/` a direct child; branch
   `main`), dev hygiene in place (`.editorconfig`, `.gitattributes`, `.nvmrc` = 22,
-  Dependabot, PR template, CONTRIBUTING, SECURITY). Verified green: 13/13 tests,
-  typecheck, prod build.
-- ⬜ Not wired yet: GitHub I/O (seed 03), telemetry (seed 04), prompt studio (seed 05),
-  GitHub App auth (seed 07).
+  Dependabot, PR template, CONTRIBUTING, SECURITY).
+- ✅ GitHub connect MVP (seed 03): fetch-based `github/` client (PAT in sessionStorage),
+  preflight checklist, load `.factory/blueprint.json` into the canvas, **Deploy** blueprint
+  + `factory--*.yml` via the contents API (commit or PR mode), sealed-box power hookup
+  (`ANTHROPIC_API_KEY`), and a drift banner. Pure planner (`deploy.ts`) split from I/O
+  executor (`execute.ts`). Verified green: 49 tests, typecheck, prod build, browser smoke.
+  Live end-to-end demo needs a user PAT + scratch repo.
+- ⬜ Not wired yet: telemetry (seed 04), prompt studio (seed 05), GitHub App auth (seed 07).
 - Known rough edges: inspector forms are unvalidated; no undo; palette drag has no
   touch support; compiler covers the 13 v0 machine types only. See `docs/ROADMAP.md
   § Backlog` for parked review findings (incl. an `issue_labeled` loop-guard bug and

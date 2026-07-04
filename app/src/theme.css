@@ -191,3 +191,83 @@ body {
   color: var(--ink); padding: 8px 14px; border-radius: 6px;
   font-family: var(--readout); font-size: 12px; z-index: 50;
 }
+
+/* ── LED states (shared) ─────────────────────────────────────────────── */
+.led--warn { background: var(--copper); box-shadow: 0 0 6px var(--copper-dim); }
+.led--bad { background: var(--alarm); box-shadow: 0 0 6px var(--alarm); }
+.topbar__connect { color: var(--dim); font-family: var(--readout); font-size: 11px; }
+.topbar__connect--live { color: var(--signal); }
+
+/* ── drift / status banner ───────────────────────────────────────────── */
+.banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px; font-family: var(--readout); font-size: 12px;
+  border-bottom: 1px solid var(--seam); background: var(--panel-2);
+}
+.banner--drift { color: var(--copper); border-bottom-color: var(--copper-dim); }
+.banner .btn { margin-left: auto; }
+
+/* ── modal dialog (connect / deploy) ─────────────────────────────────── */
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(4, 6, 9, 0.62);
+}
+.modal__panel {
+  width: min(460px, 92vw); max-height: 88vh; overflow: auto;
+  background: var(--panel); border: 1px solid var(--seam); border-top: 3px solid var(--copper);
+  border-radius: 8px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+}
+.modal__panel--wide { width: min(640px, 94vw); }
+.modal__head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--seam);
+}
+.modal__title {
+  font-family: var(--readout); font-size: 12px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--copper); flex: 1;
+}
+.modal__x {
+  background: none; border: none; color: var(--dim); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 0 4px;
+}
+.modal__x:hover { color: var(--ink); }
+.modal__body { padding: 14px; }
+.modal__foot {
+  display: flex; align-items: center; gap: 10px; justify-content: flex-end;
+  padding: 12px 14px; border-top: 1px solid var(--seam);
+}
+.modal__err { color: var(--alarm); font-family: var(--readout); font-size: 12px; margin: 8px 0 0; }
+.modal__note { color: var(--dim); font-size: 11px; line-height: 1.5; margin: 8px 0 0; }
+
+/* ── preflight checklist ─────────────────────────────────────────────── */
+.preflight { list-style: none; margin: 14px 0 0; padding: 0; }
+.preflight__row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; font-family: var(--readout); font-size: 12px; color: var(--ink);
+}
+.preflight__row .dim { color: var(--dim); margin-left: auto; font-size: 11px; }
+
+/* ── deploy plan diff ────────────────────────────────────────────────── */
+.plan { border: 1px solid var(--seam); border-radius: 6px; background: var(--floor); overflow: hidden; }
+.plan__row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; font-family: var(--readout); font-size: 12px;
+  border-top: 1px solid var(--seam);
+}
+.plan__row:first-child { border-top: none; }
+.plan__mark { width: 12px; text-align: center; font-weight: 700; }
+.plan__row--write .plan__mark { color: var(--signal); }
+.plan__row--del .plan__mark { color: var(--alarm); }
+.plan__row--del { color: var(--dim); text-decoration: line-through; }
+.plan__reason { margin-left: auto; color: var(--dim); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.plan__empty { padding: 12px; color: var(--dim); font-size: 12px; font-family: var(--readout); }
+
+.check { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; font-size: 12px; color: var(--ink); }
+.check input { width: auto; }
+
+/* ── power hookup ────────────────────────────────────────────────────── */
+.power-hookup {
+  margin: 14px 0 0; padding: 12px; border: 1px dashed var(--copper-dim); border-radius: 6px;
+}
+.power-hookup__title { font-family: var(--readout); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--copper); }
