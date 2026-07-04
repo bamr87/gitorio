@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://gitfactory.dev/schema/blueprint.schema.json",
+  "title": "GitFactory Blueprint",
+  "type": "object",
+  "required": ["version", "meta", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "meta": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "repo": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
+          "description": "owner/name of the target repository"
+        },
+        "description": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "position", "config"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+          "type": {
+            "type": "string",
+            "description": "Machine type id from the registry",
+            "enum": [
+              "trigger.issue_opened",
+              "trigger.issue_labeled",
+              "trigger.pr_opened",
+              "trigger.comment",
+              "trigger.cron",
+              "trigger.manual",
+              "agent.claude",
+              "filter.condition",
+              "sink.comment",
+              "sink.label",
+              "sink.create_issue",
+              "sink.open_pr",
+              "sink.commit_files"
+            ]
+          },
+          "position": {
+            "type": "object",
+            "required": ["x", "y"],
+            "additionalProperties": false,
+            "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
+          },
+          "config": { "type": "object" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+          "from": { "$ref": "#/definitions/port" },
+          "to": { "$ref": "#/definitions/port" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "port": {
+      "type": "object",
+      "required": ["node", "port"],
+      "additionalProperties": false,
+      "properties": {
+        "node": { "type": "string" },
+        "port": { "type": "string", "description": "'out' | 'in' in v0; reserved for typed belt-mode ports" }
+      }
+    }
+  }
+}

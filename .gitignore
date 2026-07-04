@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Local dev caches
+.vite/
+coverage/
+.eslintcache
+
+# Secrets & local env — NEVER commit (see CLAUDE.md golden rule #7)
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

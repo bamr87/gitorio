@@ -1,0 +1,230 @@
+// The machine catalog. Everything renders and compiles from here.
+// Adding a machine? Use /add-machine — registry entry is step 1 of 5.
+
+export type MachineCategory = 'trigger' | 'processor' | 'sink';
+
+export interface FieldDef {
+  key: string;
+  label: string;
+  kind: 'text' | 'textarea' | 'number' | 'select';
+  options?: string[];
+  placeholder?: string;
+  help?: string;
+}
+
+export interface MachineDef {
+  type: string;
+  category: MachineCategory;
+  label: string;
+  icon: string;
+  blurb: string;
+  fields: FieldDef[];
+  defaults: Record<string, unknown>;
+  describe: (config: Record<string, unknown>) => string;
+}
+
+const str = (v: unknown, fallback = ''): string =>
+  typeof v === 'string' && v.length > 0 ? v : fallback;
+
+export const MACHINES: MachineDef[] = [
+  // ── Triggers (copper) ────────────────────────────────────────────────
+  {
+    type: 'trigger.issue_opened',
+    category: 'trigger',
+    label: 'Issue opened',
+    icon: '📥',
+    blurb: 'Fires when a new issue lands on the intake belt.',
+    fields: [],
+    defaults: {},
+    describe: () => 'on: issues [opened]',
+  },
+  {
+    type: 'trigger.issue_labeled',
+    category: 'trigger',
+    label: 'Issue labeled',
+    icon: '🏷️',
+    blurb: 'Fires when a specific label is applied to an issue.',
+    fields: [
+      { key: 'label', label: 'Label', kind: 'text', placeholder: 'needs-triage' },
+    ],
+    defaults: { label: '' },
+    describe: (c) => `on label: ${str(c.label, 'any')}`,
+  },
+  {
+    type: 'trigger.pr_opened',
+    category: 'trigger',
+    label: 'PR opened',
+    icon: '🔀',
+    blurb: 'Fires when a pull request is opened (optionally on new pushes too).',
+    fields: [
+      {
+        key: 'alsoOnSync',
+        label: 'Also on new pushes',
+        kind: 'select',
+        options: ['no', 'yes'],
+      },
+    ],
+    defaults: { alsoOnSync: 'no' },
+    describe: (c) =>
+      c.alsoOnSync === 'yes' ? 'on: pull_request [opened, synchronize]' : 'on: pull_request [opened]',
+  },
+  {
+    type: 'trigger.comment',
+    category: 'trigger',
+    label: 'Comment',
+    icon: '💬',
+    blurb: 'Fires on new issue/PR comments containing a phrase. Bot-guarded by the compiler.',
+    fields: [
+      { key: 'phrase', label: 'Trigger phrase', kind: 'text', placeholder: '@factory' },
+    ],
+    defaults: { phrase: '@factory' },
+    describe: (c) => `on comment: "${str(c.phrase, 'any')}"`,
+  },
+  {
+    type: 'trigger.cron',
+    category: 'trigger',
+    label: 'Schedule',
+    icon: '⏰',
+    blurb: 'Fires on a cron schedule (UTC). The factory night shift.',
+    fields: [
+      { key: 'cron', label: 'Cron (UTC)', kind: 'text', placeholder: '0 3 * * *' },
+    ],
+    defaults: { cron: '0 3 * * *' },
+    describe: (c) => `cron: ${str(c.cron, '0 3 * * *')}`,
+  },
+  {
+    type: 'trigger.manual',
+    category: 'trigger',
+    label: 'Manual lever',
+    icon: '🕹️',
+    blurb: 'Run on demand via workflow_dispatch.',
+    fields: [],
+    defaults: {},
+    describe: () => 'on: workflow_dispatch',
+  },
+
+  // ── Processors (steel) ───────────────────────────────────────────────
+  {
+    type: 'agent.claude',
+    category: 'processor',
+    label: 'Claude agent',
+    icon: '⚙️',
+    blurb: 'The motor. Runs Claude Code via claude-code-action with a repo prompt and scoped tools.',
+    fields: [
+      {
+        key: 'promptRef',
+        label: 'Prompt file',
+        kind: 'text',
+        placeholder: '.factory/prompts/triage.md',
+        help: 'Path in the target repo — edit the prompt without recompiling.',
+      },
+      {
+        key: 'model',
+        label: 'Model',
+        kind: 'select',
+        options: ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'],
+      },
+      { key: 'maxTurns', label: 'Max turns', kind: 'number', placeholder: '8' },
+    ],
+    defaults: { promptRef: '.factory/prompts/triage.md', model: 'claude-sonnet-4-6', maxTurns: 8 },
+    describe: (c) => `${str(c.model, 'claude-sonnet-4-6')} · ${str(c.promptRef, 'no prompt!')}`,
+  },
+  {
+    type: 'filter.condition',
+    category: 'processor',
+    label: 'Filter',
+    icon: '🧪',
+    blurb: 'Gates the line on a GitHub Actions expression (AND-joined into the job if:).',
+    fields: [
+      {
+        key: 'expression',
+        label: 'Actions expression',
+        kind: 'textarea',
+        placeholder: "!contains(github.event.issue.labels.*.name, 'wontfix')",
+      },
+    ],
+    defaults: { expression: '' },
+    describe: (c) => `if: ${str(c.expression, '<empty — passes everything>')}`,
+  },
+
+  // ── Sinks (signal green) ─────────────────────────────────────────────
+  {
+    type: 'sink.comment',
+    category: 'sink',
+    label: 'Post comment',
+    icon: '📝',
+    blurb: 'Posts a comment on the triggering issue/PR.',
+    fields: [
+      {
+        key: 'instruction',
+        label: 'Agent instruction / body',
+        kind: 'textarea',
+        placeholder: 'summarizes your findings in 3 lines',
+        help: 'Downstream of an agent: obligation wording. Direct from a trigger: the literal comment body.',
+      },
+    ],
+    defaults: { instruction: 'summarizes your findings' },
+    describe: (c) => `comment: ${str(c.instruction, '…')}`.slice(0, 60),
+  },
+  {
+    type: 'sink.label',
+    category: 'sink',
+    label: 'Apply labels',
+    icon: '🏷️',
+    blurb: 'Applies labels to the triggering issue/PR.',
+    fields: [
+      {
+        key: 'labels',
+        label: 'Labels (comma-sep, empty = agent decides)',
+        kind: 'text',
+        placeholder: 'bug, p1',
+      },
+    ],
+    defaults: { labels: '' },
+    describe: (c) => `labels: ${str(c.labels, 'agent decides')}`,
+  },
+  {
+    type: 'sink.create_issue',
+    category: 'sink',
+    label: 'Create issue',
+    icon: '🧾',
+    blurb: 'Files a new issue (reports, alarms, follow-ups).',
+    fields: [
+      { key: 'titleHint', label: 'Title hint', kind: 'text', placeholder: 'Nightly report: …' },
+    ],
+    defaults: { titleHint: '' },
+    describe: (c) => `new issue: ${str(c.titleHint, 'agent decides title')}`,
+  },
+  {
+    type: 'sink.open_pr',
+    category: 'sink',
+    label: 'Open PR',
+    icon: '🚚',
+    blurb: 'Ships changes as a pull request on a factory branch.',
+    fields: [
+      { key: 'branchHint', label: 'Branch hint', kind: 'text', placeholder: 'factory/fix-…' },
+    ],
+    defaults: { branchHint: '' },
+    describe: (c) => `PR from ${str(c.branchHint, 'factory/*')}`,
+  },
+  {
+    type: 'sink.commit_files',
+    category: 'sink',
+    label: 'Commit files',
+    icon: '📦',
+    blurb: 'Commits file changes directly (grants contents: write — use sparingly).',
+    fields: [
+      { key: 'pathScope', label: 'Path scope', kind: 'text', placeholder: 'docs/**' },
+    ],
+    defaults: { pathScope: '' },
+    describe: (c) => `commit in ${str(c.pathScope, 'repo root')}`,
+  },
+];
+
+export const MACHINE_INDEX: Record<string, MachineDef> = Object.fromEntries(
+  MACHINES.map((m) => [m.type, m]),
+);
+
+export function machineDef(type: string): MachineDef | undefined {
+  return MACHINE_INDEX[type];
+}

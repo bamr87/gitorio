@@ -1,0 +1,15 @@
+# Normalize line endings on checkin; check out native. Keeps diffs clean cross-OS.
+* text=auto eol=lf
+
+# Binary assets — never diff/merge as text.
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+
+# Generated / vendored — collapse in diffs and exclude from language stats.
+app/package-lock.json  linguist-generated=true
+examples/compiled/**   linguist-generated=true
