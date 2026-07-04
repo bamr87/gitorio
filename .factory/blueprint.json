@@ -6,24 +6,141 @@
     "description": "New issues get triaged and labeled by a Claude agent; a nightly gardener nudges stale threads."
   },
   "nodes": [
-    { "id": "t1", "type": "trigger.issue_opened", "position": { "x": 40, "y": 140 }, "config": {} },
-    { "id": "a1", "type": "agent.claude", "position": { "x": 340, "y": 140 },
-      "config": { "promptRef": ".factory/prompts/triage.md", "model": "claude-sonnet-4-6", "maxTurns": 8 } },
-    { "id": "s1", "type": "sink.label", "position": { "x": 660, "y": 60 }, "config": { "labels": "" } },
-    { "id": "s2", "type": "sink.comment", "position": { "x": 660, "y": 220 },
-      "config": { "instruction": "summarizes the triage decision in 3 lines and links any duplicates" } },
-
-    { "id": "t2", "type": "trigger.cron", "position": { "x": 40, "y": 420 }, "config": { "cron": "0 3 * * *" } },
-    { "id": "a2", "type": "agent.claude", "position": { "x": 340, "y": 420 },
-      "config": { "promptRef": ".factory/prompts/nightly-gardener.md", "model": "claude-sonnet-4-6", "maxTurns": 12 } },
-    { "id": "s3", "type": "sink.comment", "position": { "x": 660, "y": 420 },
-      "config": { "instruction": "posts a gentle stale-issue nudge on each issue inactive for 30+ days (max 5 per night)" } }
+    {
+      "id": "t1",
+      "type": "trigger.issue_opened",
+      "position": {
+        "x": 40,
+        "y": 140
+      },
+      "config": {}
+    },
+    {
+      "id": "a1",
+      "type": "agent.claude",
+      "position": {
+        "x": 340,
+        "y": 140
+      },
+      "config": {
+        "promptRef": ".factory/prompts/triage.md",
+        "model": "claude-sonnet-4-6",
+        "maxTurns": 8
+      }
+    },
+    {
+      "id": "s1",
+      "type": "sink.label",
+      "position": {
+        "x": 660,
+        "y": 60
+      },
+      "config": {
+        "labels": ""
+      }
+    },
+    {
+      "id": "s2",
+      "type": "sink.comment",
+      "position": {
+        "x": 660,
+        "y": 220
+      },
+      "config": {
+        "instruction": "summarizes the triage decision in 3 lines and links any duplicates"
+      }
+    },
+    {
+      "id": "t2",
+      "type": "trigger.cron",
+      "position": {
+        "x": 40,
+        "y": 420
+      },
+      "config": {
+        "cron": "0 3 * * *"
+      }
+    },
+    {
+      "id": "a2",
+      "type": "agent.claude",
+      "position": {
+        "x": 340,
+        "y": 420
+      },
+      "config": {
+        "promptRef": ".factory/prompts/nightly-gardener.md",
+        "model": "claude-sonnet-4-6",
+        "maxTurns": 12
+      }
+    },
+    {
+      "id": "s3",
+      "type": "sink.comment",
+      "position": {
+        "x": 660,
+        "y": 420
+      },
+      "config": {
+        "instruction": "posts a gentle stale-issue nudge on each issue inactive for 30+ days (max 5 per night)"
+      }
+    }
   ],
   "edges": [
-    { "id": "e1", "from": { "node": "t1", "port": "out" }, "to": { "node": "a1", "port": "in" } },
-    { "id": "e2", "from": { "node": "a1", "port": "out" }, "to": { "node": "s1", "port": "in" } },
-    { "id": "e3", "from": { "node": "a1", "port": "out" }, "to": { "node": "s2", "port": "in" } },
-    { "id": "e4", "from": { "node": "t2", "port": "out" }, "to": { "node": "a2", "port": "in" } },
-    { "id": "e5", "from": { "node": "a2", "port": "out" }, "to": { "node": "s3", "port": "in" } }
+    {
+      "id": "e1",
+      "from": {
+        "node": "t1",
+        "port": "out"
+      },
+      "to": {
+        "node": "a1",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e2",
+      "from": {
+        "node": "a1",
+        "port": "out"
+      },
+      "to": {
+        "node": "s1",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e3",
+      "from": {
+        "node": "a1",
+        "port": "out"
+      },
+      "to": {
+        "node": "s2",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e4",
+      "from": {
+        "node": "t2",
+        "port": "out"
+      },
+      "to": {
+        "node": "a2",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e5",
+      "from": {
+        "node": "a2",
+        "port": "out"
+      },
+      "to": {
+        "node": "s3",
+        "port": "in"
+      }
+    }
   ]
 }
