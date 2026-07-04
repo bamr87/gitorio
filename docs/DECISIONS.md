@@ -33,6 +33,28 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-04 — ADR-013: Scheduled/manual agent lines get "survey mode" PR-discovery grants
+A Dependency Warden (review the open Dependabot PRs, comment a verdict, label the safe ones)
+exposed a real gap: a `pull_request`-triggered line is the wrong tool for Dependabot, because
+(1) the compiler's mandatory bot loop-guard (`github.event.sender.type != 'Bot'`, ADR-009)
+correctly refuses to fire for a bot actor, and (2) GitHub gives Dependabot `pull_request`
+runs a **read-only token with no secrets**, so `CLAUDE_CODE_OAUTH_TOKEN` wouldn't even be
+present. The right shape is a **cron + manual** line that runs in the base-repo context (full
+secrets, writable token, no bot-guard) — the same OODA-warden pattern `lifehacker.dev` uses.
+But such a line has no triggering entity, so it must *discover* its own work, and the existing
+cron grants (`gh issue list`, `gh search issues`) **cannot see PRs** — verified empirically:
+`gh search issues` forces `type:issue` and `gh issue list` excludes PRs. So the compiler now
+recognises **survey mode** (an agent line fired only by cron/manual — `!hasIssueish && !hasPr
+&& !hasComment`) and grants read-only PR discovery/inspection (`gh pr list/view/diff`) plus,
+when a comment/label sink is downstream, the PR-scoped write tools (`gh pr comment`, `gh pr
+edit`) and `pull-requests: write` (PR comments/labels are governed by the pull-requests scope,
+not issues, even though gh routes through the shared number space). Still least-privilege: no
+`gh pr merge/create/close`, contents stays `read`. Consequence (accepted): the compiler can't
+read prompts, so *any* cron/manual comment/label agent (e.g. the nightly gardener) gets the
+issue+PR survey+write ceiling — the prompt narrows actual behaviour, the grant is a ceiling.
+Alt: a `pull_request_target` machine (rejected — security-sensitive trigger, later phase);
+Dependabot secrets scope (rejected — doesn't help the read-only `GITHUB_TOKEN` comment/label).
+
 ## 2026-07-04 — ADR-012: Agent auth defaults to Claude Code OAuth token, ANTHROPIC_API_KEY fallback
 GitFactory's generated workflows (and the power hookup) now default to
 **`CLAUDE_CODE_OAUTH_TOKEN`** (from `claude setup-token` — a Claude Code subscription token)

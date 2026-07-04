@@ -162,12 +162,17 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
   }
 }
 
-function toolsFor(sinkType: string, hasPrTrigger: boolean): string[] {
+// `prContext` = this line may act on pull requests (a PR trigger, or survey mode where a
+// scheduled/manual agent discovers PRs itself). Labels/comments on a PR go through the
+// pr subcommands; the issue subcommands are kept too since they resolve PR numbers.
+function toolsFor(sinkType: string, prContext: boolean): string[] {
   switch (sinkType) {
     case 'sink.label':
-      return ['Bash(gh label list:*)', 'Bash(gh issue edit:*)'];
+      return prContext
+        ? ['Bash(gh label list:*)', 'Bash(gh issue edit:*)', 'Bash(gh pr edit:*)']
+        : ['Bash(gh label list:*)', 'Bash(gh issue edit:*)'];
     case 'sink.comment':
-      return hasPrTrigger
+      return prContext
         ? ['Bash(gh issue comment:*)', 'Bash(gh pr comment:*)']
         : ['Bash(gh issue comment:*)'];
     case 'sink.create_issue':
@@ -268,6 +273,13 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     if (prTypes.size) on['pull_request'] = { types: [...prTypes].sort() };
     if (crons.length) on['schedule'] = crons;
 
+    // Survey mode: an agent line fired only by cron/manual has no triggering issue/PR
+    // from the event, so it must discover its own work. It runs in the base-repo context
+    // (full secrets, writable token, no bot-guard), which is the ONLY way to review
+    // Dependabot PRs — a pull_request trigger would be bot-guarded off and would get a
+    // read-only token with no secrets on Dependabot events.
+    const surveyMode = agents.length > 0 && !hasIssueish && !hasPr && !hasComment;
+
     // sinks by mode: downstream of the agent → obligations; reachable without an
     // agent on the path → deterministic. v0 approximation: agent downstream set.
     const agent = agents[0];
@@ -313,7 +325,13 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       ['sink.comment', 'sink.label', 'sink.create_issue'].includes(n.type),
     );
     if (needsIssuesWrite) permissions['issues'] = 'write';
-    if (sinks.some((n) => n.type === 'sink.open_pr') || (hasPr && sinks.some((n) => n.type === 'sink.comment'))) {
+    // Commenting on or labelling a PR is governed by the pull-requests scope (not issues),
+    // even though gh routes through the shared issue number space. Grant it whenever the
+    // line can act on PRs — a PR trigger, survey mode, or an open_pr sink.
+    if (
+      sinks.some((n) => n.type === 'sink.open_pr') ||
+      ((hasPr || surveyMode) && sinks.some((n) => ['sink.comment', 'sink.label'].includes(n.type)))
+    ) {
       permissions['pull-requests'] = 'write';
     }
     if (sinks.some((n) => ['sink.open_pr', 'sink.commit_files'].includes(n.type))) {
@@ -371,7 +389,17 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         tools.add('Bash(gh issue list:*)');
         tools.add('Bash(gh search issues:*)');
       }
-      for (const sink of obligated) for (const t of toolsFor(sink.type, hasPr)) tools.add(t);
+      if (surveyMode) {
+        // gh issue list / search can't see PRs (gh forces `type:issue`), so a warden that
+        // reviews pull requests needs the pr subcommands explicitly. Read-only discovery +
+        // inspection; writes come from the sink grants below (never merge/create/close).
+        tools.add('Bash(gh issue list:*)');
+        tools.add('Bash(gh search issues:*)');
+        tools.add('Bash(gh pr list:*)');
+        tools.add('Bash(gh pr view:*)');
+        tools.add('Bash(gh pr diff:*)');
+      }
+      for (const sink of obligated) for (const t of toolsFor(sink.type, hasPr || surveyMode)) tools.add(t);
 
       const model = s(agent.config.model, 'claude-sonnet-4-6');
       const maxTurns = Number(agent.config.maxTurns) > 0 ? Number(agent.config.maxTurns) : 8;

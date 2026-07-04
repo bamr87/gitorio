@@ -160,6 +160,65 @@ describe('compile: cron line', () => {
   });
 });
 
+describe('compile: survey mode (scheduled/manual warden that reviews PRs)', () => {
+  // A "Dependency Warden": runs on a manual lever + weekly cron, reviews the open
+  // Dependabot PRs, comments a verdict, and labels the safe ones. It has no triggering
+  // entity, so it must discover PRs itself — and gh issue list/search can't see PRs.
+  const warden: Blueprint = {
+    version: 1,
+    meta: { name: 'Dependency Warden' },
+    nodes: [
+      node('m', 'trigger.manual'),
+      node('c', 'trigger.cron', { cron: '0 6 * * 1' }),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/dependency-warden.md' }),
+      node('cm', 'sink.comment', { instruction: 'posts a merge-risk verdict on each open dependency PR' }),
+      node('lb', 'sink.label', { labels: '' }),
+    ],
+    edges: [
+      edge('e1', 'm', 'a'),
+      edge('e2', 'c', 'a'),
+      edge('e3', 'a', 'cm'),
+      edge('e4', 'a', 'lb'),
+    ],
+  };
+  const wf = compile(warden).workflows[0];
+
+  it('maps the manual + cron triggers to workflow_dispatch + schedule', () => {
+    expect(wf.filename).toBe('factory--dependency-warden.yml');
+    expect(wf.yaml).toContain('workflow_dispatch:');
+    expect(wf.yaml).toContain('schedule:');
+    expect(wf.yaml).toContain('cron: 0 6 * * 1');
+  });
+
+  it('grants read-only PR-discovery tools (gh issue list/search cannot see PRs)', () => {
+    expect(wf.yaml).toContain('Bash(gh pr list:*)');
+    expect(wf.yaml).toContain('Bash(gh pr view:*)');
+    expect(wf.yaml).toContain('Bash(gh pr diff:*)');
+  });
+
+  it('grants PR write tools for the comment + label sinks, keeping the issue equivalents', () => {
+    expect(wf.yaml).toContain('Bash(gh pr comment:*)');
+    expect(wf.yaml).toContain('Bash(gh pr edit:*)');
+    expect(wf.yaml).toContain('Bash(gh issue comment:*)'); // resolves PR numbers too
+    expect(wf.yaml).toContain('Bash(gh issue edit:*)');
+  });
+
+  it('stays least-privilege: read/comment/label only — never merge, create, or close PRs', () => {
+    expect(wf.yaml).not.toContain('Bash(gh pr merge');
+    expect(wf.yaml).not.toContain('Bash(gh pr create');
+    expect(wf.yaml).not.toContain('Bash(gh pr close');
+  });
+
+  it('computes pull-requests: write (PR comments/labels need it) alongside issues: write', () => {
+    expect(wf.yaml).toContain('pull-requests: write');
+    expect(wf.yaml).toContain('issues: write');
+  });
+
+  it('has NO bot loop-guard — cron/manual are not attacker-triggerable, and Dependabot IS a bot', () => {
+    expect(wf.yaml).not.toContain("github.event.sender.type != 'Bot'");
+  });
+});
+
 describe('compile: deterministic trigger → sink (no agent)', () => {
   const bp: Blueprint = {
     version: 1,

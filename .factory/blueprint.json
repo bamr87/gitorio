@@ -1,9 +1,9 @@
 {
   "version": 1,
   "meta": {
-    "name": "Issue Triage Line",
-    "repo": "your-org/your-repo",
-    "description": "New issues get triaged and labeled by a Claude agent; a nightly gardener nudges stale threads."
+    "name": "Gitorio Factory",
+    "repo": "bamr87/gitorio",
+    "description": "Issue triage + nightly gardener + a dependency warden that reviews the open Dependabot PRs on a manual lever and weekly."
   },
   "nodes": [
     {
@@ -84,6 +84,61 @@
       "config": {
         "instruction": "posts a gentle stale-issue nudge on each issue inactive for 30+ days (max 5 per night)"
       }
+    },
+    {
+      "id": "wm",
+      "type": "trigger.manual",
+      "position": {
+        "x": 40,
+        "y": 660
+      },
+      "config": {}
+    },
+    {
+      "id": "wc",
+      "type": "trigger.cron",
+      "position": {
+        "x": 40,
+        "y": 800
+      },
+      "config": {
+        "cron": "0 6 * * 1"
+      }
+    },
+    {
+      "id": "wa",
+      "type": "agent.claude",
+      "position": {
+        "x": 340,
+        "y": 720
+      },
+      "config": {
+        "promptRef": ".factory/prompts/dependency-warden.md",
+        "model": "claude-sonnet-4-6",
+        "maxTurns": 25
+      }
+    },
+    {
+      "id": "ws1",
+      "type": "sink.comment",
+      "position": {
+        "x": 660,
+        "y": 640
+      },
+      "config": {
+        "instruction": "records the dependency's merge-risk verdict — bump size, breaking-change check, and a merge recommendation — in ~4 lines"
+      }
+    },
+    {
+      "id": "ws2",
+      "type": "sink.label",
+      "position": {
+        "x": 660,
+        "y": 800
+      },
+      "config": {
+        "labels": ""
+      }
     }
   ],
   "edges": [
@@ -139,6 +194,50 @@
       },
       "to": {
         "node": "s3",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e6",
+      "from": {
+        "node": "wm",
+        "port": "out"
+      },
+      "to": {
+        "node": "wa",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e7",
+      "from": {
+        "node": "wc",
+        "port": "out"
+      },
+      "to": {
+        "node": "wa",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e8",
+      "from": {
+        "node": "wa",
+        "port": "out"
+      },
+      "to": {
+        "node": "ws1",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e9",
+      "from": {
+        "node": "wa",
+        "port": "out"
+      },
+      "to": {
+        "node": "ws2",
         "port": "in"
       }
     }
