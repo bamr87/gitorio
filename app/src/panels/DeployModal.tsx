@@ -149,7 +149,13 @@ export function DeployModal({ onClose }: { onClose: () => void }) {
                 </div>
                 <label className="field">
                   <span className="field__label">ANTHROPIC_API_KEY</span>
-                  <input ref={keyRef} type="password" autoComplete="off" placeholder="sk-ant-… (sealed-box, never stored)" />
+                  <input
+                    ref={keyRef}
+                    type="password"
+                    autoComplete="off"
+                    placeholder="sk-ant-… (sealed-box, never stored)"
+                    defaultValue={import.meta.env.DEV ? import.meta.env.VITE_ANTHROPIC_API_KEY : undefined}
+                  />
                   <span className="field__help">
                     Encrypted in-browser with the repo public key (libsodium sealed box) and PUT as an Actions secret. The
                     plaintext never touches app state, storage, or the blueprint.

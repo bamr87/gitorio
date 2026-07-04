@@ -116,7 +116,23 @@ export const useGithubStore = create<GithubState>((set, get) => ({
     if (get().client) return;
     const token = sessionStorage.getItem(TOKEN_KEY);
     const repo = sessionStorage.getItem(REPO_KEY);
-    if (token && repo) void get().connect(token, repo);
+    if (token && repo) {
+      void get().connect(token, repo);
+      return;
+    }
+    // Dev-only convenience: auto-connect from .env for local testing. Guarded by
+    // import.meta.env.DEV so the whole branch (and any inlined VITE_GH_PAT value) is
+    // dead-code-eliminated from production builds; vite.config also refuses to `build`
+    // if a secret VITE_ var is set. The token still only ever lands in sessionStorage.
+    if (import.meta.env.DEV) {
+      const envPat = import.meta.env.VITE_GH_PAT;
+      const envRepo = import.meta.env.VITE_GH_REPO;
+      if (envPat && envRepo) {
+        // eslint-disable-next-line no-console
+        console.warn('[gitfactory] dev auto-connect from VITE_GH_PAT (.env) — never ship a build with this set.');
+        void get().connect(envPat, envRepo);
+      }
+    }
   },
 
   setPower: (power) => set({ power }),
