@@ -77,7 +77,11 @@ npm run build      # typecheck + production build to app/dist
   (`ANTHROPIC_API_KEY`), and a drift banner. Pure planner (`deploy.ts`) split from I/O
   executor (`execute.ts`). Verified green: 49 tests, typecheck, prod build, browser smoke.
   Live end-to-end demo needs a user PAT + scratch repo.
-- ⬜ Not wired yet: telemetry (seed 04), prompt studio (seed 05), GitHub App auth (seed 07).
+- ✅ Telemetry MVP (seed 04): ETag-conditional polling of `factory--*` runs
+  (`client.listFactoryRuns` + pure `github/telemetry.ts`), machine status LEDs via
+  `compile.assemblyLines()`, and a floating panel (stats + run list) that polls only while
+  open. Verified green: 66 tests, typecheck, build, render smoke.
+- ⬜ Not wired yet: prompt studio (seed 05), agent patterns (seed 06), GitHub App auth (seed 07).
 - Known rough edges: inspector forms are unvalidated; no undo; palette drag has no
   touch support; compiler covers the 13 v0 machine types only. See `docs/ROADMAP.md
   § Backlog` for remaining parked review findings (5 machine types still without

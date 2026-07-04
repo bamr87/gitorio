@@ -305,3 +305,115 @@ describe('preflight', () => {
     });
   });
 });
+
+describe('listFactoryRuns', () => {
+  it('keeps only factory-- runs, maps + slugs them, sorts newest-first, and captures the ETag', async () => {
+    const { client, fetchImpl } = await connect(
+      () =>
+        new Response(
+          JSON.stringify({
+            workflow_runs: [
+              {
+                id: 101,
+                run_number: 5,
+                status: 'in_progress',
+                conclusion: null,
+                event: 'issues',
+                html_url: 'https://github.com/o/r/actions/runs/101',
+                path: '.github/workflows/factory--issue-triage-line.yml',
+                run_started_at: '2026-07-01T10:00:00Z',
+                updated_at: '2026-07-01T10:05:00Z',
+                created_at: '2026-07-01T10:00:00Z',
+              },
+              {
+                id: 100,
+                run_number: 4,
+                status: 'completed',
+                conclusion: 'success',
+                event: 'push',
+                html_url: 'https://github.com/o/r/actions/runs/100',
+                path: '.github/workflows/factory--label-sync.yaml',
+                run_started_at: '2026-06-30T09:00:00Z',
+                updated_at: '2026-06-30T09:03:00Z',
+                created_at: '2026-06-30T09:00:00Z',
+              },
+              {
+                id: 99,
+                run_number: 3,
+                status: 'completed',
+                conclusion: 'failure',
+                event: 'schedule',
+                html_url: 'https://github.com/o/r/actions/runs/99',
+                path: '.github/workflows/ci.yml', // not a factory workflow → dropped
+                run_started_at: '2026-06-29T08:00:00Z',
+                updated_at: '2026-06-29T08:02:00Z',
+                created_at: '2026-06-29T08:00:00Z',
+              },
+            ],
+          }),
+          { status: 200, headers: { ETag: 'W/"abc"', 'x-ratelimit-remaining': '4999' } },
+        ),
+    );
+
+    const poll = await client.listFactoryRuns(REPO);
+    expect(poll.notModified).toBe(false);
+    expect(poll.etag).toBe('W/"abc"');
+    expect(poll.rateRemaining).toBe(4999);
+
+    // Only the two factory-- runs survive, sorted newest-first by createdAt.
+    expect(poll.runs.map((r) => r.runId)).toEqual([101, 100]);
+    expect(poll.runs.map((r) => r.slug)).toEqual(['issue-triage-line', 'label-sync']);
+
+    expect(poll.runs[0]).toEqual({
+      path: '.github/workflows/factory--issue-triage-line.yml',
+      slug: 'issue-triage-line',
+      runId: 101,
+      runNumber: 5,
+      status: 'in_progress',
+      conclusion: null,
+      event: 'issues',
+      htmlUrl: 'https://github.com/o/r/actions/runs/101',
+      runStartedAt: '2026-07-01T10:00:00Z',
+      updatedAt: '2026-07-01T10:05:00Z',
+      createdAt: '2026-07-01T10:00:00Z',
+    });
+    expect(poll.runs[1].conclusion).toBe('success');
+
+    // Hits the Actions runs endpoint with the default per_page.
+    const [url, init] = callMatching(fetchImpl, (u) => u.includes('/actions/runs'));
+    expect(url).toBe('https://api.github.com/repos/o/r/actions/runs?per_page=30');
+    expect(init.method).toBe('GET');
+    expect(headerOf(init, 'Authorization')).toBe('Bearer tok');
+    // No conditional header when no prior etag is supplied.
+    expect(headerOf(init, 'If-None-Match')).toBeUndefined();
+  });
+
+  it('sends If-None-Match from opts.etag and returns notModified on a 304', async () => {
+    const { client, fetchImpl } = await connect(
+      () =>
+        new Response(null, {
+          status: 304,
+          headers: { 'x-ratelimit-remaining': '4998' },
+        }),
+    );
+
+    const poll = await client.listFactoryRuns(REPO, { etag: 'W/"prev"' });
+    expect(poll).toEqual({
+      runs: [],
+      etag: 'W/"prev"',
+      notModified: true,
+      rateRemaining: 4998,
+    });
+
+    const [, init] = callMatching(fetchImpl, (u) => u.includes('/actions/runs'));
+    expect(headerOf(init, 'If-None-Match')).toBe('W/"prev"');
+  });
+
+  it('returns an empty non-modified poll (no throw) when Actions is forbidden (403)', async () => {
+    const { client } = await connect(
+      () => new Response('{"message":"Forbidden"}', { status: 403 }),
+    );
+    const poll = await client.listFactoryRuns(REPO);
+    expect(poll).toEqual({ runs: [], etag: null, notModified: false, rateRemaining: null });
+  });
+});

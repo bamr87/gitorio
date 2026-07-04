@@ -1,9 +1,19 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { machineDef } from '../machines/registry';
+import { useTelemetryStore } from '../state/telemetry';
+import type { LedState } from '../github/types';
 import type { MachineNodeType } from '../state/store';
 
-export function MachineNode({ data, selected }: NodeProps<MachineNodeType>) {
+const LED_TITLE: Record<LedState, string> = {
+  on: 'Last run: success',
+  warn: 'Run in progress',
+  bad: 'Last run: failed',
+  idle: 'No recent run',
+};
+
+export function MachineNode({ id, data, selected }: NodeProps<MachineNodeType>) {
   const def = machineDef(data.machineType);
+  const led = useTelemetryStore((s) => s.statusByNode[id] ?? 'idle');
   if (!def) {
     return <div className="machine machine--unknown">unknown: {data.machineType}</div>;
   }
@@ -14,7 +24,7 @@ export function MachineNode({ data, selected }: NodeProps<MachineNodeType>) {
           {def.icon}
         </span>
         <span className="machine__label">{def.label}</span>
-        <span className="led led--idle" title="No telemetry yet — lights up in seed 04" />
+        <span className={`led led--${led}`} title={LED_TITLE[led]} />
       </div>
       <div className="machine__body">{def.describe(data.config)}</div>
       {def.category !== 'trigger' && (

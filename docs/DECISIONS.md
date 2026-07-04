@@ -33,6 +33,20 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-04 — ADR-010: Telemetry is ETag-polled and follows the open panel (MVP / seed 04)
+Built the Phase-4 telemetry MVP. Shape decisions: (1) **Poll, don't push.** No webhook
+worker — `client.listFactoryRuns` does a conditional GET on `/actions/runs` with
+`If-None-Match`; a 304 is free, so a 15s interval stays cheap. (2) **Poll only the open
+factory.** Polling starts when the telemetry panel opens and stops when it closes or the
+repo disconnects (ARCHITECTURE §6 rate-hygiene) — no background polling. (3) **Pure
+mapping split from I/O.** `github/telemetry.ts` (LED/stats, 11 tests) is pure; the store
+just wires runs → `assemblyLines(blueprint)` → per-node LEDs. To map a `factory--<slug>`
+run back onto its machines, refactored the compiler to export `assemblyLines()` — one
+partition helper now shared by `compile()` and telemetry so filenames line up exactly.
+Scope: run *list* (conclusion/duration/link) shipped; jobs drill-down + log-zip viewing
+(fflate) and per-line stat rows deferred to backlog. Alt: webhook→SSE push (rejected for
+MVP — needs the optional worker, breaks the zero-backend premise).
+
 ## 2026-07-04 — ADR-009: Loop guards check the event actor (sender), not the entity author
 Fixed the flagged `issue_labeled` loop-guard bug by making the compiler's bot guard
 actor-based: one `github.event.sender.type != 'Bot'` clause per loopy line, replacing the

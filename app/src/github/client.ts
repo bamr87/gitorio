@@ -10,12 +10,15 @@
 
 import type {
   ActionsPublicKey,
+  FactoryRun,
   GithubClient,
   PermState,
   Preflight,
   RepoDirEntry,
   RepoFile,
   RepoRef,
+  RunConclusion,
+  RunsPoll,
 } from './types';
 import { GithubError } from './types';
 
@@ -23,6 +26,23 @@ const BASE = 'https://api.github.com';
 
 /** A token-bound request function. `<T>` is the parsed JSON body (or `undefined` for empty responses). */
 type RequestFn = <T>(method: string, path: string, body?: unknown) => Promise<T>;
+
+/** Standard GitHub REST auth + versioning headers for `token`. Fresh object per call. */
+function authHeaders(token: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+}
+
+/** Parse the `x-ratelimit-remaining` response header to a number, or `null` if absent/NaN. */
+function parseRateRemaining(res: Response): number | null {
+  const raw = res.headers.get('x-ratelimit-remaining');
+  if (raw === null) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
 
 // ── low-level transport ────────────────────────────────────────────────
 
@@ -49,11 +69,7 @@ async function readError(res: Response): Promise<string> {
 function makeRequest(token: string, fetchImpl: typeof fetch): RequestFn {
   return async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
     const url = `${BASE}${path}`;
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28',
-    };
+    const headers = authHeaders(token);
     const init: RequestInit = { method, headers };
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
@@ -122,10 +138,15 @@ export async function connectWithPat(
     throw err;
   }
 
-  return buildClient(login, request);
+  return buildClient(login, request, token, fetchImpl);
 }
 
-function buildClient(login: string, request: RequestFn): GithubClient {
+function buildClient(
+  login: string,
+  request: RequestFn,
+  token: string,
+  fetchImpl: typeof fetch,
+): GithubClient {
   /** GET a probe URL; never throws. 200 → ok, 403 → missing, anything else → unknown. */
   const probe = async (path: string): Promise<PermState> => {
     try {
@@ -322,7 +343,73 @@ function buildClient(login: string, request: RequestFn): GithubClient {
         { encrypted_value: encryptedValue, key_id: keyId },
       );
     },
+
+    async listFactoryRuns(
+      repo: RepoRef,
+      opts?: { etag?: string | null; perPage?: number },
+    ): Promise<RunsPoll> {
+      // Direct fetch (not the request() helper) so we can read response headers — ETag for
+      // conditional polling + x-ratelimit-remaining for polite backoff — and treat
+      // 304/403/404 as non-fatal (a repo may have Actions disabled or no run history).
+      const perPage = opts?.perPage ?? 30;
+      const url = `${BASE}/repos/${repo.owner}/${repo.repo}/actions/runs?per_page=${perPage}`;
+      const headers = authHeaders(token);
+      if (opts?.etag) headers['If-None-Match'] = opts.etag;
+
+      const res = await fetchImpl(url, { method: 'GET', headers });
+      const rateRemaining = parseRateRemaining(res);
+
+      // 304 Not Modified — nothing changed since the prior ETag; costs no rate quota.
+      if (res.status === 304) {
+        return { runs: [], etag: opts?.etag ?? null, notModified: true, rateRemaining };
+      }
+      // Actions disabled (403) or no such repo/endpoint (404) — report an empty history.
+      if (res.status === 403 || res.status === 404) {
+        return { runs: [], etag: null, notModified: false, rateRemaining };
+      }
+      if (!res.ok) {
+        throw new GithubError(await readError(res), res.status, url);
+      }
+
+      const body = (await res.json()) as { workflow_runs?: RawWorkflowRun[] };
+      const raw = Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
+      const runs: FactoryRun[] = raw
+        .filter((r) => r.path.startsWith('.github/workflows/factory--'))
+        .map((r) => ({
+          path: r.path,
+          slug: r.path
+            .replace(/^\.github\/workflows\/factory--/, '')
+            .replace(/\.ya?ml$/, ''),
+          runId: r.id,
+          runNumber: r.run_number,
+          status: r.status,
+          conclusion: r.conclusion ?? null,
+          event: r.event,
+          htmlUrl: r.html_url,
+          runStartedAt: r.run_started_at ?? null,
+          updatedAt: r.updated_at,
+          createdAt: r.created_at,
+        }))
+        // Safety net: the API returns newest-first, but sort explicitly by createdAt desc.
+        .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
+
+      return { runs, etag: res.headers.get('etag'), notModified: false, rateRemaining };
+    },
   };
 
   return client;
+}
+
+/** The subset of the Actions `workflow_runs` payload this client consumes. */
+interface RawWorkflowRun {
+  id: number;
+  run_number: number;
+  status: string;
+  conclusion: RunConclusion;
+  event: string;
+  html_url: string;
+  path: string;
+  run_started_at?: string | null;
+  updated_at: string;
+  created_at: string;
 }

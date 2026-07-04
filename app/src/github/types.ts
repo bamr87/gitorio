@@ -114,6 +114,51 @@ export interface DriftItem {
   drifted: boolean;
 }
 
+// ── telemetry (seed 04) ────────────────────────────────────────────────
+
+/** Machine/line LED semantics (ARCHITECTURE §6): success / running / failed / never-ran. */
+export type LedState = 'on' | 'warn' | 'bad' | 'idle';
+
+/** A conclusion string from the Actions API, or null while a run is still in progress. */
+export type RunConclusion =
+  | 'success'
+  | 'failure'
+  | 'cancelled'
+  | 'timed_out'
+  | 'skipped'
+  | 'action_required'
+  | 'neutral'
+  | 'stale'
+  | 'startup_failure'
+  | null;
+
+/** One GitHub Actions run of a `factory--*` workflow. */
+export interface FactoryRun {
+  /** Workflow file path, e.g. `.github/workflows/factory--issue-triage-line.yml`. */
+  path: string;
+  /** Slug parsed from the path, e.g. `issue-triage-line`. */
+  slug: string;
+  runId: number;
+  runNumber: number;
+  status: 'queued' | 'in_progress' | 'completed' | (string & {});
+  conclusion: RunConclusion;
+  event: string;
+  htmlUrl: string;
+  /** ISO timestamps; runStartedAt is null before the run actually starts. */
+  runStartedAt: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+
+/** Result of a conditional (ETag) runs poll. A 304 sets `notModified` and empty `runs`. */
+export interface RunsPoll {
+  runs: FactoryRun[];
+  etag: string | null;
+  notModified: boolean;
+  /** `x-ratelimit-remaining` header value when present, for polite backoff. */
+  rateRemaining: number | null;
+}
+
 /**
  * Transport surface. Implemented by a thin fetch-based client (no Octokit dep — keeps
  * the static bundle lean and trivially mockable via `globalThis.fetch`). Every method
@@ -170,6 +215,13 @@ export interface GithubClient {
 
   /** Create/update an Actions secret with an already sealed-box-encrypted value. */
   putSecret(repo: RepoRef, name: string, encryptedValue: string, keyId: string): Promise<void>;
+
+  /**
+   * List recent runs of `factory--*` workflows, newest first. Pass a prior `etag` for a
+   * conditional request — a 304 returns `{ notModified: true, runs: [] }` and costs no
+   * rate quota. Never throws for an empty/absent Actions history.
+   */
+  listFactoryRuns(repo: RepoRef, opts?: { etag?: string | null; perPage?: number }): Promise<RunsPoll>;
 }
 
 /** Error carrying the HTTP status so callers can branch on 401/403/404/422. */

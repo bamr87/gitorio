@@ -8,8 +8,10 @@ import { Inspector } from './panels/Inspector';
 import { CompileDrawer } from './panels/CompileDrawer';
 import { ConnectDialog } from './panels/ConnectDialog';
 import { DeployModal } from './panels/DeployModal';
+import { TelemetryPanel } from './panels/TelemetryPanel';
 import { useFactoryStore } from './state/store';
 import { useGithubStore } from './state/github';
+import { useTelemetryStore } from './state/telemetry';
 import { repoSlug } from './github/types';
 import {
   decodeBlueprintString,
@@ -36,14 +38,37 @@ export default function App() {
   const drift = useGithubStore((s) => s.drift);
   const clearDrift = useGithubStore((s) => s.clearDrift);
   const restore = useGithubStore((s) => s.restore);
+  const telemetryStart = useTelemetryStore((s) => s.start);
+  const telemetryStop = useTelemetryStore((s) => s.stop);
   const fileRef = useRef<HTMLInputElement>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | 'connect' | 'deploy'>(null);
+  const [showTelemetry, setShowTelemetry] = useState(false);
 
   // Reconnect from a sessionStorage PAT if this tab already has one.
   useEffect(() => {
     restore();
   }, [restore]);
+
+  // Polling follows the panel: only the open factory polls (ARCHITECTURE §6). Stop on
+  // unmount, and stop + hide if the repo disconnects out from under an open panel.
+  useEffect(() => () => telemetryStop(), [telemetryStop]);
+  useEffect(() => {
+    if (!login && showTelemetry) {
+      telemetryStop();
+      setShowTelemetry(false);
+    }
+  }, [login, showTelemetry, telemetryStop]);
+
+  const toggleTelemetry = () => {
+    if (showTelemetry) {
+      telemetryStop();
+      setShowTelemetry(false);
+    } else {
+      telemetryStart();
+      setShowTelemetry(true);
+    }
+  };
 
   const say = (msg: string) => {
     setFlash(msg);
@@ -110,6 +135,16 @@ export default function App() {
           >
             🚀 Deploy
           </button>
+          {login && (
+            <button
+              type="button"
+              className={`btn${showTelemetry ? ' btn--primary' : ''}`}
+              onClick={toggleTelemetry}
+              title="Poll factory workflow runs and light up the machines"
+            >
+              📊 Telemetry
+            </button>
+          )}
           <span className="power" title="Power = ANTHROPIC_API_KEY secret on the target repo.">
             <span className={`led led--${power === 'on' ? 'on' : power === 'off' ? 'off' : 'idle'}`} />
             {power === 'on' ? 'power' : power === 'off' ? 'no power' : '—'}
@@ -147,6 +182,7 @@ export default function App() {
 
         <CompileDrawer />
         {flash && <div className="flash">{flash}</div>}
+        {showTelemetry && <TelemetryPanel onClose={toggleTelemetry} />}
         {dialog === 'connect' && <ConnectDialog onClose={() => setDialog(null)} />}
         {dialog === 'deploy' && <DeployModal onClose={() => setDialog(null)} />}
       </div>

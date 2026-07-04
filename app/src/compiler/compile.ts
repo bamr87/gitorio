@@ -102,6 +102,39 @@ function downstream(startId: string, bp: Blueprint): Set<string> {
   return seen;
 }
 
+// ── assembly-line partitioning (shared by compile + telemetry) ─────────
+
+/** One connected component that owns a workflow file. */
+export interface AssemblyLine {
+  filename: string;
+  slug: string;
+  name: string;
+  nodeIds: string[];
+}
+
+/** Naming must match compile()'s: single line uses the meta name; multiple are suffixed. */
+function lineName(bp: Blueprint, count: number, idx: number): string {
+  return count === 1 ? bp.meta.name : `${bp.meta.name} ${idx + 1}`;
+}
+
+function triggeredComponents(bp: Blueprint): BlueprintNode[][] {
+  return connectedComponents(bp).filter((comp) => comp.some((n) => TRIGGERS.has(n.type)));
+}
+
+/**
+ * Which machines belong to which emitted workflow file. Lets telemetry map a
+ * `factory--<slug>.yml` run back onto the nodes it should light up. Pure; the naming
+ * is derived identically to compile() so filenames line up exactly.
+ */
+export function assemblyLines(bp: Blueprint): AssemblyLine[] {
+  const comps = triggeredComponents(bp);
+  return comps.map((comp, idx) => {
+    const name = lineName(bp, comps.length, idx);
+    const slug = kebab(name);
+    return { filename: `factory--${slug}.yml`, slug, name, nodeIds: comp.map((n) => n.id) };
+  });
+}
+
 // ── per-sink knowledge ─────────────────────────────────────────────────
 
 function obligationFor(sink: BlueprintNode, entityExpr: string): string {
@@ -166,7 +199,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
 
   comps.forEach((comp, idx) => {
     const diags: Diagnostic[] = [];
-    const name = comps.length === 1 ? bp.meta.name : `${bp.meta.name} ${idx + 1}`;
+    const name = lineName(bp, comps.length, idx);
     const slug = kebab(name);
     const filename = `factory--${slug}.yml`;
 

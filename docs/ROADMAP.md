@@ -31,10 +31,14 @@ Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and
 - Note: repo *picker* is a text field for the MVP (list picker = backlog); live
   end-to-end demo on a scratch repo pending a user PAT.
 
-## Phase 4 — Telemetry (seeds/04)
-- [ ] Runs polling with ETag conditional requests; status LEDs on machines
-- [ ] Run drawer: jobs, conclusion, duration; log zip fetch + view
-- [ ] Dashboard: throughput, success rate, p50 duration per assembly line
+## Phase 4 — Telemetry (seeds/04) — MVP ✅
+- [x] Runs polling with ETag conditional requests (304s are free); status LEDs on machines
+      (green=success, amber=running, red=failed, grey=idle) via `assemblyLines` mapping.
+      Polling follows the open panel only (rate-hygiene).
+- [x] Run list: conclusion, duration, event, deep link per `factory--*` run
+      — jobs drill-down + log-zip (fflate) view deferred to backlog
+- [x] Dashboard: total runs, success rate, in-progress, p50 duration (global). Per-line
+      status is the machine LEDs; per-line stat *rows* (`statsByLine` exists, tested) = backlog.
 
 ## Phase 5 — Prompt Studio (seeds/05)
 - [ ] Prompt list/edit/diff; PR-by-default writes; frontmatter form
