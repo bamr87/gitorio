@@ -314,3 +314,56 @@ body {
 .telemetry__ago { color: var(--dim); font-family: var(--readout); font-size: 11px; flex: 1; }
 .telemetry__err { color: var(--alarm); font-family: var(--readout); font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; }
 .telemetry__foot .btn--small { margin-left: auto; }
+
+/* ── observe mode: fleet map ─────────────────────────────────────────── */
+.observe-bar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 7px 14px; background: var(--panel); border-bottom: 1px solid var(--seam);
+  font-family: var(--readout); font-size: 12px;
+}
+.observe-bar__title { color: var(--ink); }
+.observe-bar__title b { color: var(--steel); }
+.observe-bar__stat { color: var(--dim); font-size: 11px; }
+.observe-bar__spacer { flex: 1; }
+.observe-bar__legend { display: flex; align-items: center; gap: 6px; color: var(--dim); font-size: 10px; }
+.observe-bar__legend .led { margin-left: 8px; }
+.observe-bar__poll { display: flex; align-items: center; gap: 5px; color: var(--copper); font-size: 11px; }
+
+/* workflow node (read-only) */
+.wfnode {
+  min-width: 200px; max-width: 240px;
+  background: var(--panel-2); border: 1px solid var(--seam); border-top: 3px solid var(--dim);
+  border-radius: 6px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45); font-family: var(--readout);
+}
+.wfnode--agent { border-top-color: var(--steel); }
+.wfnode__head { display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-bottom: 1px solid var(--seam); }
+.wfnode__triggers { font-size: 12px; }
+.wfnode__name { font-size: 12px; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wfnode__agent { padding: 5px 10px; font-size: 11px; color: var(--steel); display: flex; align-items: center; gap: 6px; }
+.wfnode__runner { color: var(--dim); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; margin-left: auto; }
+.wfnode__sinks { display: flex; flex-wrap: wrap; gap: 4px; padding: 7px 10px; }
+.wfnode__none { color: var(--dim); font-size: 10px; font-style: italic; }
+.sinkbadge {
+  font-size: 9.5px; padding: 1px 6px; border-radius: 10px;
+  border: 1px solid var(--seam); color: var(--dim); background: var(--floor);
+}
+.sinkbadge--in { border-color: var(--signal); color: var(--signal); }
+.sinkbadge--cross { border-color: var(--steel); color: var(--steel); }
+.wfnode__gate {
+  padding: 4px 10px; border-top: 1px solid var(--seam);
+  font-size: 10px; color: var(--copper); letter-spacing: 0.04em;
+}
+
+/* external repo station */
+.extnode {
+  display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+  background: var(--panel); border: 1px dashed var(--steel); border-radius: 8px;
+  font-family: var(--readout); font-size: 12px; color: var(--steel); min-width: 150px;
+}
+.extnode__icon { font-size: 16px; }
+
+/* cross-repo belts read differently from workflow_run chains */
+.react-flow__edge.fleetedge--cross_repo .react-flow__edge-path {
+  stroke: var(--steel); stroke-width: 2; stroke-dasharray: 6 4;
+}
+.react-flow__edge.fleetedge--cross_repo .react-flow__edge-text { fill: var(--steel); }

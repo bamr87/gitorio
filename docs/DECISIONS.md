@@ -33,6 +33,25 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-04 — ADR-011: Observe mode reverse-imports workflows as a fleet map, not authoring machines
+To make GitFactory plug-and-play against ANY repo (starting with the real, hand-built
+`lifehacker.dev`), added a read-only **Observe mode** that reverse-imports
+`.github/workflows/*.yml`. Key decision: do NOT decompose arbitrary workflows into the 13
+authoring machine types — they use `workflow_run` chains, matrix fan-out, gate jobs, and a
+custom `claude-run` runner that don't fit and would misrepresent. Instead render **one node
+per workflow** with belts for `workflow_run` chains (intra-repo) and `--repo` issue-filing
+(cross-repo to external-repo "station" nodes). Why: faithful to how a real fleet actually
+works (event-driven between workflows), and it generalizes to any repo. The parser
+(`fleet/parse.ts`) is pure and total (never throws) and mixes YAML-structure reads with
+raw-text regex scans (robust across the shapes real workflows take); it correctly recovered
+lifehacker's `pipeline → auto-*` hub and cross-repo edges to `zer0-mistakes`/`it-journey`.
+Telemetry run-polling was generalized with a `pathPrefix` param (authored `factory--*`
+default; observe passes `.github/workflows/`). Each canvas now owns its own
+`ReactFlowProvider` (the shared one bled `machine` nodes into the fleet flow). A DEV-only
+`__fleetStore` window hook (tree-shaken from prod) enables tokenless UI smoke tests.
+Read-only per the user's "decide writes per-action later"; write paths (multi-repo, cross-
+repo authoring) are Phases B/C. Alt: shoehorn into authoring types (rejected: lossy).
+
 ## 2026-07-04 — ADR-010: Telemetry is ETag-polled and follows the open panel (MVP / seed 04)
 Built the Phase-4 telemetry MVP. Shape decisions: (1) **Poll, don't push.** No webhook
 worker — `client.listFactoryRuns` does a conditional GET on `/actions/runs` with

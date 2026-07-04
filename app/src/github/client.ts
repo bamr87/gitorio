@@ -346,11 +346,14 @@ function buildClient(
 
     async listFactoryRuns(
       repo: RepoRef,
-      opts?: { etag?: string | null; perPage?: number },
+      opts?: { etag?: string | null; perPage?: number; pathPrefix?: string },
     ): Promise<RunsPoll> {
       // Direct fetch (not the request() helper) so we can read response headers — ETag for
       // conditional polling + x-ratelimit-remaining for polite backoff — and treat
       // 304/403/404 as non-fatal (a repo may have Actions disabled or no run history).
+      // pathPrefix defaults to authored factories; observe mode passes the broader
+      // '.github/workflows/' to see an entire repo's fleet.
+      const prefix = opts?.pathPrefix ?? '.github/workflows/factory--';
       const perPage = opts?.perPage ?? 30;
       const url = `${BASE}/repos/${repo.owner}/${repo.repo}/actions/runs?per_page=${perPage}`;
       const headers = authHeaders(token);
@@ -374,11 +377,12 @@ function buildClient(
       const body = (await res.json()) as { workflow_runs?: RawWorkflowRun[] };
       const raw = Array.isArray(body.workflow_runs) ? body.workflow_runs : [];
       const runs: FactoryRun[] = raw
-        .filter((r) => r.path.startsWith('.github/workflows/factory--'))
+        .filter((r) => r.path.startsWith(prefix))
         .map((r) => ({
           path: r.path,
           slug: r.path
-            .replace(/^\.github\/workflows\/factory--/, '')
+            .replace(/^\.github\/workflows\//, '')
+            .replace(/^factory--/, '')
             .replace(/\.ya?ml$/, ''),
           runId: r.id,
           runNumber: r.run_number,

@@ -54,6 +54,22 @@ Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and
 - [ ] Device-flow auth; installation picker; PAT path kept as fallback
 - [ ] Multi-repo factory switcher
 
+## Fleet / plug-and-play (apply GitFactory to any repo, multi-repo, cross-repo)
+Goal: point GitFactory at *various* repos, *multiple* at once, and see automation
+*between* repos — grounded in the real lifehacker.dev fleet (see ADR-011/012).
+- [x] **A — Observe mode.** Reverse-import any repo's `.github/workflows/*.yml` into a
+      read-only fleet map: one node per workflow, `workflow_run` belts, cross-repo `--repo`
+      belts to external-repo stations, live telemetry LEDs. Generalized run polling beyond
+      `factory--*`. Validated against `bamr87/lifehacker.dev` (14 workflows, `pipeline` hub →
+      `auto-*`, cross-repo to `zer0-mistakes` + `it-journey`). (ADR-011)
+- [ ] **B — Multi-repo fleet switcher.** Connect N repos (persist slugs, never tokens);
+      switch between them; telemetry across all.
+- [ ] **C — Cross-repo edges.** `sink.cross_repo_issue` (+ `repository_dispatch`) machine
+      matching the proven `gh … --repo` + scoped-PAT pattern; inter-repo belts on a combined
+      fleet canvas; authorable + deployable.
+- Backlog for this track: import fidelity (agent-authored sinks like content-factory's PR
+  aren't visible in static YAML — mark "agent-driven"); jobs/log drill-down in observe mode.
+
 ## Backlog
 - Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
   webhook worker + SSE live belts; multi-repo train stations.

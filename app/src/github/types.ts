@@ -221,7 +221,10 @@ export interface GithubClient {
    * conditional request — a 304 returns `{ notModified: true, runs: [] }` and costs no
    * rate quota. Never throws for an empty/absent Actions history.
    */
-  listFactoryRuns(repo: RepoRef, opts?: { etag?: string | null; perPage?: number }): Promise<RunsPoll>;
+  listFactoryRuns(
+    repo: RepoRef,
+    opts?: { etag?: string | null; perPage?: number; pathPrefix?: string },
+  ): Promise<RunsPoll>;
 }
 
 /** Error carrying the HTTP status so callers can branch on 401/403/404/422. */

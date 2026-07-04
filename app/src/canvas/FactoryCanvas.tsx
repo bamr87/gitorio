@@ -4,6 +4,7 @@ import {
   BackgroundVariant,
   Controls,
   ReactFlow,
+  ReactFlowProvider,
   useReactFlow,
   type OnSelectionChangeParams,
 } from '@xyflow/react';
@@ -13,7 +14,17 @@ import { MachineNode } from './MachineNode';
 const nodeTypes = { machine: MachineNode };
 export const DRAG_MIME = 'application/gitfactory-machine';
 
+// Own provider so the authoring flow's store never bleeds into the observe-mode
+// FleetCanvas (which has different node types). Only one canvas mounts at a time.
 export function FactoryCanvas() {
+  return (
+    <ReactFlowProvider>
+      <FactoryCanvasInner />
+    </ReactFlowProvider>
+  );
+}
+
+function FactoryCanvasInner() {
   const nodes = useFactoryStore((s) => s.nodes);
   const edges = useFactoryStore((s) => s.edges);
   const onNodesChange = useFactoryStore((s) => s.onNodesChange);

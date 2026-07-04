@@ -81,6 +81,11 @@ npm run build      # typecheck + production build to app/dist
   (`client.listFactoryRuns` + pure `github/telemetry.ts`), machine status LEDs via
   `compile.assemblyLines()`, and a floating panel (stats + run list) that polls only while
   open. Verified green: 66 tests, typecheck, build, render smoke.
+- ✅ Observe mode (plug-and-play, Phase A): reverse-import ANY repo's
+  `.github/workflows/*.yml` into a read-only **fleet map** — one node per workflow,
+  `workflow_run` + cross-repo belts, live telemetry LEDs. Pure parser (`fleet/parse.ts`)
+  + `fleet/import.ts` + `FleetCanvas`. Validated on the real `lifehacker.dev` fleet. Next:
+  multi-repo switcher (B), cross-repo machine (C) — see ROADMAP § Fleet.
 - ⬜ Not wired yet: prompt studio (seed 05), agent patterns (seed 06), GitHub App auth (seed 07).
 - Known rough edges: inspector forms are unvalidated; no undo; palette drag has no
   touch support; compiler covers the 13 v0 machine types only. See `docs/ROADMAP.md
