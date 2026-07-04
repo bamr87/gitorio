@@ -37,6 +37,29 @@ Open the canvas, drag machines from the palette, connect belts, press **Compile*
 see the generated workflows. GitHub connectivity, telemetry, and the prompt studio
 land in later phases — see `docs/ROADMAP.md`.
 
+### Run with Docker
+
+No local Node needed — everything runs in a container:
+
+```bash
+docker compose up dev                       # dev server + HMR → http://localhost:5173
+docker compose run --rm dev npm test         # run the vitest suite
+docker compose run --rm dev npm run build    # produce app/dist
+docker compose --profile preview up --build  # production build via nginx → http://localhost:8080
+docker compose down                          # stop everything
+```
+
+Your working tree is mounted into the `dev` container, so edits hot-reload
+(`VITE_USE_POLLING=true` keeps HMR reliable across the macOS ↔ container boundary).
+
+### Debugging in VS Code
+
+`.vscode/launch.json` ships ready-to-run configs (press **F5**):
+
+- **Debug in Chrome (Docker dev)** — starts the dev server in Docker, then opens Chrome with source-mapped breakpoints.
+- **Debug in Chrome (npm dev)** — same, using local Node instead of Docker.
+- **Vitest: all tests** / **Vitest: current file** — breakpoint-debug the test suite.
+
 ## Building this with Claude Code
 
 This repo is designed to be **built by Claude Code, session by session**:

@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.vite
+.git
+.vscode
+.playwright-mcp
+*.log
+.DS_Store
+.env
+.env.*
+Dockerfile
+.dockerignore

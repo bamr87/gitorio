@@ -1,0 +1,33 @@
+# Local Docker runtime for the GitFactory frontend.
+#
+#   docker compose up dev                     → dev server + HMR at http://localhost:5173
+#   docker compose --profile preview up        → production build via nginx at http://localhost:8080
+#   docker compose run --rm dev npm test        → run the vitest suite in the container
+#   docker compose run --rm dev npm run build   → produce app/dist
+#
+# The `dev` service mounts your working tree, so edits hot-reload; the container keeps its
+# own node_modules (anonymous volume) so host/container arch differences don't collide.
+
+services:
+  dev:
+    build:
+      context: ./app
+      target: dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./app:/app
+      - /app/node_modules
+    environment:
+      VITE_USE_POLLING: "true"
+    stdin_open: true
+    tty: true
+
+  preview:
+    build:
+      context: ./app
+      target: prod
+    ports:
+      - "8080:80"
+    profiles:
+      - preview
