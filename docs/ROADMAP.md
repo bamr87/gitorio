@@ -56,12 +56,10 @@ Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and
 
 ### Parked by the 2026-07-03 foundation review
 Correctness (compiler):
-- **[security] `issue_labeled` loop guard checks the wrong identity** —
-  `app/src/compiler/compile.ts:262` guards on `github.event.issue.user.type` (the issue
-  *author*), but the actor on a `labeled` event is `github.event.sender`. A bot/App-applied
-  label on a human-authored issue slips the guard → `issue_labeled → agent → sink.label`
-  can self-retrigger. Use `github.event.sender.type` / `github.actor` for labeled triggers.
-  (Violates golden rule #6 — fix with a regression test.)
+- ~~**[security] `issue_labeled` loop guard checks the wrong identity**~~ — ✅ FIXED
+  2026-07-04 (ADR-009): the guard now checks the event actor `github.event.sender.type`
+  (correct for `labeled` and `pull_request.synchronize`), not the entity author. Regression
+  tests added.
 - **`sink.commit_files` / `sink.open_pr` under-provisioned** — `compile.ts:125-147`:
   obligations tell the agent to branch/commit/push and `permissions` grants
   `contents: write`, but `toolsFor` has no `commit_files` case (falls through to `[]`) and
@@ -69,10 +67,9 @@ Correctness (compiler):
   the current `claude-code-action@v1` `action.yml` (golden rule #4).
 
 Test coverage (golden rule #3):
-- **7 of 13 machine types have zero invariant tests** — `compile.test.ts` covers only
-  `issue_opened, comment, cron, agent.claude, sink.comment, sink.label`. Add tests for
-  `trigger.issue_labeled, trigger.pr_opened, trigger.manual, filter.condition,
-  sink.create_issue, sink.open_pr, sink.commit_files`.
+- **5 of 13 machine types have zero invariant tests** — `compile.test.ts` now also covers
+  `issue_labeled` + `pr_opened` (added with the ADR-009 guard fix). Still untested:
+  `trigger.manual, filter.condition, sink.create_issue, sink.open_pr, sink.commit_files`.
 - **Drift-guard test**: assert `MACHINES.map(m => m.type)` deep-equals the schema `type`
   enum and the compiler's `TRIGGERS`/`SINKS` sets (single source of truth for machine types).
 

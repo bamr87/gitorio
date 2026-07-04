@@ -80,8 +80,58 @@ describe('compile: integrated agent line (trigger → agent → sinks)', () => {
     expect(wf.yaml).toContain('factory--issue-triage-line-${{ github.event.issue.number');
   });
 
-  it('injects the bot loop-guard', () => {
-    expect(wf.yaml).toContain("github.event.issue.user.type != 'Bot'");
+  it('injects the bot loop-guard on the event actor (sender), not the author', () => {
+    expect(wf.yaml).toContain("github.event.sender.type != 'Bot'");
+    expect(wf.yaml).not.toContain('github.event.issue.user.type');
+  });
+});
+
+describe('compile: loop-guard identity (regression, golden rule #6)', () => {
+  // Bug: the guard checked github.event.issue.user.type (the issue AUTHOR). On an
+  // issues.labeled event the actor is the LABELLER (github.event.sender), so a bot
+  // applying a label to a human-authored issue passed the guard and the line
+  // (issue_labeled → agent → sink.label) could retrigger itself forever.
+  const labeledLine: Blueprint = {
+    version: 1,
+    meta: { name: 'Relabeler' },
+    nodes: [
+      node('t', 'trigger.issue_labeled', { label: 'needs-triage' }),
+      node('a', 'agent.claude', { promptRef: 'p.md' }),
+      node('s', 'sink.label', { labels: 'triaged' }),
+    ],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+  };
+
+  it('guards issue_labeled on the actor (sender), never the issue author', () => {
+    const wf = compile(labeledLine).workflows[0];
+    expect(wf.yaml).toContain("github.event.sender.type != 'Bot'");
+    // the whole point of the fix — the author check must be gone
+    expect(wf.yaml).not.toContain('github.event.issue.user.type');
+  });
+
+  it('keeps the label-name guard alongside the actor guard', () => {
+    const wf = compile(labeledLine).workflows[0];
+    expect(wf.yaml).toContain('- labeled');
+    expect(wf.yaml).toContain("github.event.label.name == 'needs-triage'");
+  });
+
+  it('guards pull_request (incl. synchronize) on the actor, not the PR author', () => {
+    // A bot pushing to the PR branch fires synchronize; the pusher is the actor, so
+    // pull_request.user (the author) would let the agent-authored push retrigger.
+    const prLine: Blueprint = {
+      version: 1,
+      meta: { name: 'PR Reviewer' },
+      nodes: [
+        node('t', 'trigger.pr_opened', { alsoOnSync: 'yes' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.comment', { instruction: 'reviews the diff' }),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+    };
+    const wf = compile(prLine).workflows[0];
+    expect(wf.yaml).toContain('- synchronize');
+    expect(wf.yaml).toContain("github.event.sender.type != 'Bot'");
+    expect(wf.yaml).not.toContain('github.event.pull_request.user.type');
   });
 });
 

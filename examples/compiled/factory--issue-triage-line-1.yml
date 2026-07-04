@@ -18,7 +18,7 @@ concurrency:
 jobs:
   line:
     runs-on: ubuntu-latest
-    if: ${{ github.event.issue.user.type != 'Bot' }}
+    if: ${{ github.event.sender.type != 'Bot' }}
     permissions:
       contents: read
       issues: write

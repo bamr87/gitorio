@@ -80,8 +80,9 @@ npm run build      # typecheck + production build to app/dist
 - ⬜ Not wired yet: telemetry (seed 04), prompt studio (seed 05), GitHub App auth (seed 07).
 - Known rough edges: inspector forms are unvalidated; no undo; palette drag has no
   touch support; compiler covers the 13 v0 machine types only. See `docs/ROADMAP.md
-  § Backlog` for parked review findings (incl. an `issue_labeled` loop-guard bug and
-  7 machine types without invariant tests).
+  § Backlog` for remaining parked review findings (5 machine types still without
+  invariant tests; `sink.commit_files`/`open_pr` tool-grant gap). The `issue_labeled`
+  loop-guard security bug is fixed (ADR-009).
 
 ## Repo map
 

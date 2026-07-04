@@ -258,10 +258,15 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       workflows.push({ filename, yaml: '', diagnostics: diags });
       return;
     }
-    if (!opts.unsafeNoGuards) {
-      if (hasIssueish) guards.unshift(`github.event.issue.user.type != 'Bot'`);
-      if (hasPr) guards.unshift(`github.event.pull_request.user.type != 'Bot'`);
-      if (hasComment) guards.unshift(`github.event.comment.user.type != 'Bot'`);
+    if (!opts.unsafeNoGuards && (hasIssueish || hasPr || hasComment)) {
+      // Guard on the event ACTOR (github.event.sender), not the entity author.
+      // On issues.labeled the actor is the labeller — NOT github.event.issue.user
+      // (the author); on pull_request.synchronize the actor is the pusher — NOT the
+      // PR author. Checking the author lets a bot's own label/push/commit slip the
+      // guard and retrigger the line (golden rule #6). sender.type == 'Bot' catches
+      // every agent-authored write. For non-event runs (e.g. a merged cron trigger)
+      // github.event.sender is null, so `null != 'Bot'` is true and the run proceeds.
+      guards.unshift(`github.event.sender.type != 'Bot'`);
     }
     for (const f of filters) {
       const expr = s(f.config.expression);

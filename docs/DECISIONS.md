@@ -33,6 +33,21 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-04 — ADR-009: Loop guards check the event actor (sender), not the entity author
+Fixed the flagged `issue_labeled` loop-guard bug by making the compiler's bot guard
+actor-based: one `github.event.sender.type != 'Bot'` clause per loopy line, replacing the
+three entity-author checks (`issue.user` / `pull_request.user` / `comment.user`). Why: the
+author is only incidentally the actor for `issues.opened`; on `issues.labeled` the actor is
+the labeller and on `pull_request.synchronize` the actor is the pusher, so an agent's own
+label/push would pass an author check and retrigger the line (golden rule #6). `sender` is
+the account that caused the event, so `sender.type == 'Bot'` blocks every agent-authored
+write; the three cases collapse to one clause (equivalent for opened/comment, strictly
+correct for labeled/synchronize). For non-event runs (merged cron) `github.event.sender` is
+null and `null != 'Bot'` is true, so those runs still proceed. Regression tests cover
+labeled + synchronize; the reference output in `examples/compiled/` was updated. Alt:
+patch only the labeled path (rejected — leaves the identical PR-synchronize hole and makes
+the guard logic non-uniform).
+
 ## 2026-07-03 — ADR-008: GitHub I/O via a thin fetch client + tweetnacl sealed box (MVP / seed 03)
 Implemented the Phase-3 MVP (connect → load/deploy → power). Two shape decisions:
 (1) **fetch, not Octokit.** The transport client (`app/src/github/client.ts`) is a thin
