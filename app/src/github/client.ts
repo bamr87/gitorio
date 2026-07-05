@@ -18,6 +18,7 @@ import type {
   RepoFile,
   RepoRef,
   RunConclusion,
+  RunJob,
   RunsPoll,
 } from './types';
 import { GithubError } from './types';
@@ -399,9 +400,57 @@ function buildClient(
 
       return { runs, etag: res.headers.get('etag'), notModified: false, rateRemaining };
     },
+
+    async listRunJobs(repo: RepoRef, runId: number): Promise<RunJob[]> {
+      const body = await request<{ jobs?: RawRunJob[] }>(
+        'GET',
+        `/repos/${repo.owner}/${repo.repo}/actions/runs/${runId}/jobs?per_page=50`,
+      );
+      const raw = Array.isArray(body?.jobs) ? body.jobs : [];
+      return raw.map((j) => ({
+        jobId: j.id,
+        name: j.name,
+        status: j.status,
+        conclusion: j.conclusion ?? null,
+        startedAt: j.started_at ?? null,
+        completedAt: j.completed_at ?? null,
+        htmlUrl: j.html_url,
+        steps: (j.steps ?? []).map((st) => ({
+          number: st.number,
+          name: st.name,
+          status: st.status,
+          conclusion: st.conclusion ?? null,
+        })),
+      }));
+    },
+
+    async dispatchWorkflow(repo: RepoRef, workflowFile: string, ref?: string): Promise<void> {
+      const branch = ref ?? (await client.getDefaultBranch(repo));
+      await request(
+        'POST',
+        `/repos/${repo.owner}/${repo.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`,
+        { ref: branch },
+      );
+    },
+
+    async cancelRun(repo: RepoRef, runId: number): Promise<void> {
+      await request('POST', `/repos/${repo.owner}/${repo.repo}/actions/runs/${runId}/cancel`);
+    },
   };
 
   return client;
+}
+
+/** The subset of the Actions `jobs` payload this client consumes. */
+interface RawRunJob {
+  id: number;
+  name: string;
+  status: string;
+  conclusion: RunConclusion;
+  started_at?: string | null;
+  completed_at?: string | null;
+  html_url: string;
+  steps?: { number: number; name: string; status: string; conclusion: RunConclusion | null }[];
 }
 
 /** The subset of the Actions `workflow_runs` payload this client consumes. */

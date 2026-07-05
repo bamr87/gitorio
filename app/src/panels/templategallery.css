@@ -1,0 +1,53 @@
+.tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.tpl {
+  background: var(--panel-2);
+  border: 1px solid var(--seam);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tpl:hover {
+  border-color: var(--copper-dim);
+}
+.tpl__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tpl__icon {
+  font-size: 18px;
+}
+.tpl__name {
+  font-family: var(--readout);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.tpl__blurb {
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.5;
+  flex: 1;
+  margin: 0;
+}
+.tpl__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.tpl__count {
+  font-family: var(--readout);
+  font-size: 10px;
+  color: var(--dim);
+}
+.tpl__foot .btn--small {
+  margin-left: 0;
+}

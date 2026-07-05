@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { importFleet } from '../fleet/import';
 import type { Fleet } from '../fleet/types';
 import { ledForRun } from '../github/telemetry';
-import type { FactoryRun, LedState } from '../github/types';
+import { parseRepo, repoSlug, type FactoryRun, type LedState, type RepoRef } from '../github/types';
 import { useGithubStore } from './github';
 
 // Observe mode: reverse-import the connected repo's workflow fleet and poll its runs.
@@ -27,6 +27,8 @@ function latestByPath(runs: FactoryRun[]): Map<string, FactoryRun> {
 interface FleetState {
   mode: 'author' | 'observe';
   fleet: Fleet | null;
+  /** The repo currently being observed — may differ from the connected repo (fleet switcher). */
+  observedRepo: RepoRef | null;
   loading: boolean;
   error: string | null;
 
@@ -38,6 +40,8 @@ interface FleetState {
 
   /** Import the currently-connected repo's fleet and switch to observe mode. */
   observeCurrentRepo: () => Promise<boolean>;
+  /** Observe an arbitrary repo (owner/name) using the connected session's client. */
+  observeRepo: (slug: string) => Promise<boolean>;
   exitObserve: () => void;
   poll: () => Promise<void>;
 }
@@ -45,6 +49,7 @@ interface FleetState {
 export const useFleetStore = create<FleetState>((set, get) => ({
   mode: 'author',
   fleet: null,
+  observedRepo: null,
   loading: false,
   error: null,
   runs: [],
@@ -54,15 +59,29 @@ export const useFleetStore = create<FleetState>((set, get) => ({
   lastPolledAt: null,
 
   observeCurrentRepo: async () => {
-    const { client, repo } = useGithubStore.getState();
-    if (!client || !repo) {
+    const { repo } = useGithubStore.getState();
+    if (!repo) {
       set({ error: 'Connect a repository first.' });
+      return false;
+    }
+    return get().observeRepo(repoSlug(repo));
+  },
+
+  observeRepo: async (slug) => {
+    const { client } = useGithubStore.getState();
+    if (!client) {
+      set({ error: 'Connect with a token first — observing reads the repo via the session client.' });
+      return false;
+    }
+    const target = parseRepo(slug);
+    if (!target) {
+      set({ error: `Bad repo "${slug}" — expected owner/name.` });
       return false;
     }
     set({ loading: true, error: null });
     try {
-      const fleet = await importFleet(client, repo);
-      set({ fleet, mode: 'observe', loading: false, statusByPath: {}, runs: [], etag: null });
+      const fleet = await importFleet(client, target);
+      set({ fleet, observedRepo: target, mode: 'observe', loading: false, statusByPath: {}, runs: [], etag: null });
       // kick off polling for live status
       if (timer) clearInterval(timer);
       set({ polling: true });
@@ -84,7 +103,8 @@ export const useFleetStore = create<FleetState>((set, get) => ({
   },
 
   poll: async () => {
-    const { client, repo } = useGithubStore.getState();
+    const { client } = useGithubStore.getState();
+    const repo = get().observedRepo;
     if (!client || !repo || get().mode !== 'observe') return;
     try {
       const res = await client.listFactoryRuns(repo, { etag: get().etag, pathPrefix: '.github/workflows/', perPage: 100 });

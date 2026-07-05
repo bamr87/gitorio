@@ -417,3 +417,76 @@ describe('listFactoryRuns', () => {
     expect(poll).toEqual({ runs: [], etag: null, notModified: false, rateRemaining: null });
   });
 });
+
+describe('listRunJobs / dispatchWorkflow / cancelRun (Monitor controls)', () => {
+  it('maps run jobs + steps from the Actions jobs payload', async () => {
+    const { client } = await connect((url) => {
+      if (url.includes('/actions/runs/42/jobs')) {
+        return new Response(
+          JSON.stringify({
+            jobs: [
+              {
+                id: 7,
+                name: 'line',
+                status: 'completed',
+                conclusion: 'success',
+                started_at: '2026-07-05T00:00:00Z',
+                completed_at: '2026-07-05T00:01:30Z',
+                html_url: 'https://github.com/o/r/actions/runs/42/job/7',
+                steps: [
+                  { number: 1, name: 'Set up job', status: 'completed', conclusion: 'success' },
+                  { number: 2, name: '⚙ agent.claude (wa)', status: 'completed', conclusion: 'failure' },
+                ],
+              },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response('{}', { status: 200 });
+    });
+    const jobs = await client.listRunJobs(REPO, 42);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ jobId: 7, name: 'line', conclusion: 'success' });
+    expect(jobs[0].steps[1]).toEqual({
+      number: 2,
+      name: '⚙ agent.claude (wa)',
+      status: 'completed',
+      conclusion: 'failure',
+    });
+  });
+
+  it('dispatches a workflow_dispatch on the default branch when no ref is given', async () => {
+    const { client, fetchImpl } = await connect((url) => {
+      if (url === 'https://api.github.com/repos/o/r') {
+        return new Response(JSON.stringify({ default_branch: 'main' }), { status: 200 });
+      }
+      if (url.includes('/dispatches')) return new Response(null, { status: 204 });
+      return new Response('{}', { status: 200 });
+    });
+    await client.dispatchWorkflow(REPO, 'factory--line.yml');
+    const [url, init] = callMatching(fetchImpl, (u) => u.includes('/dispatches'));
+    expect(url).toBe(
+      'https://api.github.com/repos/o/r/actions/workflows/factory--line.yml/dispatches',
+    );
+    expect(init.method).toBe('POST');
+    expect(jsonBody(init)).toEqual({ ref: 'main' });
+  });
+
+  it('uses the explicit ref when provided and cancels runs via POST', async () => {
+    const { client, fetchImpl } = await connect((url) => {
+      if (url.includes('/dispatches') || url.includes('/cancel')) {
+        return new Response(null, { status: 204 });
+      }
+      return new Response('{}', { status: 200 });
+    });
+    await client.dispatchWorkflow(REPO, 'factory--line.yml', 'dev');
+    expect(jsonBody(callMatching(fetchImpl, (u) => u.includes('/dispatches'))[1])).toEqual({
+      ref: 'dev',
+    });
+    await client.cancelRun(REPO, 99);
+    const [url, init] = callMatching(fetchImpl, (u) => u.includes('/cancel'));
+    expect(url).toBe('https://api.github.com/repos/o/r/actions/runs/99/cancel');
+    expect(init.method).toBe('POST');
+  });
+});

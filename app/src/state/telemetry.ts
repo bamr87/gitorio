@@ -6,8 +6,8 @@ import { useGithubStore } from './github';
 import { useFactoryStore } from './store';
 
 // "Real-time" = polite polling with ETag conditional requests (ARCHITECTURE §6). A 304
-// costs no rate quota, so a tight-ish interval stays cheap.
-const POLL_MS = 15_000;
+// costs no rate quota, so a tight-ish interval stays cheap. Interval comes from user settings.
+import { useSettingsStore } from './settings';
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const errMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
@@ -72,7 +72,8 @@ export const useTelemetryStore = create<TelemetryState>((set, get) => ({
     if (get().polling) return;
     set({ polling: true });
     void get().poll();
-    timer = setInterval(() => void get().poll(), POLL_MS);
+    const pollMs = Math.max(5_000, useSettingsStore.getState().pollMs);
+    timer = setInterval(() => void get().poll(), pollMs);
   },
 
   stop: () => {

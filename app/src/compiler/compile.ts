@@ -31,6 +31,10 @@ export interface CompileOptions {
 
 const AGENT = 'agent.claude';
 const DEPENDABOT_META = 'processor.dependabot_meta';
+const GATE = 'gate.approval';
+const RATE = 'rate.limiter';
+/** Non-trigger, non-sink processors the compiler recognises (each has its own emitter). */
+const PROCESSORS = new Set(['filter.condition', DEPENDABOT_META, GATE, RATE]);
 const TRIGGERS = new Set([
   'trigger.issue_opened',
   'trigger.issue_labeled',
@@ -47,7 +51,10 @@ const SINKS = new Set([
   'sink.open_pr',
   'sink.commit_files',
   'sink.merge_pr',
+  'sink.cross_repo_issue',
 ]);
+// Writing sinks emit a new comment/issue/PR event IN THIS REPO that could retrigger the
+// line. sink.cross_repo_issue writes to ANOTHER repo, so it can't feed this line — kept out.
 const WRITING_SINKS = new Set(['sink.comment', 'sink.create_issue', 'sink.label']);
 // Terminal sinks close/merge the entity — they emit no new comment/issue/PR event, so a
 // line whose only action is terminal can never retrigger itself and needs no bot loop-guard.
@@ -163,6 +170,12 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
       return `[sink.open_pr ${sink.id}] Commit your changes on a new branch${s(c.branchHint) ? ` (\`${s(c.branchHint)}\`)` : ' (factory/*)'} and open a pull request with a clear summary. Never push to the default branch.`;
     case 'sink.commit_files':
       return `[sink.commit_files ${sink.id}] Commit the file changes${s(c.pathScope) ? ` (only within \`${s(c.pathScope)}\`)` : ''} directly with a conventional commit message.`;
+    case 'sink.cross_repo_issue': {
+      const target = s(c.targetRepo, '<targetRepo missing>');
+      const secret = s(c.tokenSecret, 'FLEET_TOKEN');
+      const hint = s(c.titleHint);
+      return `[sink.cross_repo_issue ${sink.id}] File one issue in ${target}: \`GH_TOKEN=$${secret} gh issue create --repo ${target}${hint ? ` --title "${hint}: …"` : ''}\` carrying your findings. The default GITHUB_TOKEN cannot write to other repos — authenticate with the scoped token in \`$${secret}\`. Search first (\`GH_TOKEN=$${secret} gh issue list --repo ${target}\`) and update an existing open issue instead of duplicating.`;
+    }
     case 'sink.merge_pr': {
       const when = s(c.when, 'auto') === 'now' ? 'Merge it immediately' : 'Enable auto-merge (merges once required checks pass)';
       // Policy lives in the operating instructions, NOT in agent discretion. The earlier
@@ -194,6 +207,8 @@ function toolsFor(sinkType: string, prContext: boolean): string[] {
       return ['Bash(gh pr create:*)'];
     case 'sink.merge_pr':
       return ['Bash(gh pr merge:*)'];
+    case 'sink.cross_repo_issue':
+      return ['Bash(gh issue create:*)', 'Bash(gh issue list:*)'];
     default:
       return [];
   }
@@ -227,13 +242,10 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const agents = comp.filter((n) => n.type === AGENT);
     const filters = comp.filter((n) => n.type === 'filter.condition');
     const dependabotMeta = comp.find((n) => n.type === DEPENDABOT_META);
+    const gate = comp.find((n) => n.type === GATE);
+    const limiter = comp.find((n) => n.type === RATE);
     const unknown = comp.filter(
-      (n) =>
-        !TRIGGERS.has(n.type) &&
-        !SINKS.has(n.type) &&
-        n.type !== AGENT &&
-        n.type !== 'filter.condition' &&
-        n.type !== DEPENDABOT_META,
+      (n) => !TRIGGERS.has(n.type) && !SINKS.has(n.type) && n.type !== AGENT && !PROCESSORS.has(n.type),
     );
     for (const n of unknown) {
       diags.push({ level: 'error', nodeId: n.id, message: `Unknown machine type "${n.type}" — no emitter.` });
@@ -401,6 +413,40 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       });
     }
 
+    // Approval gate → run the whole line in a protected environment (human approval).
+    const gateEnv = gate ? s(gate.config.environment, 'factory-approval') : null;
+    if (gate && !s(gate.config.environment)) {
+      diags.push({
+        level: 'warning',
+        nodeId: gate.id,
+        message: 'Approval gate has no environment name — using "factory-approval". Create it (with required reviewers) in Settings → Environments.',
+      });
+    }
+
+    // Rate limiter → a guard step that stops the line past N runs/day (loop/cost insurance).
+    const rateLimit = limiter
+      ? Number(limiter.config.maxPerDay) > 0
+        ? Math.floor(Number(limiter.config.maxPerDay))
+        : 10
+      : null;
+
+    // Cross-repo issue sinks: validate targets + collect the scoped-token secrets they need.
+    const crossRepoSinks = sinks.filter((n) => n.type === 'sink.cross_repo_issue');
+    const crossRepoSecrets = new Set<string>();
+    for (const cr of crossRepoSinks) {
+      const target = s(cr.config.targetRepo);
+      if (!/^[^/\s]+\/[^/\s]+$/.test(target)) {
+        diags.push({ level: 'error', nodeId: cr.id, message: 'Cross-repo issue needs a target repo as owner/name.' });
+      }
+      crossRepoSecrets.add(s(cr.config.tokenSecret, 'FLEET_TOKEN'));
+    }
+    if (crossRepoSinks.length) {
+      diags.push({
+        level: 'warning',
+        message: `Cross-repo issue uses a scoped token secret (${[...crossRepoSecrets].join(', ')}) — create it in this repo's Actions secrets (a PAT that can open issues in the target). The GITHUB_TOKEN cannot write to other repos.`,
+      });
+    }
+
     // permissions
     const permissions: Record<string, string> = { contents: 'read' };
     const needsIssuesWrite = sinks.some((n) =>
@@ -428,6 +474,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     if (dependabotMeta && permissions['pull-requests'] !== 'write') {
       permissions['pull-requests'] = 'read'; // fetch-metadata reads the PR
     }
+    if (limiter) permissions['actions'] = 'read'; // gh run list reads the Actions API
     if (agent) permissions['id-token'] = 'write';
 
     // entity expressions for prompts / deterministic steps
@@ -441,6 +488,16 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
 
     // steps
     const steps: Record<string, unknown>[] = [];
+    if (rateLimit !== null) {
+      // First step, before checkout: count today's runs of THIS workflow and fail fast at the cap.
+      steps.push({
+        name: `🚥 rate.limiter (${limiter!.id})`,
+        env: { GH_TOKEN: '${{ github.token }}', LIMIT: String(rateLimit) },
+        run:
+          'COUNT=$(gh run list --workflow "$GITHUB_WORKFLOW" --created "$(date -u +%Y-%m-%d)" --json databaseId --jq \'length\')\n' +
+          'if [ "$COUNT" -ge "$LIMIT" ]; then echo "rate limit ($LIMIT/day) reached — stopping"; exit 1; fi',
+      });
+    }
     if (agent) steps.push({ uses: 'actions/checkout@v4' });
     if (dependabotMeta) {
       // Exposes steps.dependabot-metadata.outputs.update-type / dependency-names / etc.
@@ -508,7 +565,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         `--model ${model}\n--max-turns ${maxTurns}` +
         (tools.size ? `\n--allowedTools "${[...tools].join(',')}"` : '');
 
-      steps.push({
+      const agentStep: Record<string, unknown> = {
         name: `⚙ agent.claude (${agent.id})`,
         uses: 'anthropics/claude-code-action@v1',
         with: {
@@ -520,7 +577,19 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           prompt,
           claude_args: claudeArgs,
         },
-      });
+      };
+      // Expose each obligated cross-repo sink's scoped token to the agent's bash (the
+      // obligation authenticates with $<secret>; the GITHUB_TOKEN can't write other repos).
+      const obligatedCross = obligated.filter((n) => n.type === 'sink.cross_repo_issue');
+      if (obligatedCross.length) {
+        const stepEnv: Record<string, string> = {};
+        for (const cr of obligatedCross) {
+          const sec = s(cr.config.tokenSecret, 'FLEET_TOKEN');
+          stepEnv[sec] = `\${{ secrets.${sec} }}`;
+        }
+        agentStep.env = stepEnv;
+      }
+      steps.push(agentStep);
     }
 
     // deterministic sinks (no agent on their path)
@@ -568,6 +637,16 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
             run: `gh issue edit "$NUMBER" ${labels.map((l) => `--add-label "${l}"`).join(' ')}`,
           });
         }
+      } else if (sink.type === 'sink.cross_repo_issue') {
+        const target = s(sink.config.targetRepo, 'OWNER/NAME');
+        const secret = s(sink.config.tokenSecret, 'FLEET_TOKEN');
+        const title = s(sink.config.titleHint, 'Factory notification');
+        steps.push({
+          name: `🚉 sink.cross_repo_issue (${sink.id})`,
+          // Scoped PAT secret, NOT github.token — the GITHUB_TOKEN can't write other repos.
+          env: { GH_TOKEN: `\${{ secrets.${secret} }}`, TARGET: target, TITLE: title },
+          run: 'gh issue create --repo "$TARGET" --title "$TITLE" --body "(factory notification from ${{ github.repository }})"',
+        });
       } else {
         diags.push({
           level: 'error',
@@ -586,6 +665,8 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const job: Record<string, unknown> = {
       'runs-on': 'ubuntu-latest',
       ...(guards.length ? { if: `\${{ ${guards.join(' && ')} }}` } : {}),
+      // Approval gate: the environment's protection rules pause the run for a human reviewer.
+      ...(gateEnv ? { environment: gateEnv } : {}),
       permissions,
       steps,
     };

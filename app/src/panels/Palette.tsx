@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MACHINES, type MachineCategory } from '../machines/registry';
 import { DRAG_MIME } from '../canvas/FactoryCanvas';
 import { useFactoryStore } from '../state/store';
@@ -10,13 +11,25 @@ const GROUPS: { category: MachineCategory; title: string }[] = [
 
 export function Palette() {
   const addMachineAuto = useFactoryStore((s) => s.addMachineAuto);
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const matches = (m: (typeof MACHINES)[number]) =>
+    !q || m.label.toLowerCase().includes(q) || m.type.includes(q) || m.blurb.toLowerCase().includes(q);
   return (
     <aside className="palette" aria-label="Machine palette">
       <div className="panel__eyebrow">Machines</div>
+      <input
+        className="palette__search"
+        type="search"
+        placeholder="Filter machines…"
+        aria-label="Filter machines"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
       {GROUPS.map(({ category, title }) => (
         <section key={category} className="palette__group">
           <h2 className={`palette__title palette__title--${category}`}>{title}</h2>
-          {MACHINES.filter((m) => m.category === category).map((m) => (
+          {MACHINES.filter((m) => m.category === category && matches(m)).map((m) => (
             <button
               key={m.type}
               type="button"

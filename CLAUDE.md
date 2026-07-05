@@ -87,12 +87,22 @@ npm run build      # typecheck + production build to app/dist
   `workflow_run` + cross-repo belts, live telemetry LEDs. Pure parser (`fleet/parse.ts`)
   + `fleet/import.ts` + `FleetCanvas`. Validated on the real `lifehacker.dev` fleet. Next:
   multi-repo switcher (B), cross-repo machine (C) — see ROADMAP § Fleet.
-- ⬜ Not wired yet: prompt studio (seed 05), agent patterns (seed 06), GitHub App auth (seed 07).
-- Known rough edges: inspector forms are unvalidated; no undo; palette drag has no
-  touch support; compiler covers the 13 v0 machine types only. See `docs/ROADMAP.md
-  § Backlog` for remaining parked review findings (5 machine types still without
-  invariant tests; `sink.commit_files`/`open_pr` tool-grant gap). The `issue_labeled`
-  loop-guard security bug is fixed (ADR-009).
+- ✅ Granular machines + live automerge: `trigger.workflow_run`, `sink.merge_pr`,
+  `processor.dependabot_meta` (ADR-014) + `gate.approval`, `rate.limiter`,
+  `sink.cross_repo_issue` (ADR-016) — **19 machine types**, schema-synced + drift-guarded.
+  The Dependency Warden ran live on gitorio: reviewed Dependabot PRs #1–#5, auto-merged the
+  vetted-safe ones. Merge policy hardened after an incident (ADR-015, PR #12).
+- ✅ Feature-rich frontend (ADR-016): **five-tab shell** — Build (canvas + palette search +
+  undo/redo + rich Inspector + templates gallery) · Prompt Studio (browse/edit/lint/diff/
+  PR-writes) · Monitor (per-line stats, jobs+steps drill-down, ▶ Run now / ✕ Cancel, cron
+  overview) · Fleet (multi-repo observe switcher, Fleet B) · Settings (live preflight,
+  connections, preferences). Browser-verified live against gitorio. **20 test files, ~170 tests.**
+- ⬜ Parked (with reasons in ROADMAP): belt mode (Phase 6.1), §8 red-team pass, GitHub App
+  device flow (Phase 7 — blocked on browser CORS; needs the optional worker), `repository_dispatch`
+  trigger + combined-canvas inter-repo belts (Fleet C tail).
+- Known rough edges: multi-line blueprints name files by `<meta.name> <index>` (no per-line
+  names); v0 belt mode not yet (agent-obligation mode only). `@types/node` added to tsconfig
+  for node-context tests.
 
 ## Repo map
 
