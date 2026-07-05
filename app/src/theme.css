@@ -371,3 +371,55 @@ body {
   stroke: var(--steel); stroke-width: 2; stroke-dasharray: 6 4;
 }
 .react-flow__edge.fleetedge--cross_repo .react-flow__edge-text { fill: var(--steel); }
+
+/* ── node tooling: palette-as-button reset, richer inspector, node badges ── */
+.palette__item {
+  width: 100%; text-align: left; color: var(--ink); font-family: var(--chrome);
+}
+
+.inspector__titlerow { display: flex; align-items: center; gap: 8px; }
+.inspector__titlerow .inspector__title { flex: 1; }
+.inspector__actions { display: flex; gap: 4px; }
+.iconbtn {
+  background: var(--panel-2); color: var(--dim);
+  border: 1px solid var(--seam); border-radius: 4px;
+  width: 26px; height: 24px; cursor: pointer; font-size: 12px; line-height: 1;
+}
+.iconbtn:hover { border-color: var(--copper-dim); color: var(--ink); }
+.iconbtn--danger:hover { border-color: var(--alarm); color: var(--alarm); }
+
+.inspector__section { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--seam); }
+.inspector__eyebrow {
+  font-family: var(--readout); font-size: 10px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--steel); margin-bottom: 8px;
+}
+
+.conn { display: flex; gap: 8px; margin: 6px 0; align-items: baseline; }
+.conn__label {
+  font-family: var(--readout); font-size: 10px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--dim); min-width: 74px;
+}
+.conn__empty { color: var(--dim); font-size: 12px; }
+.conn__chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip {
+  background: var(--panel-2); color: var(--ink);
+  border: 1px solid var(--seam); border-radius: 4px;
+  padding: 2px 7px; font-family: var(--readout); font-size: 11px; cursor: pointer;
+}
+.chip:hover { border-color: var(--copper); }
+
+.inspector__monitor { display: flex; align-items: center; gap: 8px; }
+.inspector__monitorlbl { font-family: var(--readout); font-size: 12px; color: var(--ink); flex: 1; }
+.inspector__monitor .btn--small { margin-left: 0; }
+.inspector code { font-family: var(--readout); color: var(--steel); font-size: 11px; }
+
+.nodebadge {
+  width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; line-height: 1; border-radius: 3px; cursor: help;
+}
+.nodebadge--error { color: var(--alarm); }
+.nodebadge--warning { color: var(--copper); }
+.machine--error { box-shadow: 0 0 0 1px var(--alarm), 0 2px 10px rgba(0, 0, 0, 0.45); }
+.machine--warning { box-shadow: 0 0 0 1px var(--copper-dim), 0 2px 10px rgba(0, 0, 0, 0.45); }
+
+.field--invalid input, .field--invalid textarea, .field--invalid select { border-color: var(--alarm); }

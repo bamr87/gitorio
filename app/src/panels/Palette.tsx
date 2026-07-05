@@ -1,5 +1,6 @@
 import { MACHINES, type MachineCategory } from '../machines/registry';
 import { DRAG_MIME } from '../canvas/FactoryCanvas';
+import { useFactoryStore } from '../state/store';
 
 const GROUPS: { category: MachineCategory; title: string }[] = [
   { category: 'trigger', title: 'Triggers' },
@@ -8,6 +9,7 @@ const GROUPS: { category: MachineCategory; title: string }[] = [
 ];
 
 export function Palette() {
+  const addMachineAuto = useFactoryStore((s) => s.addMachineAuto);
   return (
     <aside className="palette" aria-label="Machine palette">
       <div className="panel__eyebrow">Machines</div>
@@ -15,11 +17,13 @@ export function Palette() {
         <section key={category} className="palette__group">
           <h2 className={`palette__title palette__title--${category}`}>{title}</h2>
           {MACHINES.filter((m) => m.category === category).map((m) => (
-            <div
+            <button
               key={m.type}
+              type="button"
               className={`palette__item palette__item--${category}`}
               draggable
-              title={m.blurb}
+              title={`${m.blurb}\n\nClick to add · or drag onto the floor`}
+              onClick={() => addMachineAuto(m.type)}
               onDragStart={(e) => {
                 e.dataTransfer.setData(DRAG_MIME, m.type);
                 e.dataTransfer.effectAllowed = 'move';
@@ -27,11 +31,11 @@ export function Palette() {
             >
               <span aria-hidden>{m.icon}</span>
               <span>{m.label}</span>
-            </div>
+            </button>
           ))}
         </section>
       ))}
-      <p className="palette__hint">Drag a machine onto the floor, then belt out → in.</p>
+      <p className="palette__hint">Click a machine to drop it, or drag it onto the floor. Then belt out → in.</p>
     </aside>
   );
 }
