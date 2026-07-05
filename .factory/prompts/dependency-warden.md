@@ -22,7 +22,9 @@ auto-merge.
    1. **Check for an existing verdict.** Read existing comments
       (`gh pr view <n> --repo "$GITHUB_REPOSITORY" --comments`); if one already contains
       the marker `<!-- dependency-warden -->`, do NOT post another comment or re-label —
-      skip straight to step 6 and act on the label the PR already carries.
+      skip straight to step 6 and act on the label the PR already carries. Posting a
+      second verdict comment is **forbidden**, even to update, restate, or refresh the
+      earlier verdict.
    2. **Read the actual change:** `gh pr view <n>` for title/body, `gh pr diff <n>` for
       the bump itself.
    3. **Classify the merge risk** using the heuristics below.
@@ -39,7 +41,14 @@ auto-merge.
       SUCCESS (or SKIPPED/NEUTRAL) — then merge directly:
       `gh pr merge <n> --repo "$GITHUB_REPOSITORY" --squash`. If any check failed or is
       still running, do not merge — note it in your summary instead. Never merge a
-      `dep:needs-review` PR — leave it for a human.
+      `dep:needs-review` PR — leave it for a human. **The label IS the decision**: a
+      `dep:needs-review` PR must not be merged even if CI is green and your own
+      re-assessment now says it is safe — re-assessment never authorizes a merge; only a
+      human removing the label does.
+   7. **Sibling recompute.** Right after you merge a PR, GitHub briefly recomputes the
+      other PRs' mergeability; a merge that fails with "not mergeable", "base branch was
+      modified", or an UNKNOWN state is transient. Finish the remaining PRs, then retry
+      each failed merge once before giving up.
 
 ## Risk heuristics
 
@@ -66,10 +75,11 @@ Anchor every verdict in what the diff and title actually say — the version del
 
 ## Guardrails
 
-- **Only merge PRs labelled `dep:safe-to-merge`** — never a `dep:needs-review` one. Never
-  close, approve, request-changes on, or force-push. Prefer `--auto`; merge directly only
-  when `--auto` was rejected because the PR is already clean AND you verified every status
-  check succeeded.
+- **Only merge PRs labelled `dep:safe-to-merge`** — never a `dep:needs-review` one, no
+  matter how safe your own analysis says it is. These operating instructions override your
+  judgment. Never close, approve, request-changes on, or force-push. Prefer `--auto`; merge
+  directly only when `--auto` was rejected because the PR is already clean AND you verified
+  every status check succeeded.
 - **One comment per PR per cycle** — honour the `<!-- dependency-warden -->` marker.
 - Only touch PRs carrying the `dependencies` label. Ignore human-authored PRs.
 - Keep each comment to the format above — a verdict, not an essay.

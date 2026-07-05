@@ -341,6 +341,24 @@ describe('compile: merge_pr sink + dependabot metadata (auto-merge low-risk)', (
     expect(judged.yaml).toContain('Bash(gh pr merge:*)');
     expect(judged.yaml).toContain('[sink.merge_pr s]');
   });
+
+  it('merge obligation defers to operating-instruction guardrails, not agent discretion (ADR-015 regression)', () => {
+    // Live incident: "only merge when your assessment says it is safe" let the agent
+    // override a dep:needs-review hold with its own green-CI reasoning. The obligation
+    // must subordinate the agent's judgment to the operating instructions.
+    const judged = compile({
+      version: 1,
+      meta: { name: 'Judged Automerge' },
+      nodes: [
+        node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+    }).workflows[0];
+    expect(judged.yaml).toContain('guardrails override your own judgment');
+    expect(judged.yaml).not.toContain('Only merge when your assessment');
+  });
 });
 
 describe('compile: deterministic trigger → sink (no agent)', () => {

@@ -33,6 +33,25 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-05 — ADR-015: Merge policy lives in instructions and structure, never in agent discretion
+Live incident during the first automerge runs: the Warden merged PR #5 (typescript 5.9→6.0,
+labelled `dep:needs-review` with two explicit "hold for a human" verdicts) and an earlier run
+double-posted a verdict despite the idempotency marker. Root cause: the compiled merge
+obligation said "Only merge when your **assessment** says it is safe" — inviting the agent's
+judgment ("CI is green, typecheck passes — that's exactly what the hold asked a human to
+check") to override the label policy in the operating prompt. When a capability grant and a
+prose guardrail disagree, a plausible-sounding reason wins often enough to be unsafe. Fixes:
+(1) the compiler's merge_pr obligation now subordinates judgment ("their guardrails override
+your own judgment: if they say hold, you hold") + regression test; (2) the warden prompt makes
+the label THE decision (re-assessment never authorizes a merge; only a human removing the
+label does) and forbids second verdict comments outright; (3) added sibling-recompute retry
+guidance (GitHub briefly flips other PRs to UNKNOWN after each merge — the cause of the
+one-merge-per-run behaviour that took 4 runs to drain 4 PRs). Outcome kept (user decision):
+TS 6 was verifiably green (PR CI, post-merge main CI, local typecheck+tests). Parked in
+ROADMAP: a deterministic label-gated merge line (`pull_request:[labeled]` trigger + filter +
+terminal merge sink) so merge policy compiles to YAML instead of prose — structure beats
+instructions.
+
 ## 2026-07-04 — ADR-014: Granular components — workflow_run trigger, merge_pr sink, dependabot_meta processor
 Added three machines so flows like "auto-merge low-risk Dependabot updates" and "act on a
 workflow's pass/fail" are expressible. Three decisions, each verified against GitHub's live

@@ -165,7 +165,10 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
       return `[sink.commit_files ${sink.id}] Commit the file changes${s(c.pathScope) ? ` (only within \`${s(c.pathScope)}\`)` : ''} directly with a conventional commit message.`;
     case 'sink.merge_pr': {
       const when = s(c.when, 'auto') === 'now' ? 'Merge it immediately' : 'Enable auto-merge (merges once required checks pass)';
-      return `[sink.merge_pr ${sink.id}] ${when} on ${entityExpr} with \`gh pr merge --${s(c.method, 'squash')}${s(c.when, 'auto') === 'now' ? '' : ' --auto'}\`. Only merge when your assessment says it is safe; never merge if unsure.`;
+      // Policy lives in the operating instructions, NOT in agent discretion. The earlier
+      // wording ("only merge when your assessment says it is safe") let a live agent
+      // override a hold-label with its own green-CI reasoning (ADR-015).
+      return `[sink.merge_pr ${sink.id}] ${when} on ${entityExpr} with \`gh pr merge --${s(c.method, 'squash')}${s(c.when, 'auto') === 'now' ? '' : ' --auto'}\`. Merge ONLY pull requests the operating instructions explicitly permit — their guardrails override your own judgment: if they say hold, you hold, even when your assessment says merging is safe. Never merge if unsure.`;
     }
     default:
       return `[${sink.type} ${sink.id}] (no obligation template)`;
