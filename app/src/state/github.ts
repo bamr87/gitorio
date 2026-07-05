@@ -5,6 +5,7 @@ import { GithubError, parseRepo, repoSlug } from '../github/types';
 import { BLUEPRINT_PATH, detectDrift } from '../github/deploy';
 import { gatherRepoState } from '../github/execute';
 import { useFactoryStore } from './store';
+import { useSettingsStore } from './settings';
 import type { Blueprint } from '../blueprint/types';
 
 // PAT persistence: sessionStorage ONLY (CLAUDE.md golden rule #7). Tab-scoped, wiped on
@@ -35,6 +36,8 @@ interface GithubState {
   drift: DriftItem[];
 
   connect: (token: string, repoInput: string) => Promise<boolean>;
+  /** Re-point the existing session (same PAT) at another repo — the multi-repo switcher. */
+  switchRepo: (repoInput: string) => Promise<boolean>;
   disconnect: () => void;
   restore: () => void;
   setPower: (p: Power) => void;
@@ -79,11 +82,22 @@ export const useGithubStore = create<GithubState>((set, get) => ({
       sessionStorage.setItem(TOKEN_KEY, token.trim());
       sessionStorage.setItem(REPO_KEY, repoSlug(repo));
       set({ client, login: client.login, repo, preflight, power, connecting: false, error: null, drift: [] });
+      // Remember the slug (never the token) for the Settings/Fleet connection switcher.
+      useSettingsStore.getState().addRecentRepo(repoSlug(repo));
       return true;
     } catch (e) {
       set({ connecting: false, error: errMessage(e) });
       return false;
     }
+  },
+
+  switchRepo: async (repoInput) => {
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      set({ error: 'Connect with a PAT first — switching repos reuses the session token.' });
+      return false;
+    }
+    return get().connect(token, repoInput);
   },
 
   disconnect: () => {

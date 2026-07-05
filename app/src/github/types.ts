@@ -159,6 +159,26 @@ export interface RunsPoll {
   rateRemaining: number | null;
 }
 
+/** One step of a run job (drill-down detail). */
+export interface RunJobStep {
+  number: number;
+  name: string;
+  status: string;
+  conclusion: RunConclusion;
+}
+
+/** One job of a workflow run — the Monitor tab's drill-down unit. */
+export interface RunJob {
+  jobId: number;
+  name: string;
+  status: 'queued' | 'in_progress' | 'completed' | (string & {});
+  conclusion: RunConclusion;
+  startedAt: string | null;
+  completedAt: string | null;
+  htmlUrl: string;
+  steps: RunJobStep[];
+}
+
 /**
  * Transport surface. Implemented by a thin fetch-based client (no Octokit dep — keeps
  * the static bundle lean and trivially mockable via `globalThis.fetch`). Every method
@@ -225,6 +245,15 @@ export interface GithubClient {
     repo: RepoRef,
     opts?: { etag?: string | null; perPage?: number; pathPrefix?: string },
   ): Promise<RunsPoll>;
+
+  /** Jobs (with steps) for one run — the Monitor drill-down. */
+  listRunJobs(repo: RepoRef, runId: number): Promise<RunJob[]>;
+
+  /** Fire a workflow_dispatch for a workflow file (e.g. `factory--x.yml`). Defaults to the default branch. */
+  dispatchWorkflow(repo: RepoRef, workflowFile: string, ref?: string): Promise<void>;
+
+  /** Cancel an in-progress run. */
+  cancelRun(repo: RepoRef, runId: number): Promise<void>;
 }
 
 /** Error carrying the HTTP status so callers can branch on 401/403/404/422. */

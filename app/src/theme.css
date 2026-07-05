@@ -423,3 +423,17 @@ body {
 .machine--warning { box-shadow: 0 0 0 1px var(--copper-dim), 0 2px 10px rgba(0, 0, 0, 0.45); }
 
 .field--invalid input, .field--invalid textarea, .field--invalid select { border-color: var(--alarm); }
+
+/* ── app-shell tabs + tab panes ─────────────────────────────────────── */
+.tabs { display: flex; gap: 2px; margin-left: 14px; }
+.tab {
+  background: transparent; color: var(--dim);
+  border: 1px solid transparent; border-radius: 4px 4px 0 0;
+  padding: 6px 12px; font-family: var(--readout); font-size: 12px; cursor: pointer;
+}
+.tab:hover { color: var(--ink); border-color: var(--seam); }
+.tab.is-active { color: var(--copper); border-color: var(--seam); border-bottom-color: var(--panel); background: var(--panel-2); }
+.tab:focus-visible { outline: 2px solid var(--copper); outline-offset: 1px; }
+
+.tabpane { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
+.tabpane__empty { color: var(--dim); font-family: var(--readout); font-size: 12px; padding: 24px; }
