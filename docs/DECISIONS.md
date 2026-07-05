@@ -33,6 +33,31 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-04 — ADR-014: Granular components — workflow_run trigger, merge_pr sink, dependabot_meta processor
+Added three machines so flows like "auto-merge low-risk Dependabot updates" and "act on a
+workflow's pass/fail" are expressible. Three decisions, each verified against GitHub's live
+behaviour (golden rule #4 — confirmed via the Dependabot-automation docs before templating):
+(1) **`trigger.workflow_run`** is the trusted keystone. It runs on the default branch with a
+write token + secrets and is not attacker-loopy, so it carries no bot-guard — the secure way
+to act on a PR's CI result (incl. Dependabot/forks). Entity =
+`github.event.workflow_run.pull_requests[0].number`.
+(2) **`sink.merge_pr`** (`gh pr merge --<method> [--auto]`) is a **terminal** sink — merging
+emits no new comment/issue/PR event, so it can't retrigger its line. Terminal-only lines
+therefore drop the mandatory bot loop-guard (ADR-009 stays intact for content-writing lines),
+which is the ONLY way a `pull_request`-triggered line can act on Dependabot's bot-authored PRs.
+Grants `contents`+`pull-requests: write`; the compiler errors if there's no PR-bearing trigger
+and warns on an unscoped `pull_request` merge.
+(3) **`processor.dependabot_meta`** wraps `dependabot/fetch-metadata@v2`. Because
+fetch-metadata reads the `pull_request` event, this path is `pull_request`-triggered (NOT
+workflow_run), and its update-type gate must be a **step-level** `if:` on the merge step —
+job-level guards evaluate before any step runs, so `steps.*.outputs` aren't available there.
+The processor auto-scopes the line to `pull_request.user.login == 'dependabot[bot]'` (fetch-
+metadata is Dependabot-only). Verified: Dependabot `pull_request` runs DO honour the
+`permissions:` block for the GITHUB_TOKEN, so no `pull_request_target` (and its checkout-of-
+untrusted-code risk) is needed. Alt: route auto-merge through workflow_run too (rejected —
+fetch-metadata has no PR event there); a `pull_request_target` machine (rejected — security-
+sensitive, deferred). 10 invariant tests; both example flows compile clean (100 tests total).
+
 ## 2026-07-04 — ADR-013: Scheduled/manual agent lines get "survey mode" PR-discovery grants
 A Dependency Warden (review the open Dependabot PRs, comment a verdict, label the safe ones)
 exposed a real gap: a `pull_request`-triggered line is the wrong tool for Dependabot, because

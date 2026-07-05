@@ -219,6 +219,130 @@ describe('compile: survey mode (scheduled/manual warden that reviews PRs)', () =
   });
 });
 
+describe('compile: on-workflow-result trigger (workflow_run)', () => {
+  const bp: Blueprint = {
+    version: 1,
+    meta: { name: 'CI Failure Alarm' },
+    nodes: [
+      node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'failure' }),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/ci-triage.md' }),
+      node('s', 'sink.create_issue', { titleHint: 'CI failed' }),
+    ],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+  };
+  const wf = compile(bp).workflows[0];
+
+  it('maps to on.workflow_run with the watched workflow name + completed type', () => {
+    expect(wf.yaml).toContain('workflow_run:');
+    expect(wf.yaml).toContain('- CI');
+    expect(wf.yaml).toContain('- completed');
+  });
+
+  it('guards on the run conclusion, and never adds a bot loop-guard (workflow_run is trusted, not attacker-loopy)', () => {
+    expect(wf.yaml).toContain("github.event.workflow_run.conclusion == 'failure'");
+    expect(wf.yaml).not.toContain("github.event.sender.type != 'Bot'");
+  });
+
+  it('exposes the PR number + conclusion to the agent and grants PR-read tools', () => {
+    expect(wf.yaml).toContain('PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}');
+    expect(wf.yaml).toContain('Bash(gh pr view:*)');
+    expect(wf.yaml).toContain('Bash(gh pr diff:*)');
+  });
+});
+
+describe('compile: merge_pr sink + dependabot metadata (auto-merge low-risk)', () => {
+  const automerge: Blueprint = {
+    version: 1,
+    meta: { name: 'Dependabot Automerge' },
+    nodes: [
+      node('t', 'trigger.pr_opened'),
+      node('m', 'processor.dependabot_meta', { allow: 'patch-and-minor' }),
+      node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+    ],
+    edges: [edge('e1', 't', 'm'), edge('e2', 'm', 's')],
+  };
+  const wf = compile(automerge).workflows[0];
+
+  it('scopes the line to Dependabot and drops the bot-guard so a bot PR can pass (terminal-sink relaxation)', () => {
+    expect(wf.yaml).toContain("github.event.pull_request.user.login == 'dependabot[bot]'");
+    expect(wf.yaml).not.toContain("github.event.sender.type != 'Bot'");
+  });
+
+  it('emits the fetch-metadata step and gates the merge on update-type (step-level if, not job-level)', () => {
+    expect(wf.yaml).toContain('uses: dependabot/fetch-metadata@v2');
+    expect(wf.yaml).toContain('id: dependabot-metadata');
+    expect(wf.yaml).toContain(
+      "contains(fromJSON('[\"version-update:semver-patch\",\"version-update:semver-minor\"]'), steps.dependabot-metadata.outputs.update-type)",
+    );
+  });
+
+  it('runs gh pr merge --auto with contents + pull-requests write', () => {
+    expect(wf.yaml).toContain('gh pr merge "$NUMBER" --squash --auto');
+    expect(wf.yaml).toContain('contents: write');
+    expect(wf.yaml).toContain('pull-requests: write');
+  });
+
+  it('does NOT grant merge/close beyond the merge itself, and needs no Claude power (deterministic)', () => {
+    expect(wf.yaml).not.toContain('claude-code-action');
+    expect(wf.yaml).not.toContain('id-token');
+  });
+
+  it('errors if merge_pr has no PR-bearing trigger', () => {
+    const badMerge = compile({
+      version: 1,
+      meta: { name: 'Bad Merge' },
+      nodes: [node('t', 'trigger.cron', { cron: '0 3 * * *' }), node('s', 'sink.merge_pr', {})],
+      edges: [edge('e1', 't', 's')],
+    }).workflows[0];
+    expect(badMerge.diagnostics.some((d) => d.level === 'error' && /PR-bearing trigger/.test(d.message))).toBe(true);
+  });
+
+  it('warns when merge_pr on a pull_request trigger is unscoped (no dependabot filter/metadata)', () => {
+    const unscoped = compile({
+      version: 1,
+      meta: { name: 'Unscoped Merge' },
+      nodes: [node('t', 'trigger.pr_opened'), node('s', 'sink.merge_pr', {})],
+      edges: [edge('e1', 't', 's')],
+    }).workflows[0];
+    expect(unscoped.diagnostics.some((d) => d.level === 'warning' && /act on every PR/.test(d.message))).toBe(true);
+  });
+
+  it('allows an agent-obligated merge on a survey line (no PR entity) — the agent supplies the PR', () => {
+    const warden = compile({
+      version: 1,
+      meta: { name: 'Warden Automerge' },
+      nodes: [
+        node('m', 'trigger.manual'),
+        node('c', 'trigger.cron', { cron: '0 6 * * 1' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/dependency-warden.md' }),
+        node('lb', 'sink.label', { labels: '' }),
+        node('mg', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+      ],
+      edges: [edge('e1', 'm', 'a'), edge('e2', 'c', 'a'), edge('e3', 'a', 'lb'), edge('e4', 'a', 'mg')],
+    }).workflows[0];
+    expect(warden.diagnostics.some((d) => d.level === 'error')).toBe(false);
+    expect(warden.yaml).toContain('[sink.merge_pr mg]');
+    expect(warden.yaml).toContain('Bash(gh pr merge:*)');
+    expect(warden.yaml).toContain('contents: write');
+    expect(warden.yaml).not.toContain("sender.type != 'Bot'");
+  });
+
+  it('agent-obligated merge_pr grants gh pr merge as a scoped tool', () => {
+    const judged = compile({
+      version: 1,
+      meta: { name: 'Judged Automerge' },
+      nodes: [
+        node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+    }).workflows[0];
+    expect(judged.yaml).toContain('Bash(gh pr merge:*)');
+    expect(judged.yaml).toContain('[sink.merge_pr s]');
+  });
+});
+
 describe('compile: deterministic trigger → sink (no agent)', () => {
   const bp: Blueprint = {
     version: 1,

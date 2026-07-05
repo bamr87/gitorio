@@ -139,6 +139,18 @@
       "config": {
         "labels": ""
       }
+    },
+    {
+      "id": "ws3",
+      "type": "sink.merge_pr",
+      "position": {
+        "x": 660,
+        "y": 940
+      },
+      "config": {
+        "method": "squash",
+        "when": "auto"
+      }
     }
   ],
   "edges": [
@@ -238,6 +250,17 @@
       },
       "to": {
         "node": "ws2",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e10",
+      "from": {
+        "node": "wa",
+        "port": "out"
+      },
+      "to": {
+        "node": "ws3",
         "port": "in"
       }
     }
