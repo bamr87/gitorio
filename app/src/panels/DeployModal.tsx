@@ -5,6 +5,7 @@ import { repoSlug, type DeployPlan, type DriftItem } from '../github/types';
 import { buildDeployPlan, detectDrift } from '../github/deploy';
 import { gatherRepoState, executePlan, type DeployOutcome } from '../github/execute';
 import { sealSecret } from '../github/crypto';
+import { useSettingsStore } from '../state/settings';
 
 const errMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
@@ -20,7 +21,7 @@ export function DeployModal({ onClose }: { onClose: () => void }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [plan, setPlan] = useState<DeployPlan | null>(null);
   const [drift, setDrift] = useState<DriftItem[]>([]);
-  const [prMode, setPrMode] = useState(false);
+  const [prMode, setPrMode] = useState(useSettingsStore.getState().defaultDeployMode === 'pr');
   const [deploying, setDeploying] = useState(false);
   const [outcome, setOutcome] = useState<DeployOutcome | null>(null);
   const [deployError, setDeployError] = useState<string | null>(null);

@@ -12,6 +12,7 @@ import {
 import { machineDef } from '../machines/registry';
 import type { Blueprint, BlueprintMeta } from '../blueprint/types';
 import { EXAMPLE_BLUEPRINT } from '../blueprint/example';
+import { useSettingsStore } from './settings';
 
 export type MachineData = {
   machineType: string;
@@ -128,11 +129,14 @@ export const useFactoryStore = create<FactoryState>((set, get) => {
       const def = machineDef(machineType);
       if (!def) return;
       checkpoint();
+      // New Claude agents adopt the user's preferred default model.
+      const config = { ...def.defaults };
+      if (machineType === 'agent.claude') config.model = useSettingsStore.getState().defaultModel;
       const nodeItem: MachineNodeType = {
         id: newId('m'),
         type: 'machine',
         position,
-        data: { machineType, config: { ...def.defaults } },
+        data: { machineType, config },
       };
       set({ nodes: [...get().nodes, nodeItem], selectedId: nodeItem.id });
     },
