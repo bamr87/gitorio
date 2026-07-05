@@ -33,6 +33,24 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-05 — ADR-016: Five-tab app shell; device flow stays parked (CORS)
+The frontend graduated from a single canvas to a **five-tab shell** (Build · Prompts ·
+Monitor · Fleet · Settings), driven by a tiny `state/ui` store so any panel can deep-link.
+Each tab is a self-contained panel over its own store; the compiler/telemetry/deploy cores
+are untouched. Shipped: Prompt Studio (Phase 5 — browse/edit/lint/diff/PR-writes + cron-aware
+scheduling in Monitor), Monitor (Phase-4 remainder — per-line stats, jobs+steps drill-down,
+▶ Run now / ✕ Cancel via new client `dispatchWorkflow`/`cancelRun`/`listRunJobs`), three new
+machines (`gate.approval`, `rate.limiter`, `sink.cross_repo_issue` — Phase 6 gates + Fleet C),
+a template gallery, undo/redo (blueprint snapshots, edit-burst coalescing), palette search,
+and Fleet B (multi-repo observe switcher via `settings.recentRepos` — slugs only, never
+tokens). **Device flow (Phase 7) stays parked**: verified GitHub's `login/device/code`
+endpoint serves no CORS headers to a browser origin, so a pure-static SPA cannot run device
+flow without the optional worker (ADR-004 Phase 2). PAT-in-sessionStorage remains the auth
+path; the Settings tab now surfaces the live preflight + connection switcher instead. Also
+parked: belt-mode typed handoffs (ADR-003 Phase 6.1) and the §8 red-team pass — both want a
+live scratch repo and their own session. Alt: a routed multi-page app (rejected — the shell
+is one store field; routing adds a dep for no gain on a single-view-at-a-time tool).
+
 ## 2026-07-04 — ADR-014: Granular components — workflow_run trigger, merge_pr sink, dependabot_meta processor
 Added three machines so flows like "auto-merge low-risk Dependabot updates" and "act on a
 workflow's pass/fail" are expressible. Three decisions, each verified against GitHub's live

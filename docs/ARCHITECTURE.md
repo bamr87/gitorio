@@ -95,6 +95,11 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
 - `processor.dependabot_meta` — a `dependabot/fetch-metadata@v2` step; scopes the line to
   Dependabot and gates downstream sinks by semver update type via a **step-level** `if:`
   (steps outputs aren't available at job-guard time). Needs a `pull_request` trigger (ADR-014).
+- `gate.approval` — runs the job in a GitHub **Environment** (`environment: <name>`) whose
+  protection rules pause the run for a human reviewer. Env + reviewers are set in repo
+  Settings (compiler can't) (ADR-016).
+- `rate.limiter` — a first guard step counting today's runs of the workflow, failing past
+  `maxPerDay` (needs `actions: read`). Runaway-loop + cost insurance (ADR-016).
 
 **Sinks** (signal green)
 - `sink.comment`, `sink.label`, `sink.create_issue`, `sink.open_pr`, `sink.commit_files`
@@ -102,6 +107,9 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
   A **terminal** sink: it emits no new comment/issue/PR event, so a line whose only action is
   merge carries no bot loop-guard — the one way to auto-merge Dependabot's own (bot) PRs. Scope
   it with a Filter or Dependabot-metadata; the compiler warns on an unscoped `pull_request` merge.
+- `sink.cross_repo_issue` — files an issue in ANOTHER repo via a scoped token secret (default
+  `FLEET_TOKEN`); the `GITHUB_TOKEN` can't cross repos. Kept out of `WRITING_SINKS` — writing
+  to another repo can't retrigger this line (Fleet C, ADR-016).
 
 Adding a machine type = registry entry + emitter + invariant test + catalog line here
 (`/add-machine` walks the checklist).

@@ -40,19 +40,21 @@ Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and
 - [x] Dashboard: total runs, success rate, in-progress, p50 duration (global). Per-line
       status is the machine LEDs; per-line stat *rows* (`statsByLine` exists, tested) = backlog.
 
-## Phase 5 — Prompt Studio (seeds/05)
-- [ ] Prompt list/edit/diff; PR-by-default writes; frontmatter form
-- [ ] Prompt lint (inputs stated, obligations stated, no secrets)
-- [ ] Cron overview: next scheduled runs per factory
+## Phase 5 — Prompt Studio (seeds/05) — ✅ (ADR-016)
+- [x] Prompt list/edit/diff; PR-by-default writes (branch `factory/prompts-*`); frontmatter form
+- [x] Prompt lint (no committed secrets = error; frontmatter/obligations/injection/untrusted = warn/info)
+- [x] Cron overview: next scheduled runs per line + fires/day + overlap warnings (in the Monitor tab)
 
-## Phase 6 — Agent patterns (seeds/06)
-- [ ] Belt mode: structured JSON handoff agent→deterministic sinks
-- [ ] Watchdog factory template (failure-rate alarm issue)
-- [ ] Rate limiter / approval gate machines
+## Phase 6 — Agent patterns (seeds/06) — partial (ADR-016)
+- [ ] Belt mode: structured JSON handoff agent→deterministic sinks — **parked** (6.1; wants its own session)
+- [x] Watchdog factory template (cron → rate-limited agent → alarm issue) — in the template gallery
+- [x] Rate limiter (`rate.limiter`) + approval gate (`gate.approval`) machines — full /add-machine checklist
+- [ ] Red-team pass on §8 (comment-loop + prompt-injection tool-escape) — **parked** (needs a live scratch repo)
 
-## Phase 7 — GitHub App (seeds/07)
-- [ ] Device-flow auth; installation picker; PAT path kept as fallback
-- [ ] Multi-repo factory switcher
+## Phase 7 — GitHub App (seeds/07) — **parked: device flow needs the optional worker (CORS)**
+- [ ] Device-flow auth — GitHub's `login/device/code` sends no CORS headers to a browser origin,
+      so a pure-static SPA can't run it without the Phase-2 worker (ADR-004/016). PAT stays the path.
+- [x] Multi-repo factory switcher — shipped as the Settings/Fleet connection switcher (Fleet B below).
 
 ## Fleet / plug-and-play (apply GitFactory to any repo, multi-repo, cross-repo)
 Goal: point GitFactory at *various* repos, *multiple* at once, and see automation
@@ -62,13 +64,14 @@ Goal: point GitFactory at *various* repos, *multiple* at once, and see automatio
       belts to external-repo stations, live telemetry LEDs. Generalized run polling beyond
       `factory--*`. Validated against `bamr87/lifehacker.dev` (14 workflows, `pipeline` hub →
       `auto-*`, cross-repo to `zer0-mistakes` + `it-journey`). (ADR-011)
-- [ ] **B — Multi-repo fleet switcher.** Connect N repos (persist slugs, never tokens);
-      switch between them; telemetry across all.
-- [ ] **C — Cross-repo edges.** `sink.cross_repo_issue` (+ `repository_dispatch`) machine
-      matching the proven `gh … --repo` + scoped-PAT pattern; inter-repo belts on a combined
-      fleet canvas; authorable + deployable.
+- [x] **B — Multi-repo fleet switcher.** Fleet tab observes any repo via a repo-chip switcher +
+      arbitrary owner/name box; `settings.recentRepos` persists slugs (never tokens); `switchRepo`
+      re-points the session; live telemetry per observed repo. (ADR-016)
+- [x] **C — Cross-repo edges.** `sink.cross_repo_issue` machine matching the proven `gh … --repo`
+      + scoped-PAT pattern (authorable + deployable). Still parked: `repository_dispatch` trigger
+      + inter-repo belts drawn on a *combined* fleet canvas. (ADR-016)
 - Backlog for this track: import fidelity (agent-authored sinks like content-factory's PR
-  aren't visible in static YAML — mark "agent-driven"); jobs/log drill-down in observe mode.
+  aren't visible in static YAML — mark "agent-driven"); log-zip viewing in the run drill-down.
 
 ## Backlog
 - Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
