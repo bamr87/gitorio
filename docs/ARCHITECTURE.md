@@ -100,6 +100,17 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
   Settings (compiler can't) (ADR-016).
 - `rate.limiter` — a first guard step counting today's runs of the workflow, failing past
   `maxPerDay` (needs `actions: read`). Runaway-loop + cost insurance (ADR-016).
+- `gate.enablement` — a default-OFF kill switch. Compiles to a tiny `gate` job checking a repo
+  **variable** (`vars.<NAME>`) — plus, for agent lines, that Claude auth exists — and the `line`
+  job `needs: gate` + `if: needs.gate.outputs.go == 'true'`. Unset = idle (never "safe to run");
+  flip the variable to arm/disarm a line instantly with no redeploy. The app toggles it via the
+  Actions variables API. Governance backbone for autonomous lines (ADR-017).
+- `processor.feedback_controller` — the loop-tuner. A specialised agent (a claude-code-action step)
+  with a built-in contract: measure the factory's own telemetry → verify the last change against an
+  improvements ledger (`.factory/metrics/improvements.yml` + `history.jsonl`) → make the smallest
+  upstream change to a prompt/config → record a `pending` ledger entry → open ONE PR. Granted
+  telemetry-read + file-edit + PR-open; **never `gh pr merge`** (no-self-merge invariant). The
+  feedback loop that lets the factory improve itself (ADR-017).
 
 **Sinks** (signal green)
 - `sink.comment`, `sink.label`, `sink.create_issue`, `sink.open_pr`, `sink.commit_files`
@@ -213,6 +224,40 @@ Poll, cheaply:
   output obligations, no secrets, no "ignore previous instructions"-style suffix traps.
 - Scheduling = `trigger.cron` machines. The UI shows a schedule overview (next runs
   computed client-side from cron strings) so factory shifts are visible at a glance.
+- **Dry-run/apply** (ADR-017): a `trigger.manual` "plan-first" mode adds an `apply` boolean
+  input; a manual run plans only unless ticked, while scheduled/other events apply
+  (`github.event_name != 'workflow_dispatch' || inputs.apply`). Deterministic mutating steps gate
+  on it; agent lines get a PLAN/APPLY prompt note (report-only on a dry run).
+
+## 7a. Headless-CMS data files (ADR-017)
+
+Two repo-versioned, hand/agent-editable YAML files (Content tab cockpit, `content/model.ts`):
+
+- `.factory/config.yml` — central config the content agents honor at runtime: `model` (one place
+  to change it fleet-wide, mirrors lifehacker's `_data/ai.yml`), `maxDailyRuns` (soft budget),
+  `brandVoice`, `contentPaths`, plus the docs-review knobs `docsDir` / `itemsPerRun`, a
+  `reviewCriteria` checklist, and `skills` — named specializations (technical-writer,
+  tutorial-author, api-reference…) the agent adopts per item (ADR-018). Editing it changes behavior
+  without recompiling; all of it is editable from the Content tab.
+- `.factory/backlog.yml` — the content work queue: a list of `{id, kind, title, brief, priority,
+  status}`. `status: todo → in-progress → done`; the app flags **starved** kinds (0 `todo`) — a
+  signal the loop-tuner watches. Parsing is total (never throws; coerces + defaults).
+- `.factory/metrics/improvements.yml` + `history.jsonl` — the feedback controller's ledger + trend
+  snapshots (written by the loop-tuner agent at runtime, not the app).
+
+## 7b. Docs view — content rendered on Pages (ADR-018)
+
+gitorio's GitHub Pages deployment *is* the Vite app (`app/dist`), not a Jekyll site — so the docs
+render **inside the app**. A repo-root `_docs/*.md` collection is bundled at build time via
+`import.meta.glob('../../../_docs/*.md', { query: '?raw' })` (dev needs `server.fs.allow: ['..']`),
+parsed by a dependency-free Markdown renderer (`docs/markdown.ts` → block AST → React elements, no
+`dangerouslySetInnerHTML`), and shown in the **Docs** tab. This closes a visible loop with the
+**Docs Gardener** factory (a template: cron + plan-first manual → enablement gate → rate limiter →
+agent → open PR): the gardener improves a doc → you merge → the next Pages deploy re-bundles → the
+Docs view updates. The factory that tends the docs and the site that renders them are one repo. The
+gardener is dogfooded from the same template + compiler the app uses (`app/scripts/gen-docs-
+gardener.ts`), compiled with the `blueprintPath` option so its header points at its own standalone
+blueprint (`.factory/docs-gardener.blueprint.json`).
 
 ## 8. Security model
 

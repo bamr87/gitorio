@@ -111,4 +111,76 @@ export const TEMPLATES: FactoryTemplate[] = [
       edges: [E('e1', 't', 'rl'), E('e2', 'rl', 'a'), E('e3', 'a', 's')],
     },
   },
+  {
+    id: 'headless-cms',
+    name: 'Headless CMS',
+    icon: '📰',
+    blurb:
+      'An autonomous, configurable content factory: a daily AI writer drafts content as PRs a human merges, and a weekly loop-tuner reads the factory’s own telemetry and improves it. Both are default-OFF behind repo-variable kill switches; the writer’s manual runs are dry runs unless you tick “apply”.',
+    blueprint: {
+      version: 1,
+      meta: {
+        name: 'Headless CMS',
+        description:
+          'Daily AI content drafts (as reviewable PRs) + a weekly self-tuning feedback loop, all default-OFF behind enablement gates.',
+      },
+      nodes: [
+        // Line 1 — content generation: scheduled + plan-first manual, kill-switched, rate-limited.
+        T('cd', 'trigger.cron', 40, 80, { cron: '0 9 * * *' }),
+        T('cm', 'trigger.manual', 40, 200, { mode: 'plan-first' }),
+        T('cg', 'gate.enablement', 240, 140, { variable: 'CONTENT_FACTORY_ENABLED' }),
+        T('crl', 'rate.limiter', 430, 140, { maxPerDay: 4 }),
+        T('ca', 'agent.claude', 620, 140, { promptRef: '.factory/prompts/content-grow.md', model: 'claude-opus-4-8', maxTurns: 20 }),
+        T('cpr', 'sink.open_pr', 860, 140, { branchHint: 'factory/content-*' }),
+        // Line 2 — the feedback loop: weekly, kill-switched, tunes the factory itself.
+        T('ld', 'trigger.cron', 40, 380, { cron: '23 6 * * 1' }),
+        T('lg', 'gate.enablement', 300, 380, { variable: 'LOOP_TUNER_ENABLED' }),
+        T('lf', 'processor.feedback_controller', 560, 380, {
+          promptRef: '.factory/prompts/loop-tuner.md',
+          model: 'claude-opus-4-8',
+          ledgerPath: '.factory/metrics/improvements.yml',
+          windowDays: 7,
+          maxTurns: 30,
+        }),
+      ],
+      edges: [
+        E('e1', 'cd', 'cg'),
+        E('e2', 'cm', 'cg'),
+        E('e3', 'cg', 'crl'),
+        E('e4', 'crl', 'ca'),
+        E('e5', 'ca', 'cpr'),
+        E('e6', 'ld', 'lg'),
+        E('e7', 'lg', 'lf'),
+      ],
+    },
+  },
+  {
+    id: 'docs-gardener',
+    name: 'Docs Gardener',
+    icon: '📖',
+    blurb:
+      'Each morning, scan the docs collection and improve a few items: a Claude agent picks the most-improvable docs, applies the review criteria + skill specializations from .factory/config.yml, and opens ONE PR you review. Default-OFF behind a kill switch; a manual run is a dry run unless you tick “apply”.',
+    blueprint: {
+      version: 1,
+      meta: {
+        name: 'Docs Gardener',
+        description: 'Daily: review + improve a few docs from the collection, as a reviewable PR.',
+      },
+      nodes: [
+        T('dd', 'trigger.cron', 40, 90, { cron: '0 8 * * *' }),
+        T('dm', 'trigger.manual', 40, 210, { mode: 'plan-first' }),
+        T('dg', 'gate.enablement', 250, 150, { variable: 'DOCS_GARDENER_ENABLED' }),
+        T('drl', 'rate.limiter', 440, 150, { maxPerDay: 2 }),
+        T('da', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/docs-gardener.md', model: 'claude-opus-4-8', maxTurns: 24 }),
+        T('dpr', 'sink.open_pr', 870, 150, { branchHint: 'factory/docs-*' }),
+      ],
+      edges: [
+        E('e1', 'dd', 'dg'),
+        E('e2', 'dm', 'dg'),
+        E('e3', 'dg', 'drl'),
+        E('e4', 'drl', 'da'),
+        E('e5', 'da', 'dpr'),
+      ],
+    },
+  },
 ];

@@ -490,3 +490,54 @@ describe('listRunJobs / dispatchWorkflow / cancelRun (Monitor controls)', () => 
     expect(init.method).toBe('POST');
   });
 });
+
+describe('repo variables (enablement-gate kill switches)', () => {
+  it('lists variables, returning [] on 403/404 instead of throwing', async () => {
+    const { client } = await connect((url) => {
+      if (url.includes('/actions/variables')) {
+        return new Response(
+          JSON.stringify({ variables: [{ name: 'CONTENT_FACTORY_ENABLED', value: 'true' }] }),
+          { status: 200 },
+        );
+      }
+      return new Response('{}', { status: 200 });
+    });
+    const vars = await client.listVariables(REPO);
+    expect(vars).toEqual([{ name: 'CONTENT_FACTORY_ENABLED', value: 'true' }]);
+
+    const { client: c2 } = await connect(() => new Response('nope', { status: 403 }));
+    expect(await c2.listVariables(REPO)).toEqual([]);
+  });
+
+  it('setVariable PATCHes an existing variable', async () => {
+    const { client, fetchImpl } = await connect((url) => {
+      if (url.endsWith('/actions/variables/AUTO_MERGE_ENABLED')) {
+        return new Response(JSON.stringify({ name: 'AUTO_MERGE_ENABLED', value: 'false' }), { status: 200 });
+      }
+      return new Response(null, { status: 204 });
+    });
+    await client.setVariable(REPO, 'AUTO_MERGE_ENABLED', 'true');
+    const [url] = callMatching(fetchImpl, (u) => u.endsWith('/variables/AUTO_MERGE_ENABLED'));
+    // the PATCH follows the GET probe (variable exists) — assert a PATCH was issued
+    const patch = fetchImpl.mock.calls.find(([, i]) => (i as RequestInit)?.method === 'PATCH');
+    expect(patch).toBeTruthy();
+    expect(jsonBody((patch as unknown as [string, RequestInit])[1])).toEqual({
+      name: 'AUTO_MERGE_ENABLED',
+      value: 'true',
+    });
+    expect(url).toContain('/variables/AUTO_MERGE_ENABLED');
+  });
+
+  it('setVariable POSTs a new variable when it does not exist', async () => {
+    const { client, fetchImpl } = await connect((url) => {
+      if (url.endsWith('/actions/variables/NEW_FLAG')) return new Response('missing', { status: 404 });
+      return new Response(null, { status: 201 });
+    });
+    await client.setVariable(REPO, 'NEW_FLAG', 'true');
+    const post = fetchImpl.mock.calls.find(([, i]) => (i as RequestInit)?.method === 'POST');
+    expect(post).toBeTruthy();
+    const [url, init] = post as unknown as [string, RequestInit];
+    expect(url).toBe('https://api.github.com/repos/o/r/actions/variables');
+    expect(jsonBody(init)).toEqual({ name: 'NEW_FLAG', value: 'true' });
+  });
+});

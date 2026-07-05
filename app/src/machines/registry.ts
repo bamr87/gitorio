@@ -97,10 +97,19 @@ export const MACHINES: MachineDef[] = [
     category: 'trigger',
     label: 'Manual lever',
     icon: '🕹️',
-    blurb: 'Run on demand via workflow_dispatch.',
-    fields: [],
-    defaults: {},
-    describe: () => 'on: workflow_dispatch',
+    blurb:
+      'Run on demand via workflow_dispatch. In plan-first mode a manual run only PLANS (dry run) unless you tick “apply”; scheduled runs always apply.',
+    fields: [
+      {
+        key: 'mode',
+        label: 'Manual run mode',
+        kind: 'select',
+        options: ['apply', 'plan-first'],
+        help: 'plan-first: a manual run is a dry run (plan only) unless the “apply” box is ticked. Scheduled/other events always apply.',
+      },
+    ],
+    defaults: { mode: 'apply' },
+    describe: (c) => (c.mode === 'plan-first' ? 'on: workflow_dispatch (plan-first)' : 'on: workflow_dispatch'),
   },
   {
     type: 'trigger.workflow_run',
@@ -202,6 +211,65 @@ export const MACHINES: MachineDef[] = [
     fields: [{ key: 'maxPerDay', label: 'Max runs / day', kind: 'number', placeholder: '10' }],
     defaults: { maxPerDay: 10 },
     describe: (c) => `≤ ${Number(c.maxPerDay) > 0 ? Number(c.maxPerDay) : 10} runs/day`,
+  },
+  {
+    type: 'gate.enablement',
+    category: 'processor',
+    label: 'Enablement gate',
+    icon: '🔌',
+    blurb:
+      'A default-OFF kill switch. The line only runs when a repo variable is "true" (and, for agent lines, Claude auth is present). Flip the variable to turn the whole line on/off instantly — no redeploy. A compromised agent can’t flip it back (needs no admin scope). The governance backbone for autonomous lines.',
+    fields: [
+      {
+        key: 'variable',
+        label: 'Repo variable',
+        kind: 'text',
+        placeholder: 'CONTENT_FACTORY_ENABLED',
+        help: 'A repository Actions variable. Unset or ≠ "true" = the line is idle. Set it in Settings → the line toggle, or repo Settings → Variables.',
+      },
+    ],
+    defaults: { variable: 'CONTENT_FACTORY_ENABLED' },
+    describe: (c) => `enabled if vars.${str(c.variable, 'X_ENABLED')} == 'true'`,
+  },
+  {
+    type: 'processor.feedback_controller',
+    category: 'processor',
+    label: 'Feedback controller',
+    icon: '🔁',
+    blurb:
+      'The loop-tuner. A scheduled agent that reads the factory’s OWN telemetry (run failures, time-to-merge, throughput), finds the upstream cause, makes the smallest change to a prompt/config, records it in a verified improvements ledger, and opens ONE tuning PR. It never merges. This is the feedback loop that makes the factory improve itself.',
+    fields: [
+      {
+        key: 'promptRef',
+        label: 'Prompt file',
+        kind: 'text',
+        placeholder: '.factory/prompts/loop-tuner.md',
+        help: 'Extra operating instructions layered on the built-in loop-tuner contract.',
+      },
+      {
+        key: 'model',
+        label: 'Model',
+        kind: 'select',
+        options: ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+      },
+      {
+        key: 'ledgerPath',
+        label: 'Improvements ledger',
+        kind: 'text',
+        placeholder: '.factory/metrics/improvements.yml',
+        help: 'Where the controller records each change + the metric it should move, so the next run can verify it.',
+      },
+      { key: 'windowDays', label: 'Look-back window (days)', kind: 'number', placeholder: '7' },
+      { key: 'maxTurns', label: 'Max turns', kind: 'number', placeholder: '30' },
+    ],
+    defaults: {
+      promptRef: '.factory/prompts/loop-tuner.md',
+      model: 'claude-opus-4-8',
+      ledgerPath: '.factory/metrics/improvements.yml',
+      windowDays: 7,
+      maxTurns: 30,
+    },
+    describe: (c) => `loop-tuner · ${str(c.model, 'claude-opus-4-8')} · ${Number(c.windowDays) > 0 ? Number(c.windowDays) : 7}d window`,
   },
 
   // ── Sinks (signal green) ─────────────────────────────────────────────

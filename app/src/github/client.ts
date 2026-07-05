@@ -17,6 +17,7 @@ import type {
   RepoDirEntry,
   RepoFile,
   RepoRef,
+  RepoVariable,
   RunConclusion,
   RunJob,
   RunsPoll,
@@ -435,6 +436,48 @@ function buildClient(
 
     async cancelRun(repo: RepoRef, runId: number): Promise<void> {
       await request('POST', `/repos/${repo.owner}/${repo.repo}/actions/runs/${runId}/cancel`);
+    },
+
+    async listVariables(repo: RepoRef): Promise<RepoVariable[]> {
+      try {
+        const body = await request<{ variables?: { name: string; value: string }[] }>(
+          'GET',
+          `/repos/${repo.owner}/${repo.repo}/actions/variables?per_page=100`,
+        );
+        const raw = Array.isArray(body?.variables) ? body.variables : [];
+        return raw.map((v) => ({ name: v.name, value: v.value }));
+      } catch (err) {
+        // No Actions, no permission, or no variables — report an empty set, don't throw.
+        if (err instanceof GithubError && (err.status === 403 || err.status === 404)) return [];
+        throw err;
+      }
+    },
+
+    async getVariable(repo: RepoRef, name: string): Promise<RepoVariable | null> {
+      try {
+        const v = await request<{ name: string; value: string }>(
+          'GET',
+          `/repos/${repo.owner}/${repo.repo}/actions/variables/${encodeURIComponent(name)}`,
+        );
+        return { name: v.name, value: v.value };
+      } catch (err) {
+        if (err instanceof GithubError && err.status === 404) return null;
+        throw err;
+      }
+    },
+
+    async setVariable(repo: RepoRef, name: string, value: string): Promise<void> {
+      // PATCH updates an existing variable; POST creates it. Probe first, then choose.
+      const existing = await client.getVariable(repo, name);
+      if (existing) {
+        await request(
+          'PATCH',
+          `/repos/${repo.owner}/${repo.repo}/actions/variables/${encodeURIComponent(name)}`,
+          { name, value },
+        );
+      } else {
+        await request('POST', `/repos/${repo.owner}/${repo.repo}/actions/variables`, { name, value });
+      }
     },
   };
 
