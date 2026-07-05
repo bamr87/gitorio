@@ -1,0 +1,233 @@
+/* Content cockpit (ADR-017) — headless-CMS control panel. */
+
+.contentpane {
+  overflow: auto;
+}
+
+.content {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.content__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.content__title {
+  margin: 0;
+  font-size: 18px;
+}
+.content__sub {
+  margin: 2px 0 0;
+  color: var(--muted, #8b949e);
+  font-size: 13px;
+}
+.content__headctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.content__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted, #8b949e);
+}
+
+.content__error {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.5);
+  color: #ffb4ad;
+  font-size: 13px;
+}
+.content__pr {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(63, 185, 80, 0.1);
+  border: 1px solid rgba(63, 185, 80, 0.4);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.content__pr a {
+  color: inherit;
+  word-break: break-all;
+}
+
+.content__sec {
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--panel, #0d1117);
+}
+.content__note {
+  margin: 8px 0 0;
+  color: var(--muted, #8b949e);
+  font-size: 12px;
+}
+.content__warn {
+  margin-left: 10px;
+  color: #e3b341;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* config grid */
+.content__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 10px 0 12px;
+}
+.field--wide {
+  grid-column: 1 / -1;
+}
+
+/* kill switches */
+.switches {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 6px;
+}
+.switch.is-on {
+  border-color: rgba(63, 185, 80, 0.55);
+  background: rgba(63, 185, 80, 0.06);
+}
+.switch__led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted, #6e7681);
+  flex: none;
+}
+.switch__led.is-on {
+  background: #3fb950;
+  box-shadow: 0 0 6px rgba(63, 185, 80, 0.8);
+}
+.switch__var {
+  font-size: 12.5px;
+}
+.switch__state {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted, #8b949e);
+}
+
+.btn--go {
+  border-color: rgba(63, 185, 80, 0.6);
+  color: #3fb950;
+}
+.btn--go:hover {
+  background: rgba(63, 185, 80, 0.12);
+}
+
+/* review-criteria + skills editors */
+.content__sub2 {
+  margin: 4px 0 12px;
+}
+.content__sublabel {
+  display: block;
+  font-size: 12px;
+  color: var(--muted, #8b949e);
+  margin-bottom: 6px;
+}
+.editlist {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.editlist__row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.editlist__row input {
+  flex: 1;
+  background: var(--input, #010409);
+  color: inherit;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+.editlist__row--skill .skill__name {
+  flex: 0 0 34%;
+}
+
+/* backlog table */
+.backlog {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.backlog th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted, #8b949e);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border, #30363d);
+}
+.backlog td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border, #21262d);
+  vertical-align: middle;
+}
+.backlog input,
+.backlog select {
+  width: 100%;
+  background: var(--input, #010409);
+  color: inherit;
+  border: 1px solid var(--border, #30363d);
+  border-radius: 5px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12.5px;
+}
+.backlog__kind {
+  max-width: 90px;
+}
+.backlog__row--done .backlog__title {
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.content__backlogctl {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .content__grid {
+    grid-template-columns: 1fr;
+  }
+}

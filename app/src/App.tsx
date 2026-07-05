@@ -10,6 +10,8 @@ import { ConnectDialog } from './panels/ConnectDialog';
 import { DeployModal } from './panels/DeployModal';
 import { TelemetryPanel } from './panels/TelemetryPanel';
 import { PromptStudio } from './panels/PromptStudio';
+import { ContentPanel } from './panels/ContentPanel';
+import { DocsView } from './panels/DocsView';
 import { MonitorPanel } from './panels/MonitorPanel';
 import { SettingsPanel } from './panels/SettingsPanel';
 import { TemplateGallery } from './panels/TemplateGallery';
@@ -35,6 +37,8 @@ function download(filename: string, text: string) {
 const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
   { id: 'build', label: 'Build', icon: '⚒', title: 'Design the factory: machines, belts, compile' },
   { id: 'prompts', label: 'Prompts', icon: '📜', title: 'Prompt Studio — edit the agents’ operating instructions' },
+  { id: 'content', label: 'Content', icon: '📰', title: 'Headless-CMS cockpit — config, content backlog, kill switches' },
+  { id: 'docs', label: 'Docs', icon: '📖', title: 'The rendered docs collection — the content factory’s visible output' },
   { id: 'monitor', label: 'Monitor', icon: '📊', title: 'Runs, per-line stats, schedules, controls' },
   { id: 'fleet', label: 'Fleet', icon: '🛰', title: 'Observe any repo’s workflows; switch between repos' },
   { id: 'settings', label: 'Settings', icon: '⚙', title: 'Connections and preferences' },
@@ -237,6 +241,8 @@ export default function App() {
         </>
       )}
       {view === 'prompts' && <PromptStudio />}
+      {view === 'content' && <ContentPanel />}
+      {view === 'docs' && <DocsView />}
       {view === 'monitor' && <MonitorPanel />}
       {view === 'fleet' && <FleetView />}
       {view === 'settings' && <SettingsPanel />}

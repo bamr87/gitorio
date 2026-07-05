@@ -3,7 +3,7 @@
 
 import { create } from 'zustand';
 
-export type AppView = 'build' | 'prompts' | 'monitor' | 'fleet' | 'settings';
+export type AppView = 'build' | 'prompts' | 'content' | 'docs' | 'monitor' | 'fleet' | 'settings';
 
 interface UiState {
   view: AppView;

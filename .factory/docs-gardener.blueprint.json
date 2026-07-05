@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "meta": {
+    "name": "Docs Gardener",
+    "description": "Daily: review + improve a few docs from the collection, as a reviewable PR."
+  },
+  "nodes": [
+    {
+      "id": "dd",
+      "type": "trigger.cron",
+      "position": {
+        "x": 40,
+        "y": 90
+      },
+      "config": {
+        "cron": "0 8 * * *"
+      }
+    },
+    {
+      "id": "dm",
+      "type": "trigger.manual",
+      "position": {
+        "x": 40,
+        "y": 210
+      },
+      "config": {
+        "mode": "plan-first"
+      }
+    },
+    {
+      "id": "dg",
+      "type": "gate.enablement",
+      "position": {
+        "x": 250,
+        "y": 150
+      },
+      "config": {
+        "variable": "DOCS_GARDENER_ENABLED"
+      }
+    },
+    {
+      "id": "drl",
+      "type": "rate.limiter",
+      "position": {
+        "x": 440,
+        "y": 150
+      },
+      "config": {
+        "maxPerDay": 2
+      }
+    },
+    {
+      "id": "da",
+      "type": "agent.claude",
+      "position": {
+        "x": 630,
+        "y": 150
+      },
+      "config": {
+        "promptRef": ".factory/prompts/docs-gardener.md",
+        "model": "claude-opus-4-8",
+        "maxTurns": 24
+      }
+    },
+    {
+      "id": "dpr",
+      "type": "sink.open_pr",
+      "position": {
+        "x": 870,
+        "y": 150
+      },
+      "config": {
+        "branchHint": "factory/docs-*"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": {
+        "node": "dd",
+        "port": "out"
+      },
+      "to": {
+        "node": "dg",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e2",
+      "from": {
+        "node": "dm",
+        "port": "out"
+      },
+      "to": {
+        "node": "dg",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e3",
+      "from": {
+        "node": "dg",
+        "port": "out"
+      },
+      "to": {
+        "node": "drl",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e4",
+      "from": {
+        "node": "drl",
+        "port": "out"
+      },
+      "to": {
+        "node": "da",
+        "port": "in"
+      }
+    },
+    {
+      "id": "e5",
+      "from": {
+        "node": "da",
+        "port": "out"
+      },
+      "to": {
+        "node": "dpr",
+        "port": "in"
+      }
+    }
+  ]
+}

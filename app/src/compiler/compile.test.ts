@@ -502,3 +502,207 @@ describe('compile: gate.approval / rate.limiter / cross_repo_issue (agent patter
     expect(bad.diagnostics.some((d) => d.level === 'error' && /owner\/name/.test(d.message))).toBe(true);
   });
 });
+
+// ── ADR-017: governance + feedback primitives (headless CMS) ─────────────
+
+const errs = (wf: { diagnostics: { level: string }[] }) =>
+  wf.diagnostics.filter((d) => d.level === 'error');
+
+describe('gate.enablement — default-OFF repo-variable kill switch', () => {
+  it('agent line: emits a gate job checking the variable AND Claude auth; line needs it', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Content Factory' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 9 * * *' }),
+        node('g', 'gate.enablement', { variable: 'CONTENT_FACTORY_ENABLED' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/grow.md' }),
+        node('s', 'sink.open_pr', { branchHint: 'factory/content-*' }),
+      ],
+      edges: [edge('e1', 't', 'g'), edge('e2', 'g', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(errs(wf)).toHaveLength(0);
+    // a dedicated gate job with a go output
+    expect(wf.yaml).toContain('gate:');
+    expect(wf.yaml).toContain('go: ${{ steps.check.outputs.go }}');
+    expect(wf.yaml).toContain('ENABLED: ${{ vars.CONTENT_FACTORY_ENABLED }}');
+    // agent line ⇒ the gate also requires Claude auth to be provisioned
+    expect(wf.yaml).toContain('[ -n "$OAUTH" ]');
+    // the line waits on the gate and only runs when it says go
+    expect(wf.yaml).toContain('needs: gate');
+    expect(wf.yaml).toContain("needs.gate.outputs.go == 'true'");
+  });
+
+  it('deterministic line: gate checks only the variable (no auth check without an agent)', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Guarded Automerge' },
+      nodes: [
+        node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
+        node('g', 'gate.enablement', { variable: 'AUTO_MERGE_ENABLED' }),
+        node('m', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+      ],
+      edges: [edge('e1', 't', 'g'), edge('e2', 'g', 'm')],
+    }).workflows[0];
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('ENABLED: ${{ vars.AUTO_MERGE_ENABLED }}');
+    expect(wf.yaml).not.toContain('OAUTH');
+    expect(wf.yaml).toContain('needs: gate');
+  });
+
+  it('errors when the enablement gate has no variable name', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Bad Gate' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 3 * * *' }),
+        node('g', 'gate.enablement', { variable: '' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.create_issue', {}),
+      ],
+      edges: [edge('e1', 't', 'g'), edge('e2', 'g', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(wf.diagnostics.some((d) => d.level === 'error' && /variable name/.test(d.message))).toBe(true);
+  });
+});
+
+describe('processor.feedback_controller — the loop-tuner (self-improvement)', () => {
+  const wf = compile({
+    version: 1,
+    meta: { name: 'Loop Tuner' },
+    nodes: [
+      node('t', 'trigger.cron', { cron: '0 6 * * 1' }),
+      node('f', 'processor.feedback_controller', {
+        ledgerPath: '.factory/metrics/improvements.yml',
+        model: 'claude-opus-4-8',
+        windowDays: 7,
+        maxTurns: 30,
+      }),
+    ],
+    edges: [edge('e1', 't', 'f')],
+  }).workflows[0];
+
+  it('compiles clean to a claude-code-action step carrying the built-in loop-tuner contract', () => {
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('anthropics/claude-code-action@v1');
+    expect(wf.yaml).toContain('loop-tuner');
+    expect(wf.yaml).toContain('MEASURE');
+    expect(wf.yaml).toContain('.factory/metrics/improvements.yml');
+    expect(wf.yaml).toContain('.factory/metrics/history.jsonl');
+    expect(wf.yaml).toContain('--model claude-opus-4-8');
+  });
+
+  it('grants telemetry-read + file-edit + open-ONE-PR, and NEVER merge (no-self-merge invariant)', () => {
+    expect(wf.yaml).toMatch(/Read,Glob,Grep,Edit,Write/);
+    expect(wf.yaml).toContain('Bash(gh run list:*)');
+    expect(wf.yaml).toContain('Bash(gh pr create:*)');
+    expect(wf.yaml).not.toContain('gh pr merge');
+    expect(wf.yaml).toContain('NEVER merge it');
+  });
+
+  it('computes least-privilege permissions (telemetry read + PR write, never admin)', () => {
+    expect(wf.yaml).toContain('contents: write');
+    expect(wf.yaml).toContain('pull-requests: write');
+    expect(wf.yaml).toContain('actions: read');
+    expect(wf.yaml).toContain('id-token: write');
+    // cron line → no bot loop-guard
+    expect(wf.yaml).not.toContain("sender.type != 'Bot'");
+  });
+
+  it('threads a custom ledger path into the contract + its sibling history file', () => {
+    const w = compile({
+      version: 1,
+      meta: { name: 'Tuner B' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 6 * * 1' }),
+        node('f', 'processor.feedback_controller', { ledgerPath: '.factory/metrics/led.yml' }),
+      ],
+      edges: [edge('e1', 't', 'f')],
+    }).workflows[0];
+    expect(w.yaml).toContain('.factory/metrics/led.yml');
+    expect(w.yaml).toContain('.factory/metrics/history.jsonl');
+  });
+});
+
+describe('dry-run/apply duality — plan-first manual trigger', () => {
+  it('exposes an apply checkbox and gates deterministic mutations on it', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Guarded Sweep' },
+      nodes: [
+        node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
+        node('m', 'trigger.manual', { mode: 'plan-first' }),
+        node('mg', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+      ],
+      edges: [edge('e1', 't', 'mg'), edge('e2', 'm', 'mg')],
+    }).workflows[0];
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('workflow_dispatch:');
+    expect(wf.yaml).toContain('apply:');
+    expect(wf.yaml).toContain('type: boolean');
+    // the merge only fires on a non-manual event, or a manual run with apply ticked
+    expect(wf.yaml).toContain("github.event_name != 'workflow_dispatch' || inputs.apply");
+  });
+
+  it('flips the agent into report-only on a dry run (PLAN/APPLY note in the prompt)', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Content Draft' },
+      nodes: [
+        node('m', 'trigger.manual', { mode: 'plan-first' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/grow.md' }),
+        node('c', 'sink.comment', { instruction: 'summarize the draft' }),
+      ],
+      edges: [edge('e1', 'm', 'a'), edge('e2', 'a', 'c')],
+    }).workflows[0];
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('PLAN/APPLY MODE');
+    expect(wf.yaml).toContain('APPLY: ${{');
+  });
+
+  it('plain manual (apply mode) adds no apply input and no plan note — unchanged behaviour', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Plain Manual' },
+      nodes: [
+        node('m', 'trigger.manual', {}),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('c', 'sink.comment', { instruction: 'note' }),
+      ],
+      edges: [edge('e1', 'm', 'a'), edge('e2', 'a', 'c')],
+    }).workflows[0];
+    expect(wf.yaml).not.toContain('apply:');
+    expect(wf.yaml).not.toContain('PLAN/APPLY MODE');
+  });
+});
+
+describe('blueprintPath header override (standalone/named blueprints)', () => {
+  const bp = {
+    version: 1 as const,
+    meta: { name: 'Docs Gardener' },
+    nodes: [node('t', 'trigger.cron', { cron: '0 8 * * *' }), node('a', 'agent.claude', { promptRef: 'p.md' }), node('s', 'sink.open_pr', {})],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+  };
+  it('defaults the header to .factory/blueprint.json', () => {
+    expect(compile(bp).workflows[0].yaml).toContain('blueprint: .factory/blueprint.json');
+  });
+  it('stamps a custom blueprint path when given', () => {
+    const yaml = compile(bp, { blueprintPath: '.factory/docs-gardener.blueprint.json' }).workflows[0].yaml;
+    expect(yaml).toContain('blueprint: .factory/docs-gardener.blueprint.json');
+    expect(yaml).not.toContain('blueprint: .factory/blueprint.json');
+  });
+});
+
+describe('open_pr / commit_files grant file-editing tools (agent must change files first)', () => {
+  it('open_pr grants Read/Edit/Write plus the git verbs and gh pr create', () => {
+    const yaml = compile({
+      version: 1,
+      meta: { name: 'Docs Gardener' },
+      nodes: [node('t', 'trigger.cron', { cron: '0 8 * * *' }), node('a', 'agent.claude', { promptRef: 'p.md' }), node('s', 'sink.open_pr', {})],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+    }).workflows[0].yaml;
+    expect(yaml).toMatch(/Read,Glob,Grep,Edit,Write/);
+    expect(yaml).toContain('Bash(git commit:*)');
+    expect(yaml).toContain('Bash(gh pr create:*)');
+  });
+});

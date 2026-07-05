@@ -29,6 +29,9 @@ export default defineConfig(({ command, mode }) => {
       port: 5173,
       // VITE_USE_POLLING (Docker dev service) keeps HMR working across the macOS ↔ container fs.
       watch: env.VITE_USE_POLLING ? { usePolling: true } : undefined,
+      // Allow serving the repo-root `_docs/` collection (one level above app/) that the Docs
+      // view bundles via import.meta.glob — otherwise the dev server blocks the raw reads.
+      fs: { allow: ['..'] },
     },
   };
 });

@@ -33,6 +33,79 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-05 — ADR-018: The Docs Gardener — a demonstrable daily content factory + a Docs view on Pages
+Made the headless-CMS concrete on gitorio itself: a daily factory that reviews + improves the
+`_docs` collection, those docs rendered in the frontend (which Pages serves), and skill/config
+options. Decisions:
+(1) **Docs Gardener factory** — a template (cron `0 8 * * *` + plan-first manual → `gate.enablement`
+`DOCS_GARDENER_ENABLED` → `rate.limiter` 2/day → `agent.claude` → `sink.open_pr`). A Claude agent
+scans `config.docsDir`, picks the `config.itemsPerRun` most-improvable docs, applies the configured
+review criteria + the matching skill specialization, edits them, and opens ONE PR (never merges;
+default-OFF). Dogfooded onto gitorio from the SAME sources the app uses via `app/scripts/gen-docs-
+gardener.ts` (template + compiler + config model), so the committed artifacts can't drift.
+(2) **Docs rendered in the frontend, on Pages** — gitorio's Pages IS the Vite app (not Jekyll), so
+"render docs on Pages" = a **Docs view** in the app. `_docs/*.md` bundle at build time via
+`import.meta.glob('../../../_docs/*.md', {query:'?raw'})` (repo-root collection; `server.fs.allow:
+['..']` for dev), parsed by a **dependency-free Markdown renderer** (`docs/markdown.ts` → block AST
+→ React elements, no dangerouslySetInnerHTML — kept the bundle lean vs. adding `marked`). The loop is
+visible: gardener improves a doc → merge → Pages redeploy → the Docs view updates. The factory that
+tends the docs and the site that renders them are one repo.
+(3) **Skill specializations + content config** — extended `.factory/config.yml` (`FactoryConfig`) with
+`skills` (named lenses: technical-writer / tutorial-author / api-reference — lifehacker's
+`.claude/skills/` idea, but centrally configured so the app edits them), `reviewCriteria` (the
+reviewer's checklist), `docsDir`, and `itemsPerRun`. Editable from the **Content tab** (skills +
+criteria list editors, docs settings); read by the agent at runtime, so tuning needs no recompile.
+(4) **Compiler `blueprintPath` option** — the header's `blueprint:` line is now overridable, so a
+standalone/named factory (the docs gardener, kept separate from the repo's main blueprint) points
+drift detection at the right file (`.factory/docs-gardener.blueprint.json`).
+Also fixed a real latent gap: `sink.open_pr`/`sink.commit_files` didn't grant `Read/Edit/Write`, so an
+agent could never actually change the files it was told to commit — never hit before because no prior
+template edits files then opens a PR. Now granted. **21 machine types** (unchanged); 7-tab shell
+(added **Docs**); +~35 tests (209 total across 25 files), typecheck + prod build green (the build
+validates the outside-root `_docs` glob); Docs view browser-verified live.
+
+## 2026-07-05 — ADR-017: Headless-CMS primitives from lifehacker.dev, on the claude-code-action core
+Studied the real `bamr87/lifehacker.dev` fleet (16 workflows, a `claude-run` composite action, a
+Ruby OODA dispatcher, a `loop-tuner` feedback controller, default-OFF `*_ENABLED` repo-variable
+gates) to make GitFactory configure "an autonomous, configurable, headless CMS with feedback
+loops." **Decision: adopt its governance/feedback/queue *patterns* as new machines + app concepts,
+but keep `anthropics/claude-code-action@v1` as the runtime** (rejected: refactoring the compiler to
+emit lifehacker's CLI-runner + `ai.yml` + raw-API fallback — a big rewrite of a tested core for no
+capability GitFactory lacks; and a per-blueprint runner toggle — 2× the emit paths/tests). What
+shipped:
+(1) **`gate.enablement`** — a default-OFF kill switch. The compiler emits a tiny `gate` job that
+checks a repo **variable** (`vars.<NAME>`) — and, for agent lines, that Claude auth exists — and the
+`line` job `needs: gate` + runs only on `needs.gate.outputs.go == 'true'`. An unset variable reads as
+idle, never as "safe to run." Flipping the variable arms/disarms a line instantly with no redeploy;
+a compromised agent can't re-arm itself (setting a variable needs an admin scope the fleet token
+lacks). The app reads/writes these via new client methods `listVariables`/`getVariable`/`setVariable`
+(values are readable, unlike secrets — that's what lets the Content tab show a line as armed/idle).
+(2) **`processor.feedback_controller`** (the loop-tuner) — a specialised agent (reuses the
+claude-code-action step) carrying a built-in contract: MEASURE the factory's own telemetry over a
+window → VERIFY the last change against an improvements ledger (`.factory/metrics/improvements.yml`
++ `history.jsonl`) → DIAGNOSE the upstream cause → make the SMALLEST change to a prompt/config →
+RECORD a new `pending` ledger entry (so the next run verifies it) → open exactly ONE PR. It is
+granted telemetry-read (`gh run list/view`, `gh pr list`), file edit (Read/Glob/Grep/Edit/Write),
+and PR-open (git + `gh pr create`) — and **deliberately NOT `gh pr merge`** (the no-self-merge
+invariant) or `gh workflow`. This is the headline "feedback loop."
+(3) **Dry-run/apply duality** — a `trigger.manual` "plan-first" mode exposes an `apply` boolean input;
+a manual run PLANS only unless ticked, while every non-manual event (schedule, workflow_run) applies
+(`github.event_name != 'workflow_dispatch' || inputs.apply`). Deterministic mutating sink steps gate
+on it; agent lines get a PLAN/APPLY prompt note that flips them to report-only on a dry run.
+(4) **Central config + content backlog** — `.factory/config.yml` (model/budget/voice/paths the agents
+honor at runtime — lifehacker's `ai.yml` idea, one place) and `.factory/backlog.yml` (a typed
+work queue: kind/priority/status, with starvation detection). Pure parse/serialize (`content/model.ts`),
+a `content/` store, and a new **Content tab** cockpit (config form + backlog table + kill-switch
+toggles). PR-by-default writes; variable flips are instant.
+(5) **Headless CMS template** — stamps the whole loop: a daily+plan-first-manual content writer behind
+`CONTENT_FACTORY_ENABLED` (rate-limited → open PR a human merges) + a weekly loop-tuner behind
+`LOOP_TUNER_ENABLED`.
+Also fixed a parked correctness bug (ROADMAP): `sink.open_pr`/`sink.commit_files` granted only
+`gh pr create` — no `git add/commit/push` — so the obligation couldn't actually be met. `toolsFor`
+now grants the git verbs. 19 → **21 machine types**; +45 tests (193 total), typecheck + prod build
+green. Verified against the live lifehacker.dev fleet (a research subagent read every workflow +
+the composite action + the Ruby dispatcher before any machine was designed — golden rule #4).
+
 ## 2026-07-05 — ADR-016: Five-tab app shell; device flow stays parked (CORS)
 The frontend graduated from a single canvas to a **five-tab shell** (Build · Prompts ·
 Monitor · Fleet · Settings), driven by a tiny `state/ui` store so any panel can deep-link.

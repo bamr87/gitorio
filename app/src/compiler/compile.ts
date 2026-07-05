@@ -27,14 +27,25 @@ export interface CompileResult {
 export interface CompileOptions {
   /** Test/escape hatch: skip auto bot-guards. The compiler REFUSES loop-risky graphs in this mode. */
   unsafeNoGuards?: boolean;
+  /**
+   * Path stamped into the generated-file header's `blueprint:` line. Defaults to the canonical
+   * `.factory/blueprint.json`; override for a standalone/named blueprint (e.g. a docs-gardener
+   * factory kept separate from the repo's main blueprint) so drift detection points at the right file.
+   */
+  blueprintPath?: string;
 }
 
 const AGENT = 'agent.claude';
+const FEEDBACK = 'processor.feedback_controller';
+// Both compile to a claude-code-action step. The feedback controller is a specialised
+// agent (a built-in loop-tuner contract + telemetry-read/ledger-write grants).
+const AGENTS = new Set([AGENT, FEEDBACK]);
 const DEPENDABOT_META = 'processor.dependabot_meta';
 const GATE = 'gate.approval';
+const ENABLEMENT = 'gate.enablement';
 const RATE = 'rate.limiter';
 /** Non-trigger, non-sink processors the compiler recognises (each has its own emitter). */
-const PROCESSORS = new Set(['filter.condition', DEPENDABOT_META, GATE, RATE]);
+const PROCESSORS = new Set(['filter.condition', DEPENDABOT_META, GATE, ENABLEMENT, RATE]);
 const TRIGGERS = new Set([
   'trigger.issue_opened',
   'trigger.issue_labeled',
@@ -188,6 +199,22 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
   }
 }
 
+// The built-in loop-tuner contract: a self-improvement controller's fixed obligations. It
+// measures the factory's OWN telemetry, verifies the last change against a ledger, makes the
+// smallest upstream fix, records it so the next run can verify it, and opens ONE PR — never
+// merging. Mirrors the proven lifehacker.dev loop-tuner (ADR-017).
+function feedbackContract(ledgerPath: string): string[] {
+  const dir = ledgerPath.includes('/') ? ledgerPath.slice(0, ledgerPath.lastIndexOf('/')) : '.factory/metrics';
+  const history = `${dir}/history.jsonl`;
+  return [
+    `MEASURE — read the factory's own telemetry over the last WINDOW_DAYS days: \`gh run list\` for the factory--* workflows (conclusions, durations, runs/day), open factory PRs (\`gh pr list\`), and the previous snapshot in ${history}. Compute the signals: failure rate, time-to-merge, throughput, and any regression versus the last snapshot.`,
+    `VERIFY THE LAST CHANGE — open the ledger ${ledgerPath}. For every entry whose status is \`pending\`, re-measure its \`metric\` against its \`baseline\` and \`direction\`, then set the status to \`verified\` or \`regressed\`. A \`regressed\` entry is this run's top fix-or-revert candidate.`,
+    `DIAGNOSE — for each strong signal, find the UPSTREAM cause and make the SMALLEST content-agnostic change that moves the measured number: edit a prompt under .factory/prompts/, a knob in .factory/config.yml, or the backlog — never a fix that only helps one item.`,
+    `RECORD — append a new \`pending\` entry to ${ledgerPath} (id, metric, baseline, direction, note) and one snapshot line to ${history}. This is what makes runs compound instead of repeat.`,
+    `SHIP — open exactly ONE pull request (branch \`loop-tuner/<date>\`) whose body cites the metric before, the root cause, the change, and how the next run verifies it. NEVER merge it. If there is no evidenced improvement AND no ledger verdict changed, open NO PR and report that the loop is healthy.`,
+  ];
+}
+
 // `prContext` = this line may act on pull requests (a PR trigger, or survey mode where a
 // scheduled/manual agent discovers PRs itself). Labels/comments on a PR go through the
 // pr subcommands; the issue subcommands are kept too since they resolve PR numbers.
@@ -204,7 +231,17 @@ function toolsFor(sinkType: string, prContext: boolean): string[] {
     case 'sink.create_issue':
       return ['Bash(gh issue create:*)', 'Bash(gh issue list:*)'];
     case 'sink.open_pr':
-      return ['Bash(gh pr create:*)'];
+      // The agent must EDIT files, then branch/commit/push before `gh pr create`. Grant the
+      // file tools (Read/Glob/Grep/Edit/Write) AND the git verbs — previously only `gh pr
+      // create` was granted, so the agent could neither change files nor commit them.
+      return [
+        'Read', 'Glob', 'Grep', 'Edit', 'Write',
+        'Bash(git switch:*)', 'Bash(git checkout:*)', 'Bash(git add:*)',
+        'Bash(git commit:*)', 'Bash(git push:*)', 'Bash(gh pr create:*)',
+      ];
+    case 'sink.commit_files':
+      // Edit files then commit + push directly (the obligation says to change + commit files).
+      return ['Read', 'Glob', 'Grep', 'Edit', 'Write', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git push:*)'];
     case 'sink.merge_pr':
       return ['Bash(gh pr merge:*)'];
     case 'sink.cross_repo_issue':
@@ -239,13 +276,14 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const filename = `factory--${slug}.yml`;
 
     const triggers = comp.filter((n) => TRIGGERS.has(n.type));
-    const agents = comp.filter((n) => n.type === AGENT);
+    const agents = comp.filter((n) => AGENTS.has(n.type));
     const filters = comp.filter((n) => n.type === 'filter.condition');
     const dependabotMeta = comp.find((n) => n.type === DEPENDABOT_META);
     const gate = comp.find((n) => n.type === GATE);
+    const enablement = comp.find((n) => n.type === ENABLEMENT);
     const limiter = comp.find((n) => n.type === RATE);
     const unknown = comp.filter(
-      (n) => !TRIGGERS.has(n.type) && !SINKS.has(n.type) && n.type !== AGENT && !PROCESSORS.has(n.type),
+      (n) => !TRIGGERS.has(n.type) && !SINKS.has(n.type) && !AGENTS.has(n.type) && !PROCESSORS.has(n.type),
     );
     for (const n of unknown) {
       diags.push({ level: 'error', nodeId: n.id, message: `Unknown machine type "${n.type}" — no emitter.` });
@@ -268,6 +306,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     let hasPr = false;
     let hasComment = false;
     let hasWorkflowRun = false;
+    let planFirst = false; // a manual trigger asked for dry-run-by-default (apply on non-manual events)
 
     for (const t of triggers) {
       switch (t.type) {
@@ -300,6 +339,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           break;
         }
         case 'trigger.manual':
+          if (s(t.config.mode, 'apply') === 'plan-first') planFirst = true;
           on['workflow_dispatch'] = {};
           break;
         case 'trigger.workflow_run': {
@@ -317,6 +357,22 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     if (prTypes.size) on['pull_request'] = { types: [...prTypes].sort() };
     if (crons.length) on['schedule'] = crons;
     if (hasWorkflowRun) on['workflow_run'] = { workflows: watchedWorkflows, types: ['completed'] };
+
+    // Dry-run/apply duality (a plan-first manual trigger): a manual run PLANS only unless the
+    // `apply` box is ticked; every non-manual event (schedule, workflow_run, …) applies. Guards
+    // the deterministic mutating sink steps and flips the agent into report-only on a dry run.
+    const applyExpr = "(github.event_name != 'workflow_dispatch' || inputs.apply)";
+    if (planFirst) {
+      on['workflow_dispatch'] = {
+        inputs: {
+          apply: {
+            description: 'Apply changes (leave unchecked for a dry run — plan only)',
+            type: 'boolean',
+            default: false,
+          },
+        },
+      };
+    }
 
     // Survey mode: an agent line fired only by cron/manual has no triggering issue/PR
     // from the event, so it must discover its own work. It runs in the base-repo context
@@ -423,6 +479,20 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       });
     }
 
+    // Enablement gate → a default-OFF `gate` job checks a repo variable (and, for agent lines,
+    // that Claude auth exists). The line `needs: gate` and runs only when it outputs go == 'true'.
+    // Flip the variable to arm/disarm the whole line instantly with no redeploy; a compromised
+    // agent can't re-arm itself (setting a variable needs an admin scope the fleet token lacks).
+    const enableVar = enablement ? s(enablement.config.variable) : null;
+    if (enablement && !enableVar) {
+      diags.push({
+        level: 'error',
+        nodeId: enablement.id,
+        message: 'Enablement gate needs a repo variable name (e.g. CONTENT_FACTORY_ENABLED).',
+      });
+    }
+    if (enableVar) guards.unshift(`needs.gate.outputs.go == 'true'`);
+
     // Rate limiter → a guard step that stops the line past N runs/day (loop/cost insurance).
     const rateLimit = limiter
       ? Number(limiter.config.maxPerDay) > 0
@@ -476,6 +546,13 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     }
     if (limiter) permissions['actions'] = 'read'; // gh run list reads the Actions API
     if (agent) permissions['id-token'] = 'write';
+    // Feedback controller reads run telemetry (actions:read), edits prompts/config, and opens
+    // exactly one tuning PR (contents+pull-requests: write). It is never granted merge.
+    if (agent?.type === FEEDBACK) {
+      permissions['contents'] = 'write';
+      permissions['pull-requests'] = 'write';
+      permissions['actions'] = 'read';
+    }
 
     // entity expressions for prompts / deterministic steps
     const entityExpr = hasPr && !hasIssueish && !hasComment
@@ -505,68 +582,101 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     }
 
     if (agent) {
-      const promptRef = s(agent.config.promptRef);
-      if (!promptRef) {
+      const isFeedback = agent.type === FEEDBACK;
+      const promptRef = s(agent.config.promptRef, isFeedback ? '.factory/prompts/loop-tuner.md' : '');
+      if (!promptRef && !isFeedback) {
         diags.push({ level: 'error', nodeId: agent.id, message: 'Claude agent has no prompt file (promptRef).' });
       }
-      const contextLines = ['REPO: ${{ github.repository }}'];
-      if (hasIssueish || hasComment) contextLines.push('ISSUE_NUMBER: ${{ github.event.issue.number }}');
-      if (hasPr) contextLines.push('PR_NUMBER: ${{ github.event.pull_request.number }}');
-      if (hasWorkflowRun) {
-        contextLines.push('PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}');
-        contextLines.push('CHECK_CONCLUSION: ${{ github.event.workflow_run.conclusion }}');
-      }
 
-      const obligations = obligated.map((sink, i) => `${i + 1}. ${obligationFor(sink, entityExpr)}`);
-      if (obligated.length === 0) {
+      const ledgerPath = s(agent.config.ledgerPath, '.factory/metrics/improvements.yml');
+      const windowDays = Number(agent.config.windowDays) > 0 ? Math.floor(Number(agent.config.windowDays)) : 7;
+      const contextLines = ['REPO: ${{ github.repository }}'];
+      if (isFeedback) {
+        contextLines.push(`WINDOW_DAYS: ${windowDays}`);
+        contextLines.push(`LEDGER: ${ledgerPath}`);
+      } else {
+        if (hasIssueish || hasComment) contextLines.push('ISSUE_NUMBER: ${{ github.event.issue.number }}');
+        if (hasPr) contextLines.push('PR_NUMBER: ${{ github.event.pull_request.number }}');
+        if (hasWorkflowRun) {
+          contextLines.push('PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}');
+          contextLines.push('CHECK_CONCLUSION: ${{ github.event.workflow_run.conclusion }}');
+        }
+      }
+      if (planFirst) contextLines.push(`APPLY: \${{ ${applyExpr} }}`);
+
+      // Obligations: the loop-tuner carries a built-in contract; every agent also inherits its
+      // downstream sinks' obligations. Numbered once, in graph order.
+      const rawObligations = isFeedback ? feedbackContract(ledgerPath) : [];
+      for (const sink of obligated) rawObligations.push(obligationFor(sink, entityExpr));
+      if (!isFeedback && obligated.length === 0) {
         diags.push({
           level: 'warning',
           nodeId: agent.id,
           message: 'Agent has no downstream sinks — it will run read-only with no obligations.',
         });
       }
+      const obligations = rawObligations.map((o, i) => `${i + 1}. ${o}`);
 
+      const intro = isFeedback
+        ? `\n\nYou are this repository's loop-tuner — a self-improvement controller for the factory itself.` +
+          (promptRef ? ` Also read and follow ${promptRef} if it exists.` : '')
+        : `\n\nRead and follow the operating instructions in ${promptRef || '<promptRef missing>'}.`;
+      const planNote = planFirst
+        ? `\n\nPLAN/APPLY MODE — when APPLY is false this is a DRY RUN: do the full analysis, then, instead of performing the write obligations below, report the exact plan of what you WOULD do and stop. Perform the obligations only when APPLY is true.`
+        : '';
       const prompt =
         contextLines.join('\n') +
-        `\n\nRead and follow the operating instructions in ${promptRef || '<promptRef missing>'}.` +
+        intro +
+        planNote +
         (obligations.length
           ? `\n\nOBLIGATIONS (complete every item, nothing else):\n${obligations.join('\n')}`
           : '');
 
       // context tools by trigger kind + per-sink grants
       const tools = new Set<string>();
-      if (hasIssueish || hasComment) {
-        tools.add('Bash(gh issue view:*)');
-        tools.add('Bash(gh search issues:*)');
-      }
-      if (hasPr || hasWorkflowRun) {
-        tools.add('Bash(gh pr view:*)');
-        tools.add('Bash(gh pr diff:*)');
-      }
-      if (crons.length) {
-        tools.add('Bash(gh issue list:*)');
-        tools.add('Bash(gh search issues:*)');
-      }
-      if (surveyMode) {
-        // gh issue list / search can't see PRs (gh forces `type:issue`), so a warden that
-        // reviews pull requests needs the pr subcommands explicitly. Read-only discovery +
-        // inspection; writes come from the sink grants below (never merge/create/close).
-        tools.add('Bash(gh issue list:*)');
-        tools.add('Bash(gh search issues:*)');
-        tools.add('Bash(gh pr list:*)');
-        tools.add('Bash(gh pr view:*)');
-        tools.add('Bash(gh pr diff:*)');
+      if (isFeedback) {
+        // Measure telemetry (read-only), edit prompts/config, open exactly ONE tuning PR.
+        // Deliberately NOT granted `gh pr merge` (the no-self-merge invariant) or `gh workflow`.
+        for (const t of [
+          'Read', 'Glob', 'Grep', 'Edit', 'Write',
+          'Bash(gh run list:*)', 'Bash(gh run view:*)', 'Bash(gh pr list:*)',
+          'Bash(git switch:*)', 'Bash(git checkout:*)', 'Bash(git add:*)',
+          'Bash(git commit:*)', 'Bash(git push:*)', 'Bash(gh pr create:*)',
+        ]) tools.add(t);
+      } else {
+        if (hasIssueish || hasComment) {
+          tools.add('Bash(gh issue view:*)');
+          tools.add('Bash(gh search issues:*)');
+        }
+        if (hasPr || hasWorkflowRun) {
+          tools.add('Bash(gh pr view:*)');
+          tools.add('Bash(gh pr diff:*)');
+        }
+        if (crons.length) {
+          tools.add('Bash(gh issue list:*)');
+          tools.add('Bash(gh search issues:*)');
+        }
+        if (surveyMode) {
+          // gh issue list / search can't see PRs (gh forces `type:issue`), so a warden that
+          // reviews pull requests needs the pr subcommands explicitly. Read-only discovery +
+          // inspection; writes come from the sink grants below (never merge/create/close).
+          tools.add('Bash(gh issue list:*)');
+          tools.add('Bash(gh search issues:*)');
+          tools.add('Bash(gh pr list:*)');
+          tools.add('Bash(gh pr view:*)');
+          tools.add('Bash(gh pr diff:*)');
+        }
       }
       for (const sink of obligated) for (const t of toolsFor(sink.type, hasPr || surveyMode || hasWorkflowRun)) tools.add(t);
 
-      const model = s(agent.config.model, 'claude-sonnet-4-6');
-      const maxTurns = Number(agent.config.maxTurns) > 0 ? Number(agent.config.maxTurns) : 8;
+      const model = s(agent.config.model, isFeedback ? 'claude-opus-4-8' : 'claude-sonnet-4-6');
+      const maxTurns = Number(agent.config.maxTurns) > 0 ? Number(agent.config.maxTurns) : isFeedback ? 30 : 8;
       const claudeArgs =
         `--model ${model}\n--max-turns ${maxTurns}` +
         (tools.size ? `\n--allowedTools "${[...tools].join(',')}"` : '');
 
       const agentStep: Record<string, unknown> = {
-        name: `⚙ agent.claude (${agent.id})`,
+        name: `${isFeedback ? '🔁 feedback_controller' : '⚙ agent.claude'} (${agent.id})`,
         uses: 'anthropics/claude-code-action@v1',
         with: {
           // Power: default to the Claude Code OAuth token (`claude setup-token`), fall back
@@ -592,7 +702,14 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       steps.push(agentStep);
     }
 
-    // deterministic sinks (no agent on their path)
+    // deterministic sinks (no agent on their path). In plan-first mode a manual dry run gates
+    // every mutating step on the `apply` flag; non-manual events (schedule, …) apply.
+    const detIf = (extra: string | null): Record<string, unknown> => {
+      const parts: string[] = [];
+      if (planFirst) parts.push(applyExpr);
+      if (extra) parts.push(extra);
+      return parts.length ? { if: `\${{ ${parts.join(' && ')} }}` } : {};
+    };
     for (const sink of deterministic) {
       const env = {
         GH_TOKEN: '${{ github.token }}',
@@ -606,7 +723,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         const auto = s(sink.config.when, 'auto') === 'now' ? '' : ' --auto';
         const step: Record<string, unknown> = {
           name: `✅ sink.merge_pr (${sink.id})`,
-          ...(metaGate && metaDownstream.has(sink.id) ? { if: `\${{ ${metaGate} }}` } : {}),
+          ...detIf(metaGate && metaDownstream.has(sink.id) ? metaGate : null),
           env,
           run: `gh pr merge "$NUMBER" ${flag}${auto}`,
         };
@@ -616,6 +733,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         if (!body) diags.push({ level: 'warning', nodeId: sink.id, message: 'Deterministic comment has empty body.' });
         steps.push({
           name: `📝 sink.comment (${sink.id})`,
+          ...detIf(null),
           env: { ...env, BODY: body || '(factory notification)' },
           run: 'gh issue comment "$NUMBER" --body "$BODY"',
         });
@@ -633,6 +751,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         } else {
           steps.push({
             name: `🏷 sink.label (${sink.id})`,
+            ...detIf(null),
             env,
             run: `gh issue edit "$NUMBER" ${labels.map((l) => `--add-label "${l}"`).join(' ')}`,
           });
@@ -643,6 +762,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         const title = s(sink.config.titleHint, 'Factory notification');
         steps.push({
           name: `🚉 sink.cross_repo_issue (${sink.id})`,
+          ...detIf(null),
           // Scoped PAT secret, NOT github.token — the GITHUB_TOKEN can't write other repos.
           env: { GH_TOKEN: `\${{ secrets.${secret} }}`, TARGET: target, TITLE: title },
           run: 'gh issue create --repo "$TARGET" --title "$TITLE" --body "(factory notification from ${{ github.repository }})"',
@@ -664,12 +784,47 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
 
     const job: Record<string, unknown> = {
       'runs-on': 'ubuntu-latest',
+      // Enablement gate: the line runs only when the default-OFF `gate` job says go.
+      ...(enableVar ? { needs: 'gate' } : {}),
       ...(guards.length ? { if: `\${{ ${guards.join(' && ')} }}` } : {}),
       // Approval gate: the environment's protection rules pause the run for a human reviewer.
       ...(gateEnv ? { environment: gateEnv } : {}),
       permissions,
       steps,
     };
+
+    // The enablement gate is a tiny default-OFF job: it only lets the line proceed when the
+    // repo variable is "true" — and, for agent lines, when Claude auth is provisioned. An
+    // unset variable reads as idle (never as "safe to run"). Flipping the variable arms or
+    // disarms the whole line with no redeploy; a compromised agent can't re-arm itself.
+    const jobs: Record<string, unknown> = {};
+    if (enableVar) {
+      const needsAuth = agents.length > 0;
+      const gateEnvVars: Record<string, string> = { ENABLED: `\${{ vars.${enableVar} }}` };
+      if (needsAuth) {
+        gateEnvVars.OAUTH = '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}';
+        gateEnvVars.KEY = '${{ secrets.ANTHROPIC_API_KEY }}';
+      }
+      const gateRun = needsAuth
+        ? 'if [ "$ENABLED" = "true" ] && { [ -n "$OAUTH" ] || [ -n "$KEY" ]; }; then\n' +
+          '  echo "go=true" >> "$GITHUB_OUTPUT"\n' +
+          'else\n' +
+          `  echo "gate closed — set the '${enableVar}' variable to true and provision Claude auth to arm this line."\n` +
+          '  echo "go=false" >> "$GITHUB_OUTPUT"\n' +
+          'fi'
+        : 'if [ "$ENABLED" = "true" ]; then\n' +
+          '  echo "go=true" >> "$GITHUB_OUTPUT"\n' +
+          'else\n' +
+          `  echo "gate closed — set the '${enableVar}' variable to true to arm this line."\n` +
+          '  echo "go=false" >> "$GITHUB_OUTPUT"\n' +
+          'fi';
+      jobs.gate = {
+        'runs-on': 'ubuntu-latest',
+        outputs: { go: '${{ steps.check.outputs.go }}' },
+        steps: [{ id: 'check', env: gateEnvVars, run: gateRun }],
+      };
+    }
+    jobs.line = job;
 
     const wf = {
       name: `Factory: ${name}`,
@@ -678,12 +833,12 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         group: `factory--${slug}-\${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.run_id }}`,
         'cancel-in-progress': false,
       },
-      jobs: { line: job },
+      jobs,
     };
 
     const header =
       `# ⚙ GENERATED BY GITFACTORY — edit the blueprint, not this file.\n` +
-      `# blueprint: .factory/blueprint.json  hash: ${hash}\n`;
+      `# blueprint: ${opts.blueprintPath ?? '.factory/blueprint.json'}  hash: ${hash}\n`;
     const yaml = header + stringify(wf, { lineWidth: 0 });
     workflows.push({ filename, yaml, diagnostics: diags });
   });

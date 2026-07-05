@@ -1,0 +1,23 @@
+# GitFactory central config — honored by the content agents at runtime.
+# Edit here (or in the Content tab); agents read this file, so changes need no recompile.
+model: claude-opus-4-8
+maxDailyRuns: 4
+brandVoice: ""
+contentPaths:
+  - pages/_posts/**
+docsDir: _docs
+itemsPerRun: 3
+reviewCriteria:
+  - "Accuracy: claims match the current code/behavior"
+  - "Clarity: skimmable structure, defined terms, no dead links"
+  - "Completeness: a runnable example or concrete step where it helps"
+skills:
+  - id: technical-writer
+    name: Technical Writer
+    focus: precise terminology, skimmable structure, correct examples
+  - id: tutorial-author
+    name: Tutorial Author
+    focus: a reader new to the topic can follow it end to end
+  - id: api-reference
+    name: API Reference
+    focus: exhaustive, exact signatures/options, no hand-waving

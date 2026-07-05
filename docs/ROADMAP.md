@@ -73,6 +73,41 @@ Goal: point GitFactory at *various* repos, *multiple* at once, and see automatio
 - Backlog for this track: import fidelity (agent-authored sinks like content-factory's PR
   aren't visible in static YAML — mark "agent-driven"); log-zip viewing in the run drill-down.
 
+## Phase 8 — Headless CMS + feedback loops (ADR-017)
+Goal: configure an autonomous, configurable, headless content management system with AI
+integrations and feedback loops — grounded in the real `lifehacker.dev` fleet (a research
+subagent reverse-engineered its 16 workflows, `claude-run` composite action, OODA dispatcher,
+and `loop-tuner` before any machine was designed). Runtime stays `claude-code-action@v1`;
+lifehacker's *patterns* are adopted as machines + app concepts.
+- [x] **`gate.enablement`** — default-OFF repo-variable kill switch (a `gate` job + `needs`/`if`);
+      instant arm/disarm with no redeploy; a compromised agent can't re-arm itself.
+- [x] **`processor.feedback_controller`** — the loop-tuner: measures the factory's own telemetry,
+      verifies the last change against an improvements ledger, makes the smallest upstream fix,
+      opens ONE PR, **never merges** (no-self-merge invariant).
+- [x] **Dry-run/apply duality** — plan-first manual trigger (`apply` input); schedule applies,
+      manual plans unless ticked. Deterministic steps gate on it; agents flip to report-only.
+- [x] **Central config + backlog** — `.factory/config.yml` + `.factory/backlog.yml` (pure
+      parse/serialize + starvation detection) with a new **Content tab** cockpit (config form +
+      backlog table + kill-switch toggles); repo-variable client methods.
+- [x] **Headless CMS template** — daily writer (kill-switched, rate-limited → PR a human merges)
+      + weekly loop-tuner (kill-switched).
+- [x] **Docs Gardener** (ADR-018) — a demonstrable daily factory on gitorio: cron + plan-first
+      manual → enablement gate → rate limiter → agent → open PR; scans `_docs`, improves
+      `itemsPerRun` items using the configured review criteria + skill specializations. Dogfooded
+      (template + prompt + config + standalone blueprint + compiled `factory--docs-gardener.yml`),
+      default-OFF via `DOCS_GARDENER_ENABLED`.
+- [x] **Docs view on Pages** (ADR-018) — `_docs/*.md` bundled + rendered in the app (a Docs tab)
+      with a dependency-free Markdown renderer; the visible content loop (improve → merge → deploy).
+- [x] **Skill specializations + doc config** (ADR-018) — `skills`, `reviewCriteria`, `docsDir`,
+      `itemsPerRun` in `.factory/config.yml`, editable from the Content tab.
+- [x] **Compiler `blueprintPath`** — header override for standalone/named blueprints.
+- [ ] Backlog: table rendering in the Markdown view; per-line names for multi-line blueprints
+      (would let the docs gardener live in the main blueprint instead of a standalone file).
+- [ ] **OODA dispatcher + computed-matrix fan-out** (`processor.dispatcher`, `matrix: fromJSON(plan)`)
+      — **parked** (heaviest/most novel; needs compiler matrix support + a deterministic planner).
+- [ ] Work-leasing (git-ref CAS mutex), diff-classifier router, multi-tier job DAG within a line,
+      shared knowledge store + brand linter — **parked** supporting machinery (see ADR-017 brief).
+
 ## Backlog
 - Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
   webhook worker + SSE live belts; multi-repo train stations.
@@ -87,11 +122,10 @@ Correctness (compiler):
   2026-07-04 (ADR-009): the guard now checks the event actor `github.event.sender.type`
   (correct for `labeled` and `pull_request.synchronize`), not the entity author. Regression
   tests added.
-- **`sink.commit_files` / `sink.open_pr` under-provisioned** — `compile.ts:125-147`:
-  obligations tell the agent to branch/commit/push and `permissions` grants
-  `contents: write`, but `toolsFor` has no `commit_files` case (falls through to `[]`) and
-  grants `open_pr` only `Bash(gh pr create:*)` — no `git add/commit/push`. Reconcile against
-  the current `claude-code-action@v1` `action.yml` (golden rule #4).
+- ~~**`sink.commit_files` / `sink.open_pr` under-provisioned**~~ — ✅ FIXED 2026-07-05
+  (ADR-017): `toolsFor` now grants `open_pr` the git verbs (`git switch/checkout/add/commit/push`)
+  plus `gh pr create`, and `commit_files` gets `git add/commit/push` — so the branch/commit/push
+  obligation is actually executable. Surfaced while building the Headless-CMS content line.
 
 Test coverage (golden rule #3):
 - **5 of 13 machine types have zero invariant tests** — `compile.test.ts` now also covers

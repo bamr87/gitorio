@@ -254,6 +254,25 @@ export interface GithubClient {
 
   /** Cancel an in-progress run. */
   cancelRun(repo: RepoRef, runId: number): Promise<void>;
+
+  /**
+   * List repository Actions variables (the enablement-gate kill switches). Never throws for
+   * an empty/absent list or missing permission — returns `[]`. Values are readable (unlike
+   * secrets), which is exactly what lets the app show a line as armed or idle.
+   */
+  listVariables(repo: RepoRef): Promise<RepoVariable[]>;
+
+  /** Read one Actions variable, or `null` if unset. */
+  getVariable(repo: RepoRef, name: string): Promise<RepoVariable | null>;
+
+  /** Create or update an Actions variable (PATCH if it exists, else POST). */
+  setVariable(repo: RepoRef, name: string, value: string): Promise<void>;
+}
+
+/** A repository Actions variable — an enablement-gate kill switch. Values are plaintext. */
+export interface RepoVariable {
+  name: string;
+  value: string;
 }
 
 /** Error carrying the HTTP status so callers can branch on 401/403/404/422. */
