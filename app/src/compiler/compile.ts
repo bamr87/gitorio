@@ -30,6 +30,7 @@ export interface CompileOptions {
 }
 
 const AGENT = 'agent.claude';
+const DEPENDABOT_META = 'processor.dependabot_meta';
 const TRIGGERS = new Set([
   'trigger.issue_opened',
   'trigger.issue_labeled',
@@ -37,6 +38,7 @@ const TRIGGERS = new Set([
   'trigger.comment',
   'trigger.cron',
   'trigger.manual',
+  'trigger.workflow_run',
 ]);
 const SINKS = new Set([
   'sink.comment',
@@ -44,8 +46,12 @@ const SINKS = new Set([
   'sink.create_issue',
   'sink.open_pr',
   'sink.commit_files',
+  'sink.merge_pr',
 ]);
 const WRITING_SINKS = new Set(['sink.comment', 'sink.create_issue', 'sink.label']);
+// Terminal sinks close/merge the entity — they emit no new comment/issue/PR event, so a
+// line whose only action is terminal can never retrigger itself and needs no bot loop-guard.
+const TERMINAL_SINKS = new Set(['sink.merge_pr']);
 const LOOPY_TRIGGERS = new Set([
   'trigger.comment',
   'trigger.issue_opened',
@@ -157,6 +163,10 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
       return `[sink.open_pr ${sink.id}] Commit your changes on a new branch${s(c.branchHint) ? ` (\`${s(c.branchHint)}\`)` : ' (factory/*)'} and open a pull request with a clear summary. Never push to the default branch.`;
     case 'sink.commit_files':
       return `[sink.commit_files ${sink.id}] Commit the file changes${s(c.pathScope) ? ` (only within \`${s(c.pathScope)}\`)` : ''} directly with a conventional commit message.`;
+    case 'sink.merge_pr': {
+      const when = s(c.when, 'auto') === 'now' ? 'Merge it immediately' : 'Enable auto-merge (merges once required checks pass)';
+      return `[sink.merge_pr ${sink.id}] ${when} on ${entityExpr} with \`gh pr merge --${s(c.method, 'squash')}${s(c.when, 'auto') === 'now' ? '' : ' --auto'}\`. Only merge when your assessment says it is safe; never merge if unsure.`;
+    }
     default:
       return `[${sink.type} ${sink.id}] (no obligation template)`;
   }
@@ -179,6 +189,8 @@ function toolsFor(sinkType: string, prContext: boolean): string[] {
       return ['Bash(gh issue create:*)', 'Bash(gh issue list:*)'];
     case 'sink.open_pr':
       return ['Bash(gh pr create:*)'];
+    case 'sink.merge_pr':
+      return ['Bash(gh pr merge:*)'];
     default:
       return [];
   }
@@ -211,8 +223,14 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const triggers = comp.filter((n) => TRIGGERS.has(n.type));
     const agents = comp.filter((n) => n.type === AGENT);
     const filters = comp.filter((n) => n.type === 'filter.condition');
+    const dependabotMeta = comp.find((n) => n.type === DEPENDABOT_META);
     const unknown = comp.filter(
-      (n) => !TRIGGERS.has(n.type) && !SINKS.has(n.type) && n.type !== AGENT && n.type !== 'filter.condition',
+      (n) =>
+        !TRIGGERS.has(n.type) &&
+        !SINKS.has(n.type) &&
+        n.type !== AGENT &&
+        n.type !== 'filter.condition' &&
+        n.type !== DEPENDABOT_META,
     );
     for (const n of unknown) {
       diags.push({ level: 'error', nodeId: n.id, message: `Unknown machine type "${n.type}" — no emitter.` });
@@ -230,9 +248,11 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const issueTypes = new Set<string>();
     const prTypes = new Set<string>();
     const crons: { cron: string }[] = [];
+    const watchedWorkflows: string[] = [];
     let hasIssueish = false;
     let hasPr = false;
     let hasComment = false;
+    let hasWorkflowRun = false;
 
     for (const t of triggers) {
       switch (t.type) {
@@ -267,23 +287,35 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         case 'trigger.manual':
           on['workflow_dispatch'] = {};
           break;
+        case 'trigger.workflow_run': {
+          hasWorkflowRun = true;
+          const wfName = s(t.config.workflow);
+          if (wfName) watchedWorkflows.push(wfName);
+          else diags.push({ level: 'error', nodeId: t.id, message: 'On-workflow-result trigger has no watched workflow name.' });
+          const concl = s(t.config.conclusion, 'success');
+          if (concl && concl !== 'any') guards.push(`github.event.workflow_run.conclusion == '${concl}'`);
+          break;
+        }
       }
     }
     if (issueTypes.size) on['issues'] = { types: [...issueTypes].sort() };
     if (prTypes.size) on['pull_request'] = { types: [...prTypes].sort() };
     if (crons.length) on['schedule'] = crons;
+    if (hasWorkflowRun) on['workflow_run'] = { workflows: watchedWorkflows, types: ['completed'] };
 
     // Survey mode: an agent line fired only by cron/manual has no triggering issue/PR
     // from the event, so it must discover its own work. It runs in the base-repo context
     // (full secrets, writable token, no bot-guard), which is the ONLY way to review
     // Dependabot PRs — a pull_request trigger would be bot-guarded off and would get a
     // read-only token with no secrets on Dependabot events.
-    const surveyMode = agents.length > 0 && !hasIssueish && !hasPr && !hasComment;
+    const surveyMode =
+      agents.length > 0 && !hasIssueish && !hasPr && !hasComment && !hasWorkflowRun;
 
     // sinks by mode: downstream of the agent → obligations; reachable without an
     // agent on the path → deterministic. v0 approximation: agent downstream set.
     const agent = agents[0];
     const agentDownstream = agent ? downstream(agent.id, bp) : new Set<string>();
+    const metaDownstream = dependabotMeta ? downstream(dependabotMeta.id, bp) : new Set<string>();
     const order = new Map(bp.nodes.map((n, i) => [n.id, i]));
     const sinks = comp
       .filter((n) => SINKS.has(n.type))
@@ -294,6 +326,11 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     // loop safety
     const canWrite = sinks.some((n) => WRITING_SINKS.has(n.type)) || agents.length > 0;
     const loopy = triggers.some((t) => LOOPY_TRIGGERS.has(t.type));
+    // A line whose only action is a terminal sink (merge/close) with no agent produces no
+    // new comment/issue/PR event, so it cannot retrigger itself — it needs no bot loop-guard,
+    // and MUST run without one to act on Dependabot's (bot-authored) PRs (auto-merge).
+    const onlyTerminalSinks =
+      sinks.length > 0 && sinks.every((n) => TERMINAL_SINKS.has(n.type)) && agents.length === 0;
     if (loopy && canWrite && opts.unsafeNoGuards) {
       diags.push({
         level: 'error',
@@ -303,7 +340,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       workflows.push({ filename, yaml: '', diagnostics: diags });
       return;
     }
-    if (!opts.unsafeNoGuards && (hasIssueish || hasPr || hasComment)) {
+    if (!opts.unsafeNoGuards && !onlyTerminalSinks && (hasIssueish || hasPr || hasComment)) {
       // Guard on the event ACTOR (github.event.sender), not the entity author.
       // On issues.labeled the actor is the labeller — NOT github.event.issue.user
       // (the author); on pull_request.synchronize the actor is the pusher — NOT the
@@ -319,6 +356,48 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       else diags.push({ level: 'warning', nodeId: f.id, message: 'Empty filter passes everything.' });
     }
 
+    // Dependabot metadata: reads the PR via dependabot/fetch-metadata (needs the
+    // pull_request event) and gates downstream sinks by update type. fetch-metadata only
+    // makes sense for Dependabot's own PRs, so scope the whole line to Dependabot — which
+    // also (together with the terminal-sink relaxation above) lets the auto-merge through.
+    let metaGate: string | null = null;
+    if (dependabotMeta) {
+      if (!hasPr) {
+        diags.push({
+          level: 'error',
+          nodeId: dependabotMeta.id,
+          message: 'Dependabot metadata needs a PR-opened trigger — fetch-metadata reads the pull_request event.',
+        });
+      }
+      guards.unshift(`github.event.pull_request.user.login == 'dependabot[bot]'`);
+      const allow = s(dependabotMeta.config.allow, 'patch-and-minor');
+      if (allow === 'patch') {
+        metaGate = `steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch'`;
+      } else if (allow === 'patch-and-minor') {
+        metaGate = `contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'), steps.dependabot-metadata.outputs.update-type)`;
+      }
+    }
+
+    // Safety: an unscoped merge on a raw pull_request trigger would merge every matching PR.
+    const hasMerge = sinks.some((n) => n.type === 'sink.merge_pr');
+    // A DETERMINISTIC merge reads the PR number from the event, so it needs a PR-bearing
+    // trigger. An agent-obligated merge is fine on any line — the agent finds the PR itself
+    // (e.g. the survey-mode Dependency Warden merging what it vets safe).
+    if (deterministic.some((n) => n.type === 'sink.merge_pr') && !hasPr && !hasWorkflowRun) {
+      diags.push({
+        level: 'error',
+        message:
+          'Merge PR with no agent needs a PR-bearing trigger (PR opened or On workflow result) — or put a Claude agent upstream to supply the PR.',
+      });
+    }
+    if (hasMerge && hasPr && !dependabotMeta && !filters.some((f) => /dependabot|user\.login|github\.actor/.test(s(f.config.expression)))) {
+      diags.push({
+        level: 'warning',
+        message:
+          'Merge PR on a pull_request trigger will act on every PR — add a Filter (e.g. github.event.pull_request.user.login == \'dependabot[bot]\') or a Dependabot-metadata processor to scope it, and require status checks via branch protection.',
+      });
+    }
+
     // permissions
     const permissions: Record<string, string> = { contents: 'read' };
     const needsIssuesWrite = sinks.some((n) =>
@@ -327,15 +406,24 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     if (needsIssuesWrite) permissions['issues'] = 'write';
     // Commenting on or labelling a PR is governed by the pull-requests scope (not issues),
     // even though gh routes through the shared issue number space. Grant it whenever the
-    // line can act on PRs — a PR trigger, survey mode, or an open_pr sink.
+    // line can act on PRs — a PR trigger, an On-workflow-result trigger, survey mode, or open_pr.
+    const actsOnPr = hasPr || hasWorkflowRun || surveyMode;
     if (
       sinks.some((n) => n.type === 'sink.open_pr') ||
-      ((hasPr || surveyMode) && sinks.some((n) => ['sink.comment', 'sink.label'].includes(n.type)))
+      (actsOnPr && sinks.some((n) => ['sink.comment', 'sink.label'].includes(n.type)))
     ) {
       permissions['pull-requests'] = 'write';
     }
     if (sinks.some((n) => ['sink.open_pr', 'sink.commit_files'].includes(n.type))) {
       permissions['contents'] = 'write';
+    }
+    if (hasMerge) {
+      // gh pr merge needs both — contents to land the merge commit, pull-requests to act on the PR.
+      permissions['contents'] = 'write';
+      permissions['pull-requests'] = 'write';
+    }
+    if (dependabotMeta && permissions['pull-requests'] !== 'write') {
+      permissions['pull-requests'] = 'read'; // fetch-metadata reads the PR
     }
     if (agent) permissions['id-token'] = 'write';
 
@@ -344,11 +432,17 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       ? 'PR #${{ github.event.pull_request.number }}'
       : hasIssueish || hasComment
         ? 'issue #${{ github.event.issue.number }}'
-        : 'the relevant issue/PR (find it via gh)';
+        : hasWorkflowRun
+          ? 'PR #${{ github.event.workflow_run.pull_requests[0].number }}'
+          : 'the relevant issue/PR (find it via gh)';
 
     // steps
     const steps: Record<string, unknown>[] = [];
     if (agent) steps.push({ uses: 'actions/checkout@v4' });
+    if (dependabotMeta) {
+      // Exposes steps.dependabot-metadata.outputs.update-type / dependency-names / etc.
+      steps.push({ id: 'dependabot-metadata', uses: 'dependabot/fetch-metadata@v2' });
+    }
 
     if (agent) {
       const promptRef = s(agent.config.promptRef);
@@ -358,6 +452,10 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       const contextLines = ['REPO: ${{ github.repository }}'];
       if (hasIssueish || hasComment) contextLines.push('ISSUE_NUMBER: ${{ github.event.issue.number }}');
       if (hasPr) contextLines.push('PR_NUMBER: ${{ github.event.pull_request.number }}');
+      if (hasWorkflowRun) {
+        contextLines.push('PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}');
+        contextLines.push('CHECK_CONCLUSION: ${{ github.event.workflow_run.conclusion }}');
+      }
 
       const obligations = obligated.map((sink, i) => `${i + 1}. ${obligationFor(sink, entityExpr)}`);
       if (obligated.length === 0) {
@@ -381,7 +479,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         tools.add('Bash(gh issue view:*)');
         tools.add('Bash(gh search issues:*)');
       }
-      if (hasPr) {
+      if (hasPr || hasWorkflowRun) {
         tools.add('Bash(gh pr view:*)');
         tools.add('Bash(gh pr diff:*)');
       }
@@ -399,7 +497,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         tools.add('Bash(gh pr view:*)');
         tools.add('Bash(gh pr diff:*)');
       }
-      for (const sink of obligated) for (const t of toolsFor(sink.type, hasPr || surveyMode)) tools.add(t);
+      for (const sink of obligated) for (const t of toolsFor(sink.type, hasPr || surveyMode || hasWorkflowRun)) tools.add(t);
 
       const model = s(agent.config.model, 'claude-sonnet-4-6');
       const maxTurns = Number(agent.config.maxTurns) > 0 ? Number(agent.config.maxTurns) : 8;
@@ -427,9 +525,21 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       const env = {
         GH_TOKEN: '${{ github.token }}',
         GH_REPO: '${{ github.repository }}',
-        NUMBER: '${{ github.event.issue.number || github.event.pull_request.number }}',
+        NUMBER:
+          '${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number }}',
       };
-      if (sink.type === 'sink.comment') {
+      if (sink.type === 'sink.merge_pr') {
+        const method = s(sink.config.method, 'squash');
+        const flag = method === 'merge' ? '--merge' : method === 'rebase' ? '--rebase' : '--squash';
+        const auto = s(sink.config.when, 'auto') === 'now' ? '' : ' --auto';
+        const step: Record<string, unknown> = {
+          name: `✅ sink.merge_pr (${sink.id})`,
+          ...(metaGate && metaDownstream.has(sink.id) ? { if: `\${{ ${metaGate} }}` } : {}),
+          env,
+          run: `gh pr merge "$NUMBER" ${flag}${auto}`,
+        };
+        steps.push(step);
+      } else if (sink.type === 'sink.comment') {
         const body = s(sink.config.instruction);
         if (!body) diags.push({ level: 'warning', nodeId: sink.id, message: 'Deterministic comment has empty body.' });
         steps.push({
@@ -481,7 +591,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       name: `Factory: ${name}`,
       on,
       concurrency: {
-        group: `factory--${slug}-\${{ github.event.issue.number || github.event.pull_request.number || github.run_id }}`,
+        group: `factory--${slug}-\${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.run_id }}`,
         'cancel-in-progress': false,
       },
       jobs: { line: job },
