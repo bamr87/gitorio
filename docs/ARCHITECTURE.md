@@ -82,15 +82,26 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
 - `trigger.comment` → `issue_comment: [created]` + phrase guard + **mandatory bot guard**
 - `trigger.cron` → `schedule: [{cron}]`
 - `trigger.manual` → `workflow_dispatch`
+- `trigger.workflow_run` → `workflow_run: {workflows:[name], types:[completed]}` + conclusion
+  guard. Runs in the **trusted default-branch context** (write token + secrets, no bot-guard),
+  so it can act on Dependabot/fork PRs after their checks run; entity is
+  `github.event.workflow_run.pull_requests[0].number` (ADR-014).
 
 **Processors** (steel)
 - `agent.claude` — the star. Config: `promptRef`, `model`, `maxTurns`. Compiles to a
   `claude-code-action@v1` step (see §5).
 - `filter.condition` — a raw Actions expression contributed to the job-level `if:`
   (AND-joined with guards).
+- `processor.dependabot_meta` — a `dependabot/fetch-metadata@v2` step; scopes the line to
+  Dependabot and gates downstream sinks by semver update type via a **step-level** `if:`
+  (steps outputs aren't available at job-guard time). Needs a `pull_request` trigger (ADR-014).
 
 **Sinks** (signal green)
 - `sink.comment`, `sink.label`, `sink.create_issue`, `sink.open_pr`, `sink.commit_files`
+- `sink.merge_pr` — `gh pr merge --<method> [--auto]` (grants `contents`+`pull-requests: write`).
+  A **terminal** sink: it emits no new comment/issue/PR event, so a line whose only action is
+  merge carries no bot loop-guard — the one way to auto-merge Dependabot's own (bot) PRs. Scope
+  it with a Filter or Dependabot-metadata; the compiler warns on an unscoped `pull_request` merge.
 
 Adding a machine type = registry entry + emitter + invariant test + catalog line here
 (`/add-machine` walks the checklist).

@@ -102,6 +102,20 @@ export const MACHINES: MachineDef[] = [
     defaults: {},
     describe: () => 'on: workflow_dispatch',
   },
+  {
+    type: 'trigger.workflow_run',
+    category: 'trigger',
+    label: 'On workflow result',
+    icon: '🚦',
+    blurb:
+      'Fires when another workflow finishes — gate on success/failure. Runs in the trusted default-branch context (write token + secrets), so it can safely act on Dependabot/fork PRs after their checks run.',
+    fields: [
+      { key: 'workflow', label: 'Watched workflow name', kind: 'text', placeholder: 'CI' },
+      { key: 'conclusion', label: 'When it concludes', kind: 'select', options: ['success', 'failure', 'any'] },
+    ],
+    defaults: { workflow: 'CI', conclusion: 'success' },
+    describe: (c) => `on: ${str(c.workflow, 'a workflow')} → ${str(c.conclusion, 'any')}`,
+  },
 
   // ── Processors (steel) ───────────────────────────────────────────────
   {
@@ -145,6 +159,25 @@ export const MACHINES: MachineDef[] = [
     ],
     defaults: { expression: '' },
     describe: (c) => `if: ${str(c.expression, '<empty — passes everything>')}`,
+  },
+  {
+    type: 'processor.dependabot_meta',
+    category: 'processor',
+    label: 'Dependabot metadata',
+    icon: '📋',
+    blurb:
+      'Reads a Dependabot PR via dependabot/fetch-metadata and gates the downstream sinks by update type. Only works on a PR-opened line (needs the pull_request event); scopes the line to Dependabot automatically.',
+    fields: [
+      {
+        key: 'allow',
+        label: 'Let through',
+        kind: 'select',
+        options: ['patch', 'patch-and-minor', 'any'],
+        help: 'Which semver update types reach the downstream sinks (e.g. auto-merge).',
+      },
+    ],
+    defaults: { allow: 'patch-and-minor' },
+    describe: (c) => `dependabot: allow ${str(c.allow, 'patch-and-minor')}`,
   },
 
   // ── Sinks (signal green) ─────────────────────────────────────────────
@@ -206,6 +239,20 @@ export const MACHINES: MachineDef[] = [
     ],
     defaults: { branchHint: '' },
     describe: (c) => `PR from ${str(c.branchHint, 'factory/*')}`,
+  },
+  {
+    type: 'sink.merge_pr',
+    category: 'sink',
+    label: 'Merge PR',
+    icon: '✅',
+    blurb:
+      'Merges the pull request (grants contents + pull-requests: write). "auto" merges only once required checks pass. Scope it with a Filter or Dependabot-metadata — never merge untrusted PRs blindly.',
+    fields: [
+      { key: 'method', label: 'Merge method', kind: 'select', options: ['squash', 'merge', 'rebase'] },
+      { key: 'when', label: 'When', kind: 'select', options: ['auto', 'now'] },
+    ],
+    defaults: { method: 'squash', when: 'auto' },
+    describe: (c) => `merge: ${str(c.method, 'squash')} · ${str(c.when, 'auto')}`,
   },
   {
     type: 'sink.commit_files',
