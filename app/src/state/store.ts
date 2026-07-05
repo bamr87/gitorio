@@ -33,6 +33,9 @@ interface FactoryState {
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (conn: Connection) => void;
   addMachine: (machineType: string, position: { x: number; y: number }) => void;
+  addMachineAuto: (machineType: string) => void;
+  deleteNode: (id: string) => void;
+  duplicateNode: (id: string) => void;
   updateNodeConfig: (id: string, key: string, value: unknown) => void;
   setMeta: (patch: Partial<BlueprintMeta>) => void;
   setSelected: (id: string | null) => void;
@@ -84,7 +87,32 @@ export const useFactoryStore = create<FactoryState>((set, get) => ({
       position,
       data: { machineType, config: { ...def.defaults } },
     };
-    set({ nodes: [...get().nodes, nodeItem] });
+    set({ nodes: [...get().nodes, nodeItem], selectedId: nodeItem.id });
+  },
+
+  // Click-to-add (no drag): drop the machine in a cascading spot so successive adds don't stack.
+  addMachineAuto: (machineType) => {
+    const n = get().nodes.length;
+    get().addMachine(machineType, { x: 220 + (n % 5) * 36, y: 90 + (n % 8) * 44 });
+  },
+
+  deleteNode: (id) =>
+    set({
+      nodes: get().nodes.filter((n) => n.id !== id),
+      edges: get().edges.filter((e) => e.source !== id && e.target !== id),
+      selectedId: get().selectedId === id ? null : get().selectedId,
+    }),
+
+  duplicateNode: (id) => {
+    const src = get().nodes.find((n) => n.id === id);
+    if (!src) return;
+    const copy: MachineNodeType = {
+      id: newId('m'),
+      type: 'machine',
+      position: { x: src.position.x + 36, y: src.position.y + 36 },
+      data: { machineType: src.data.machineType, config: { ...src.data.config } },
+    };
+    set({ nodes: [...get().nodes, copy], selectedId: copy.id });
   },
 
   updateNodeConfig: (id, key, value) =>
