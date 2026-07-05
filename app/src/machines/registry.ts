@@ -179,6 +179,30 @@ export const MACHINES: MachineDef[] = [
     defaults: { allow: 'patch-and-minor' },
     describe: (c) => `dependabot: allow ${str(c.allow, 'patch-and-minor')}`,
   },
+  {
+    type: 'gate.approval',
+    category: 'processor',
+    label: 'Approval gate',
+    icon: '🚧',
+    blurb:
+      'Runs the line in a GitHub Environment whose protection rules require a human reviewer — the run pauses until someone approves. You must create the environment + required reviewers in repo Settings → Environments (the compiler cannot).',
+    fields: [
+      { key: 'environment', label: 'Environment name', kind: 'text', placeholder: 'factory-approval' },
+    ],
+    defaults: { environment: 'factory-approval' },
+    describe: (c) => `approve via env: ${str(c.environment, 'factory-approval')}`,
+  },
+  {
+    type: 'rate.limiter',
+    category: 'processor',
+    label: 'Rate limiter',
+    icon: '🚥',
+    blurb:
+      'Stops the line once it has run N times today — a guard step counts the workflow’s runs and fails fast past the cap. Cheap insurance against runaway loops and agent cost.',
+    fields: [{ key: 'maxPerDay', label: 'Max runs / day', kind: 'number', placeholder: '10' }],
+    defaults: { maxPerDay: 10 },
+    describe: (c) => `≤ ${Number(c.maxPerDay) > 0 ? Number(c.maxPerDay) : 10} runs/day`,
+  },
 
   // ── Sinks (signal green) ─────────────────────────────────────────────
   {
@@ -239,6 +263,21 @@ export const MACHINES: MachineDef[] = [
     ],
     defaults: { branchHint: '' },
     describe: (c) => `PR from ${str(c.branchHint, 'factory/*')}`,
+  },
+  {
+    type: 'sink.cross_repo_issue',
+    category: 'sink',
+    label: 'Cross-repo issue',
+    icon: '🚉',
+    blurb:
+      'Files an issue in ANOTHER repo — the proven fleet pattern. The workflow’s GITHUB_TOKEN can’t write to other repos, so this uses a repo secret holding a PAT scoped to the target (default FLEET_TOKEN). Create that secret first.',
+    fields: [
+      { key: 'targetRepo', label: 'Target repo', kind: 'text', placeholder: 'owner/name' },
+      { key: 'tokenSecret', label: 'Token secret name', kind: 'text', placeholder: 'FLEET_TOKEN' },
+      { key: 'titleHint', label: 'Title hint', kind: 'text', placeholder: 'Downstream: …' },
+    ],
+    defaults: { targetRepo: '', tokenSecret: 'FLEET_TOKEN', titleHint: '' },
+    describe: (c) => `issue → ${str(c.targetRepo, 'owner/name')} (via ${str(c.tokenSecret, 'FLEET_TOKEN')})`,
   },
   {
     type: 'sink.merge_pr',

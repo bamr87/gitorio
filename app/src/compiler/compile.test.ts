@@ -398,3 +398,89 @@ describe('compile: safety rails', () => {
     expect(a).toBe(b);
   });
 });
+
+describe('compile: gate.approval / rate.limiter / cross_repo_issue (agent patterns, Fleet C)', () => {
+  it('gate.approval runs the job in the named environment; empty name warns + defaults', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Gated Deploy' },
+      nodes: [
+        node('t', 'trigger.manual'),
+        node('g', 'gate.approval', { environment: 'prod-approval' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.comment', { instruction: 'reports' }),
+      ],
+      edges: [edge('e1', 't', 'g'), edge('e2', 'g', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(wf.yaml).toContain('environment: prod-approval');
+
+    const empty = compile({
+      version: 1,
+      meta: { name: 'Gated Empty' },
+      nodes: [node('t', 'trigger.manual'), node('g', 'gate.approval', { environment: '' }), node('a', 'agent.claude', { promptRef: 'p.md' }), node('s', 'sink.comment', { instruction: 'x' })],
+      edges: [edge('e1', 't', 'g'), edge('e2', 'g', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(empty.yaml).toContain('environment: factory-approval');
+    expect(empty.diagnostics.some((d) => d.level === 'warning' && /environment name/.test(d.message))).toBe(true);
+  });
+
+  it('rate.limiter emits a guard step before the agent + grants actions: read', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Watchdog' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 7 * * *' }),
+        node('rl', 'rate.limiter', { maxPerDay: 4 }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.create_issue', { titleHint: 'alarm' }),
+      ],
+      edges: [edge('e1', 't', 'rl'), edge('e2', 'rl', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(wf.yaml).toContain('🚥 rate.limiter (rl)');
+    expect(wf.yaml).toContain('LIMIT: "4"');
+    expect(wf.yaml).toContain('actions: read');
+    // the limiter step precedes the agent step
+    expect(wf.yaml.indexOf('rate.limiter')).toBeLessThan(wf.yaml.indexOf('agent.claude'));
+  });
+
+  it('cross_repo_issue (agent-obligated) wires the scoped token into the agent step env + obligation', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Fleet Relay' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 3 * * *' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('x', 'sink.cross_repo_issue', { targetRepo: 'bamr87/it-journey', tokenSecret: 'IT_JOURNEY_TOKEN', titleHint: 'Digest' }),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'x')],
+    }).workflows[0];
+    expect(wf.yaml).toContain('[sink.cross_repo_issue x]');
+    expect(wf.yaml).toContain('--repo bamr87/it-journey');
+    expect(wf.yaml).toContain('IT_JOURNEY_TOKEN: ${{ secrets.IT_JOURNEY_TOKEN }}');
+    expect(wf.yaml).toContain('Bash(gh issue create:*)');
+    // writes to ANOTHER repo → no bot-guard forced on a cron line, no issues:write here
+    expect(wf.yaml).not.toContain("sender.type != 'Bot'");
+  });
+
+  it('cross_repo_issue (deterministic) uses the scoped secret as GH_TOKEN; missing target errors', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Direct Relay' },
+      nodes: [
+        node('t', 'trigger.issue_opened'),
+        node('x', 'sink.cross_repo_issue', { targetRepo: 'o/downstream', tokenSecret: 'FLEET_TOKEN' }),
+      ],
+      edges: [edge('e1', 't', 'x')],
+    }).workflows[0];
+    expect(wf.yaml).toContain('GH_TOKEN: ${{ secrets.FLEET_TOKEN }}');
+    expect(wf.yaml).toContain('gh issue create --repo "$TARGET"');
+
+    const bad = compile({
+      version: 1,
+      meta: { name: 'Bad Relay' },
+      nodes: [node('t', 'trigger.manual'), node('x', 'sink.cross_repo_issue', { targetRepo: '', tokenSecret: 'FLEET_TOKEN' })],
+      edges: [edge('e1', 't', 'x')],
+    }).workflows[0];
+    expect(bad.diagnostics.some((d) => d.level === 'error' && /owner\/name/.test(d.message))).toBe(true);
+  });
+});

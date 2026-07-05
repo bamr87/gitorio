@@ -437,3 +437,10 @@ body {
 
 .tabpane { flex: 1; min-height: 0; overflow: auto; padding: 16px; }
 .tabpane__empty { color: var(--dim); font-family: var(--readout); font-size: 12px; padding: 24px; }
+
+.palette__search {
+  width: 100%; background: var(--floor); color: var(--ink);
+  border: 1px solid var(--seam); border-radius: 4px;
+  padding: 5px 8px; font-family: var(--readout); font-size: 12px; margin-bottom: 4px;
+}
+.palette__search:focus-visible { outline: 2px solid var(--copper); outline-offset: 0; }
