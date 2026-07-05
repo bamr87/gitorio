@@ -4,6 +4,7 @@ import './theme.css';
 import { FactoryCanvas } from './canvas/FactoryCanvas';
 import { FleetView } from './canvas/FleetView';
 import { Palette } from './panels/Palette';
+import { BuildToolbar } from './panels/BuildToolbar';
 import { Inspector } from './panels/Inspector';
 import { CompileDrawer } from './panels/CompileDrawer';
 import { ConnectDialog } from './panels/ConnectDialog';
@@ -151,55 +152,15 @@ export default function App() {
           ))}
         </nav>
         <span className="topbar__spacer" />
-        {view === 'build' && (
-          <>
-            <button className="btn" onClick={() => setDialog('templates')} title="Stamp a ready-made factory blueprint">
-              📐 Templates
-            </button>
-            <button className="btn" onClick={() => fileRef.current?.click()}>
-              Import
-            </button>
-            <button className="btn" onClick={importString}>
-              Paste string
-            </button>
-            <button
-              className="btn"
-              onClick={() => download(`${meta.name || 'blueprint'}.blueprint.json`, JSON.stringify(toBlueprint(), null, 2))}
-            >
-              Export JSON
-            </button>
-            <button
-              className="btn"
-              onClick={() => {
-                void navigator.clipboard.writeText(encodeBlueprintString(toBlueprint()));
-                say('Blueprint string copied — share it like a Factorio blueprint.');
-              }}
-            >
-              Copy string
-            </button>
-            {login && (
-              <button
-                type="button"
-                className={`btn${showTelemetry ? ' btn--primary' : ''}`}
-                onClick={toggleTelemetry}
-                title="Poll factory workflow runs and light up the machines"
-              >
-                📊 LEDs
-              </button>
-            )}
-          </>
-        )}
-        <button type="button" className="btn" onClick={() => setDialog('connect')}>
-          {login ? `⚡ ${repo ? repoSlug(repo) : login}` : 'Connect'}
-        </button>
+        {/* Global chrome only: session (connection) + power. Per-view actions live in each
+            view's own toolbar (see BuildToolbar) so this bar never gets crowded. */}
         <button
           type="button"
-          className="btn btn--primary"
-          disabled={!canDeploy}
-          title={canDeploy ? 'Deploy compiled workflows to the repo' : 'Connect a repo with Contents (RW) first'}
-          onClick={() => setDialog('deploy')}
+          className={`btn${login ? ' btn--live' : ''}`}
+          onClick={() => setDialog('connect')}
+          title={login ? 'Manage connection' : 'Connect a repo with a fine-grained PAT'}
         >
-          🚀 Deploy
+          {login ? `⚡ ${repo ? repoSlug(repo) : login}` : 'Connect'}
         </button>
         <span className="power" title="Power = Claude auth secret on the target repo (CLAUDE_CODE_OAUTH_TOKEN, or ANTHROPIC_API_KEY fallback).">
           <span className={`led led--${power === 'on' ? 'on' : power === 'off' ? 'off' : 'idle'}`} />
@@ -232,6 +193,21 @@ export default function App() {
 
       {view === 'build' && (
         <>
+          <BuildToolbar
+            onTemplates={() => setDialog('templates')}
+            onImportFile={() => fileRef.current?.click()}
+            onImportString={importString}
+            onExport={() => download(`${meta.name || 'blueprint'}.blueprint.json`, JSON.stringify(toBlueprint(), null, 2))}
+            onCopyString={() => {
+              void navigator.clipboard.writeText(encodeBlueprintString(toBlueprint()));
+              say('Blueprint string copied — share it like a Factorio blueprint.');
+            }}
+            onDeploy={() => setDialog('deploy')}
+            canDeploy={canDeploy}
+            loggedIn={!!login}
+            showTelemetry={showTelemetry}
+            onToggleTelemetry={toggleTelemetry}
+          />
           <div className="workspace">
             <Palette />
             <FactoryCanvas />

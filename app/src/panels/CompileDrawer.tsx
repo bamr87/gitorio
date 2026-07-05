@@ -24,7 +24,7 @@ export function CompileDrawer() {
           </button>
         )}
         <span className="drawer__note">
-          Compiles to .github/workflows/factory--*.yml — press Deploy (top bar) to push to the repo.
+          Compiles to .github/workflows/factory--*.yml — press 🚀 Deploy (toolbar above) to push to the repo.
         </span>
       </div>
 

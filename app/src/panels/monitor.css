@@ -14,7 +14,32 @@
   align-items: center; gap: 10px;
   background: var(--panel-2); border: 1px solid var(--seam); border-radius: 5px; padding: 8px 10px;
 }
-.mline__id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mline-wrap {
+  border: 1px solid var(--seam); border-radius: 5px; background: var(--panel-2); overflow: hidden;
+}
+.mline-wrap.is-open { border-color: var(--copper-dim); }
+.mline-wrap .mline { border: none; border-radius: 0; }
+.mline__id {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  background: none; border: none; text-align: left; cursor: pointer; padding: 0; color: inherit;
+}
+.mline__id:hover .mline__name { color: var(--copper); }
+.mline__caret { color: var(--dim); font-size: 10px; }
+
+/* per-line detail */
+.mline__detail {
+  padding: 10px 12px 12px; border-top: 1px solid var(--seam); background: var(--panel);
+}
+.mdet { margin: 0; }
+.mdet__row { display: flex; gap: 10px; padding: 3px 0; font-size: 12px; }
+.mdet__row dt {
+  flex: 0 0 88px; margin: 0; color: var(--dim);
+  font-family: var(--readout); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding-top: 2px;
+}
+.mdet__row dd { margin: 0; color: var(--ink); font-family: var(--readout); overflow-wrap: anywhere; }
+.mdet__kill { color: var(--copper); }
+.mline__detail .caps { margin-top: 6px; max-width: 520px; }
+.mline__detail .caps__label { margin: 10px 0 4px; }
 .mline__name { font-family: var(--readout); font-size: 12px; color: var(--ink); font-weight: 700; }
 .mline__file { font-family: var(--readout); font-size: 10px; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mline__stat { display: flex; flex-direction: column; gap: 2px; font-family: var(--readout); font-size: 11px; color: var(--dim); }

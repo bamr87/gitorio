@@ -1,6 +1,7 @@
 import './monitor.css';
-import { useEffect, useMemo } from 'react';
-import { assemblyLines } from '../compiler/compile';
+import { useEffect, useMemo, useState } from 'react';
+import { assemblyLines, compile } from '../compiler/compile';
+import { describeWorkflow, describeTool, type WorkflowFacts } from '../compiler/describe';
 import { ledForRun, latestBySlug, statsByLine } from '../github/telemetry';
 import { nextRuns, firesPerDay } from '../utils/cron';
 import { useFactoryStore } from '../state/store';
@@ -25,6 +26,31 @@ const STEP_MARK: Record<string, string> = { success: '✓', failure: '✗', skip
 const stepMark = (c: RunConclusion, status: string): string =>
   status !== 'completed' ? '·' : (c && STEP_MARK[c]) || '✓';
 
+/** Expandable per-line detail: what the compiled workflow actually does (parsed from its YAML). */
+function LineDetail({ facts }: { facts: WorkflowFacts }) {
+  const triggers = [...facts.events, ...facts.crons.map((c) => `cron ${c}`)];
+  const caps = facts.agent ? [...new Set(facts.agent.tools.map(describeTool))] : [];
+  return (
+    <div className="mline__detail">
+      <dl className="mdet">
+        <div className="mdet__row"><dt>Triggers</dt><dd>{triggers.join(' · ') || '—'}</dd></div>
+        <div className="mdet__row"><dt>Token</dt><dd>{Object.entries(facts.permissions).map(([k, v]) => `${k}:${v}`).join('  ') || 'read-only'}</dd></div>
+        {facts.killSwitchVar && <div className="mdet__row"><dt>Kill switch</dt><dd className="mdet__kill">🔌 vars.{facts.killSwitchVar} · default-OFF</dd></div>}
+        {facts.rateLimitPerDay != null && <div className="mdet__row"><dt>Rate limit</dt><dd>≤ {facts.rateLimitPerDay}/day</dd></div>}
+        {facts.agent && (
+          <div className="mdet__row"><dt>Agent</dt><dd>{facts.agent.model}{facts.agent.maxTurns ? ` · ${facts.agent.maxTurns} turns` : ''}{facts.agent.promptRef ? ` · ${facts.agent.promptRef}` : ''}</dd></div>
+        )}
+      </dl>
+      {caps.length > 0 && (
+        <>
+          <div className="caps__label">Agent may:</div>
+          <ul className="caps">{caps.map((c) => <li key={c} className="cap">{c}</li>)}</ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function MonitorPanel() {
   const login = useGithubStore((s) => s.login);
   const repo = useGithubStore((s) => s.repo);
@@ -44,6 +70,14 @@ export function MonitorPanel() {
   const expandedRunId = useMonitorStore((s) => s.expandedRunId);
   const filterSlug = useMonitorStore((s) => s.filterSlug);
   const { start, stop, poll, expand, dispatch, cancel, setFilter } = useMonitorStore.getState();
+  const [openLine, setOpenLine] = useState<string | null>(null);
+
+  // Parse each compiled workflow into facts for the per-line drill-down (what it actually does).
+  const factsByFile = useMemo(() => {
+    const m = new Map<string, WorkflowFacts>();
+    for (const wf of compile(toBlueprint()).workflows) m.set(wf.filename, describeWorkflow(wf.yaml));
+    return m;
+  }, [nodes, edges, meta, toBlueprint]);
 
   // Poll only while the tab is mounted + connected.
   useEffect(() => {
@@ -132,38 +166,51 @@ export function MonitorPanel() {
       <div className="panel__eyebrow monitor__section">Assembly lines</div>
       <div className="monitor__lines">
         {lines.length === 0 && <p className="tabpane__empty">No assembly lines on the canvas yet — build one on the Build tab.</p>}
-        {lines.map((l) => (
-          <div key={l.slug} className="mline">
-            <span className={`led led--${l.led}`} title={l.led} />
-            <div className="mline__id">
-              <span className="mline__name">{l.name}</span>
-              <span className="mline__file">{l.filename}</span>
-            </div>
-            <div className="mline__stat">
-              <span>{pct(l.stat?.successRate ?? null)} · {l.stat?.total ?? 0} runs · {fmtDur(l.stat?.p50DurationSec ?? null)}</span>
-              <span className={`mline__sched${overlaps.has(l.slug) || l.perDay > 24 ? ' mline__sched--warn' : ''}`}>
-                {l.crons.length
-                  ? `${l.next ? `next ${l.next.toISOString().replace('T', ' ').slice(0, 16)}Z` : 'no upcoming run'} · ${l.perDay}/day${overlaps.has(l.slug) ? ' · overlaps another line' : ''}`
-                  : l.manual ? 'manual only' : 'event-triggered'}
-              </span>
-            </div>
-            <div className="mline__ctl">
-              {l.inProgress ? (
-                <button type="button" className="btn btn--small" onClick={() => void cancel(l.inProgress!.runId)} title="Cancel the in-progress run">✕ Cancel</button>
-              ) : (
+        {lines.map((l) => {
+          const open = openLine === l.slug;
+          const facts = factsByFile.get(l.filename);
+          return (
+            <div key={l.slug} className={`mline-wrap${open ? ' is-open' : ''}`}>
+              <div className="mline">
+                <span className={`led led--${l.led}`} title={l.led} />
                 <button
                   type="button"
-                  className="btn btn--small"
-                  disabled={!l.manual}
-                  title={l.manual ? 'workflow_dispatch this line' : 'Add a Manual lever to run this line on demand'}
-                  onClick={() => void dispatch(l.filename)}
+                  className="mline__id"
+                  aria-expanded={open}
+                  title="Show what this line does"
+                  onClick={() => setOpenLine(open ? null : l.slug)}
                 >
-                  ▶ Run now
+                  <span className="mline__name"><span className="mline__caret">{open ? '▾' : '▸'}</span> {l.name}</span>
+                  <span className="mline__file">{l.filename}</span>
                 </button>
-              )}
+                <div className="mline__stat">
+                  <span>{pct(l.stat?.successRate ?? null)} · {l.stat?.total ?? 0} runs · {fmtDur(l.stat?.p50DurationSec ?? null)}</span>
+                  <span className={`mline__sched${overlaps.has(l.slug) || l.perDay > 24 ? ' mline__sched--warn' : ''}`}>
+                    {l.crons.length
+                      ? `${l.next ? `next ${l.next.toISOString().replace('T', ' ').slice(0, 16)}Z` : 'no upcoming run'} · ${l.perDay}/day${overlaps.has(l.slug) ? ' · overlaps another line' : ''}`
+                      : l.manual ? 'manual only' : 'event-triggered'}
+                  </span>
+                </div>
+                <div className="mline__ctl">
+                  {l.inProgress ? (
+                    <button type="button" className="btn btn--small" onClick={() => void cancel(l.inProgress!.runId)} title="Cancel the in-progress run">✕ Cancel</button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn--small"
+                      disabled={!l.manual}
+                      title={l.manual ? 'workflow_dispatch this line' : 'Add a Manual lever to run this line on demand'}
+                      onClick={() => void dispatch(l.filename)}
+                    >
+                      ▶ Run now
+                    </button>
+                  )}
+                </div>
+              </div>
+              {open && facts && <LineDetail facts={facts} />}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="panel__eyebrow monitor__section">Run history</div>

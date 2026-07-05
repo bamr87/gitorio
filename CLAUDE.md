@@ -116,6 +116,16 @@ npm run build      # typecheck + production build to app/dist
   `reviewCriteria`/`docsDir`/`itemsPerRun` (Content-tab editors); compiler gained a `blueprintPath`
   header option; `open_pr`/`commit_files` now grant `Read/Edit/Write`. **7-tab shell** (added Docs).
   **25 test files, 209 tests**, typecheck + prod build green (build validates the `_docs` glob).
+- ✅ Frontend framework refactor (ADR-019): decluttered the shell — the global top bar is now only
+  logo · nav · connection · power; Build-context actions moved to a per-view **BuildToolbar**
+  (undo/redo · Templates · **Blueprint ▾** dropdown · LEDs · Deploy) backed by a new accessible
+  **Menu** primitive. **Token unification**: newer panels referenced undefined `--border`/`--muted`/
+  `--accent`/`--input` (off-palette GitHub fallbacks) — added them as aliases to the industrial
+  palette in `:root`, so every tab is now consistent. **Capability drill-down**: pure
+  `describeWorkflow(yaml)` parses compiled YAML → the Inspector shows an agent's **Capabilities ·
+  compiled** (granted tools as readable phrases, token permissions, obligations, kill-switch) and
+  Monitor lines are expandable to the same facts. **28 test files, 220 tests**, typecheck + build
+  green, browser-verified.
 - ⬜ Parked (with reasons in ROADMAP): OODA dispatcher + computed-matrix fan-out + work-leasing
   (ADR-017, Phase 8 tail), belt mode (Phase 6.1), §8 red-team pass, GitHub App
   device flow (Phase 7 — blocked on browser CORS; needs the optional worker), `repository_dispatch`

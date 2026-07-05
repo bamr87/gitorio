@@ -33,6 +33,34 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-05 — ADR-019: Frontend framework refactor — global chrome vs. per-view toolbar, token unification, capability drill-down
+The top bar had grown to ~16 controls (7 nav tabs + 6 Build-only actions + Connect + Deploy +
+power) and newer panels had drifted off-palette. Refactored for a flexible, consistent shell:
+(1) **Global chrome vs. per-view actions.** The top bar is now *only* global chrome — logo · nav ·
+connection · power. Build-context actions moved into a dedicated **`BuildToolbar`** (a per-view
+action bar): factory name + counts · undo/redo (now visible, not just ⌘Z) · Templates · a
+**`Blueprint ▾` dropdown** collapsing the four import/export actions · LEDs · Deploy. Rationale: a
+view's actions belong to the view, so the global bar can't get crowded as tabs/actions grow. A new
+accessible **`Menu`** primitive (outside-click/Escape/select-close) backs the dropdown. Alt: overflow
+"⋯" menu on the single bar (rejected — hides primary actions); left sidebar nav (rejected — larger
+change, the tab bar is fine once decluttered).
+(2) **Design-token unification.** Panels shipped since ADR-016 referenced generic token names
+(`--border`, `--muted`, `--accent`, `--input`, `--hover`) that were **undefined** in the theme, so
+they silently fell back to off-palette GitHub colors. Added those as semantic aliases in `:root`
+mapping to the industrial palette (`--border: var(--seam)`, `--accent: var(--steel)`, …) — one change
+unifies Content/Docs/Monitor/Prompts/Settings with the control-room theme (verified: `--border`
+resolves to `--seam`). Alt: rewrite each panel's CSS to the canonical names (rejected — more churn,
+same result).
+(3) **Capability drill-down.** New pure `describeWorkflow(yaml)` parses a *compiled* workflow back
+into structured facts (triggers, schedule, permissions, kill-switch, rate limit, and the agent's
+model/tools/obligations) — parsing the real emitted YAML means the detail views can't drift from what
+ships. Feeds two surfaces: the Build **Inspector** gains a **Capabilities · compiled** section for a
+selected agent ("this agent may: comment on issues, apply labels…" + token permissions + obligations
++ kill-switch), and **Monitor** lines are now **expandable** to the same facts. `describeTool` turns
+raw `--allowedTools` grants into readable phrases. Verified: 220 tests / 28 files (+Menu, BuildToolbar,
+describe), typecheck + prod build green, browser-verified (slim bar, Blueprint menu, agent
+capabilities, palette consistency).
+
 ## 2026-07-05 — ADR-018: The Docs Gardener — a demonstrable daily content factory + a Docs view on Pages
 Made the headless-CMS concrete on gitorio itself: a daily factory that reviews + improves the
 `_docs` collection, those docs rendered in the frontend (which Pages serves), and skill/config
