@@ -1,0 +1,7 @@
+# GitFactory central config — honored by the content agents at runtime.
+# Edit here (or in the Content tab); agents read this file, so changes need no recompile.
+model: claude-opus-4-8
+maxDailyRuns: 4
+brandVoice: ""
+contentPaths:
+  - pages/_posts/**
