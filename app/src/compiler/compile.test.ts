@@ -307,6 +307,26 @@ describe('compile: merge_pr sink + dependabot metadata (auto-merge low-risk)', (
     expect(unscoped.diagnostics.some((d) => d.level === 'warning' && /act on every PR/.test(d.message))).toBe(true);
   });
 
+  it('allows an agent-obligated merge on a survey line (no PR entity) — the agent supplies the PR', () => {
+    const warden = compile({
+      version: 1,
+      meta: { name: 'Warden Automerge' },
+      nodes: [
+        node('m', 'trigger.manual'),
+        node('c', 'trigger.cron', { cron: '0 6 * * 1' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/dependency-warden.md' }),
+        node('lb', 'sink.label', { labels: '' }),
+        node('mg', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+      ],
+      edges: [edge('e1', 'm', 'a'), edge('e2', 'c', 'a'), edge('e3', 'a', 'lb'), edge('e4', 'a', 'mg')],
+    }).workflows[0];
+    expect(warden.diagnostics.some((d) => d.level === 'error')).toBe(false);
+    expect(warden.yaml).toContain('[sink.merge_pr mg]');
+    expect(warden.yaml).toContain('Bash(gh pr merge:*)');
+    expect(warden.yaml).toContain('contents: write');
+    expect(warden.yaml).not.toContain("sender.type != 'Bot'");
+  });
+
   it('agent-obligated merge_pr grants gh pr merge as a scoped tool', () => {
     const judged = compile({
       version: 1,

@@ -380,10 +380,14 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
 
     // Safety: an unscoped merge on a raw pull_request trigger would merge every matching PR.
     const hasMerge = sinks.some((n) => n.type === 'sink.merge_pr');
-    if (hasMerge && !hasPr && !hasWorkflowRun) {
+    // A DETERMINISTIC merge reads the PR number from the event, so it needs a PR-bearing
+    // trigger. An agent-obligated merge is fine on any line — the agent finds the PR itself
+    // (e.g. the survey-mode Dependency Warden merging what it vets safe).
+    if (deterministic.some((n) => n.type === 'sink.merge_pr') && !hasPr && !hasWorkflowRun) {
       diags.push({
         level: 'error',
-        message: 'Merge PR needs a PR-bearing trigger (PR opened or On workflow result).',
+        message:
+          'Merge PR with no agent needs a PR-bearing trigger (PR opened or On workflow result) — or put a Claude agent upstream to supply the PR.',
       });
     }
     if (hasMerge && hasPr && !dependabotMeta && !filters.some((f) => /dependabot|user\.login|github\.actor/.test(s(f.config.expression)))) {
