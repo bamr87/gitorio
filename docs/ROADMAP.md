@@ -76,6 +76,10 @@ Goal: point GitFactory at *various* repos, *multiple* at once, and see automatio
 ## Backlog
 - Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
   webhook worker + SSE live belts; multi-repo train stations.
+- **Deterministic label-gated merge line (ADR-015)**: a `pull_request:[labeled]` trigger
+  option + filter + terminal merge sink, so "merge anything a human/agent labelled
+  `dep:safe-to-merge`" compiles to YAML instead of living as prose the agent could
+  override. Terminal-sink guard relaxation already permits the bot-labeler case.
 
 ### Parked by the 2026-07-03 foundation review
 Correctness (compiler):
