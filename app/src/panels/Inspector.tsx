@@ -3,9 +3,12 @@ import { machineDef, type FieldDef } from '../machines/registry';
 import { useFactoryStore, type MachineNodeType } from '../state/store';
 import { useBlueprintDiagnostics } from '../state/diagnostics';
 import { useTelemetryStore } from '../state/telemetry';
-import { assemblyLines } from '../compiler/compile';
+import { assemblyLines, compile } from '../compiler/compile';
+import { describeWorkflow, describeTool } from '../compiler/describe';
 import type { Diagnostic } from '../compiler/compile';
 import type { LedState } from '../github/types';
+
+const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller']);
 
 const DIAG_MARK: Record<Diagnostic['level'], string> = { error: '✗', warning: '⚠', info: 'ℹ' };
 const LED_LABEL: Record<LedState, string> = { on: 'last run: success', warn: 'running', bad: 'last run: failed', idle: 'no recent run' };
@@ -100,6 +103,7 @@ export function Inspector() {
   const runs = useTelemetryStore((s) => s.runs);
 
   const lines = useMemo(() => assemblyLines(toBlueprint()), [nodes, edges, meta, toBlueprint]);
+  const compiled = useMemo(() => compile(toBlueprint()), [nodes, edges, meta, toBlueprint]);
 
   const nodeItem = nodes.find((n) => n.id === selectedId);
   const def = nodeItem ? machineDef(nodeItem.data.machineType) : undefined;
@@ -142,6 +146,13 @@ export function Inspector() {
   const line = lines.find((l) => l.nodeIds.includes(nodeItem.id));
   const latestRun = line ? runs.find((r) => r.slug === line.slug) : undefined;
 
+  // Drill-down: what this agent is ACTUALLY granted, parsed from the compiled workflow.
+  const isAgent = AGENT_TYPES.has(nodeItem.data.machineType);
+  const facts =
+    isAgent && line
+      ? describeWorkflow(compiled.workflows.find((w) => w.filename === line.filename)?.yaml ?? '')
+      : null;
+
   return (
     <aside className="inspector" aria-label="Inspector">
       <div className="panel__eyebrow">Machine · {nodeItem.id}</div>
@@ -179,6 +190,46 @@ export function Inspector() {
         ))}
       </div>
 
+      {facts?.agent && (
+        <div className="inspector__section">
+          <div className="inspector__eyebrow">Capabilities · compiled</div>
+          <p className="inspector__blurb">
+            {facts.agent.model}
+            {facts.agent.maxTurns ? ` · ${facts.agent.maxTurns} turns` : ''}
+            {facts.killSwitchVar && (
+              <> · <span className="cap-kill" title="default-OFF until the repo variable is true">🔌 {facts.killSwitchVar}</span></>
+            )}
+          </p>
+          {facts.agent.tools.length > 0 ? (
+            <>
+              <div className="caps__label">This agent may:</div>
+              <ul className="caps">
+                {[...new Set(facts.agent.tools.map(describeTool))].map((c) => (
+                  <li key={c} className="cap">{c}</li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="inspector__blurb">Read-only — no write tools granted.</p>
+          )}
+          {Object.keys(facts.permissions).length > 0 && (
+            <p className="caps__perms">
+              token: {Object.entries(facts.permissions).map(([k, v]) => `${k}:${v}`).join('  ')}
+            </p>
+          )}
+          {facts.agent.obligations.length > 0 && (
+            <details className="caps__oblig">
+              <summary>{facts.agent.obligations.length} obligation{facts.agent.obligations.length === 1 ? '' : 's'}</summary>
+              <ol>
+                {facts.agent.obligations.map((o, i) => (
+                  <li key={i}>{o.replace(/^\[[^\]]+\]\s*/, '')}</li>
+                ))}
+              </ol>
+            </details>
+          )}
+        </div>
+      )}
+
       <div className="inspector__section">
         <div className="inspector__eyebrow">Connections</div>
         <ConnRow label="Feeds from" ids={upstream} nodes={nodes} onSelect={setSelected} emptyHint={def.category === 'trigger' ? 'a trigger — starts the line' : 'nothing upstream yet'} />
@@ -199,7 +250,7 @@ export function Inspector() {
         {line ? (
           <p className="inspector__blurb">
             line: <code>{line.filename}</code>
-            {!latestRun && ' · open Telemetry (top bar) to poll runs'}
+            {!latestRun && ' · turn on 📊 LEDs (Build toolbar) to poll runs'}
           </p>
         ) : (
           <p className="inspector__blurb">Not on an assembly line yet — belt it to a trigger.</p>

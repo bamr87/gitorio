@@ -17,6 +17,17 @@
   --alarm: #e06054;
   --readout: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
   --chrome: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  /* Semantic aliases → the industrial palette. Newer panels (Content, Docs, Monitor,
+     Prompts, Settings) reference these generic names; mapping them here keeps every surface
+     on the same control-room palette instead of the off-theme fallbacks they shipped with. */
+  --border: var(--seam);
+  --muted: var(--dim);
+  --input: var(--floor);
+  --accent: var(--steel);
+  --accent-soft: rgba(111, 167, 216, 0.16);
+  --hover: rgba(255, 255, 255, 0.045);
+  --danger: var(--alarm);
 }
 
 * { box-sizing: border-box; }
@@ -55,6 +66,45 @@ body {
 .btn--primary { background: var(--copper); border-color: var(--copper); color: #17110a; font-weight: 700; }
 .btn--primary:hover { filter: brightness(1.08); }
 .btn--small { padding: 2px 8px; font-size: 11px; margin-left: 10px; }
+.btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.btn:disabled:hover { border-color: var(--seam); filter: none; }
+/* connected-session chip */
+.btn--live { border-color: var(--signal); color: var(--signal); }
+.btn--live:hover { border-color: var(--signal); filter: brightness(1.1); }
+
+/* ── per-view toolbar (the row under the global top bar) ──────────────── */
+.viewbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; min-height: 42px;
+  background: var(--panel); border-bottom: 1px solid var(--seam);
+}
+.viewbar__title {
+  font-family: var(--readout); font-size: 13px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 42vw;
+}
+.viewbar__meta { color: var(--dim); font-family: var(--readout); font-size: 11px; }
+.viewbar__spacer { flex: 1; }
+.viewbar__group { display: flex; gap: 2px; }
+.viewbar__group .btn { padding: 5px 9px; }
+
+/* ── dropdown menu ───────────────────────────────────────────────────── */
+.menu { position: relative; display: inline-flex; }
+.menu__pop {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 60;
+  min-width: 170px; padding: 4px;
+  background: var(--panel); border: 1px solid var(--seam); border-radius: 6px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.menu__item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; text-align: left; background: none; border: none; color: var(--ink);
+  padding: 7px 9px; border-radius: 4px; cursor: pointer;
+  font-family: var(--readout); font-size: 12px;
+}
+.menu__item:hover { background: var(--panel-2); }
+.menu__item:disabled { opacity: 0.42; cursor: not-allowed; }
+.menu__item:focus-visible { outline: 2px solid var(--copper); outline-offset: -2px; }
 
 /* ── panels ──────────────────────────────────────────────────────────── */
 .panel__eyebrow {
@@ -407,6 +457,20 @@ body {
   padding: 2px 7px; font-family: var(--readout); font-size: 11px; cursor: pointer;
 }
 .chip:hover { border-color: var(--copper); }
+
+/* agent capabilities drill-down (Inspector + Monitor) */
+.caps__label, .caps__perms { font-size: 11px; color: var(--dim); margin: 8px 0 4px; font-family: var(--readout); }
+.caps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.cap {
+  font-size: 12px; color: var(--ink); padding: 3px 8px;
+  border-left: 2px solid var(--signal); background: var(--panel-2); border-radius: 0 4px 4px 0;
+}
+.caps__perms { color: var(--steel); overflow-wrap: anywhere; }
+.cap-kill { color: var(--copper); }
+.caps__oblig { margin-top: 8px; font-size: 11.5px; color: var(--dim); }
+.caps__oblig summary { cursor: pointer; font-family: var(--readout); color: var(--steel); }
+.caps__oblig ol { margin: 6px 0 0; padding-left: 18px; line-height: 1.5; }
+.caps__oblig li { margin: 3px 0; }
 
 .inspector__monitor { display: flex; align-items: center; gap: 8px; }
 .inspector__monitorlbl { font-family: var(--readout); font-size: 12px; color: var(--ink); flex: 1; }
