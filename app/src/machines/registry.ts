@@ -272,6 +272,46 @@ export const MACHINES: MachineDef[] = [
     describe: (c) => `loop-tuner · ${str(c.model, 'claude-opus-4-8')} · ${Number(c.windowDays) > 0 ? Number(c.windowDays) : 7}d window`,
   },
 
+  {
+    type: 'processor.issue_batcher',
+    category: 'processor',
+    label: 'Issue batcher',
+    icon: '🗂️',
+    blurb:
+      'The intake sorter. A scheduled agent that surveys open issues, filters the actionable ones, groups related issues into batch work orders (one tracking issue per batch, labeled factory:work-order), and marks members factory:queued. It never fixes anything itself — a downstream fix line consumes the work orders, one PR per order.',
+    fields: [
+      {
+        key: 'promptRef',
+        label: 'Prompt file',
+        kind: 'text',
+        placeholder: '.factory/prompts/issue-batcher.md',
+        help: 'Extra operating instructions (triage policy, priorities) layered on the built-in batching contract.',
+      },
+      {
+        key: 'model',
+        label: 'Model',
+        kind: 'select',
+        options: ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'],
+      },
+      {
+        key: 'maxGroupSize',
+        label: 'Max issues per work order',
+        kind: 'number',
+        placeholder: '4',
+        help: 'Batches larger than this get split — one PR must plausibly close the whole batch.',
+      },
+      { key: 'maxTurns', label: 'Max turns', kind: 'number', placeholder: '30' },
+    ],
+    defaults: {
+      promptRef: '.factory/prompts/issue-batcher.md',
+      model: 'claude-sonnet-4-6',
+      maxGroupSize: 4,
+      maxTurns: 30,
+    },
+    describe: (c) =>
+      `batch ≤ ${Number(c.maxGroupSize) > 0 ? Number(c.maxGroupSize) : 4} issues/order · ${str(c.model, 'claude-sonnet-4-6')}`,
+  },
+
   // ── Sinks (signal green) ─────────────────────────────────────────────
   {
     type: 'sink.comment',

@@ -108,6 +108,23 @@ lifehacker's *patterns* are adopted as machines + app concepts.
 - [ ] Work-leasing (git-ref CAS mutex), diff-classifier router, multi-tier job DAG within a line,
       shared knowledge store + brand linter — **parked** supporting machinery (see ADR-017 brief).
 
+## Phase 9 — Issue processing (ADR-020)
+Goal: every open issue gets reviewed, related issues get grouped, and Claude Code agents
+address each group with one reviewable PR. Worked example targets `bamr87/lifehacker.dev`
+(`examples/issue-factory/`).
+- [x] **`processor.issue_batcher`** — the intake sorter: built-in SURVEY → ASSESS → GROUP →
+      FILE WORK ORDERS → MARK contract; groups ≤ `maxGroupSize` issues sharing a root cause into
+      work-order issues (`factory:work-order`), marks members `factory:queued`, routes
+      non-actionable ones to `factory:needs-human`. No file-edit/git/PR grants — sorts, never fixes.
+- [x] **Issue Factory template** — two lines, one kill switch (`ISSUE_FACTORY_ENABLED`), both
+      plan-first + rate-limited: weekday batcher (06:00 UTC) + weekday fixer (07:00 UTC) that
+      drains ONE work order per run into ONE PR (`Closes #N` per member; merge stays human).
+- [x] **Survey-mode `gh issue view` grant** — survey agents can now read the issues they discover.
+- [ ] Backlog: per-work-order **matrix fan-out** (one fix job per order — lands with the parked
+      OODA dispatcher); a work-order **priority** convention the fixer honors beyond oldest-first;
+      Content-tab knobs for batching policy (today: machine config + prompt); queue-health metrics
+      (work-order age, fix success rate) for the loop-tuner.
+
 ## Backlog
 - Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
   webhook worker + SSE live belts; multi-repo train stations.

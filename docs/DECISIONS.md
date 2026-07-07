@@ -33,6 +33,69 @@ mitigated by capability containment (--allowedTools), not content trust.
 plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
 typecheck, prod build, dev-server smoke all green on Node 22.
 
+## 2026-07-06 — ADR-021: fixes from the first live Issue Factory run (lifehacker.dev)
+Deploying ADR-020 live surfaced two compiler bugs in `rate.limiter` (both fixed +
+regression-tested) and one template sizing error:
+(1) **Off-by-one**: `gh run list` includes the currently executing run, so the N-th run of the
+day sees COUNT=N and `-ge LIMIT` stopped run N — `maxPerDay: 2` permitted only ONE working run.
+Guard is now `-gt` (exactly maxPerDay working runs). Decision kept alongside: the count stays
+STRICT (failed runs count toward the cap) — excluding failures would weaken runaway-loop
+insurance for lines that fail after writing. (2) **Missing repo context**: the limiter step
+deliberately runs BEFORE `actions/checkout` (fail fast, before any cost), where `gh` has no git
+directory and dies with `failed to determine base repo` (live failure, run 28769878311). The
+step env now carries `GH_REPO: ${{ github.repository }}` like the deterministic sink steps
+always did. Both fixes regenerated into the dogfooded `factory--docs-gardener.yml` (which had
+the same latent failure and would have died on its next scheduled run) and the issue-factory
+example; shipped to lifehacker.dev as PR #162. (3) **Fixer turn budget**: the first fixer run
+died at `error_max_turns(40)` mid-work-order with nothing shipped — a batch fix is read work
+order + N members + edit files + run checks + PR + N member comments, and 40 was a guess, not a
+measurement. Template now sets 100 and the fixer prompt gains turn discipline (ship completed
+members with accurate `Closes` lines rather than nothing) — lifehacker.dev PR #174. Lesson
+recorded: a generated safety step that has never executed on a real runner is untested by
+definition — the invariant tests asserted the YAML text, not the runtime contract (`gh` needing
+repo context outside a checkout, an agent needing enough turns to finish its contract). The
+live batcher run itself was flawless: 11 work orders from 41 surveyed issues, including
+accept-ledger batches it inferred from the repo's own lint conventions, and one correct
+`factory:needs-human` route (an admin-only task).
+
+**Drain session follow-up (same day):** driving the full queue surfaced a fourth lesson — an
+*external* one. After three work orders drained cleanly (WO #163→PR #175, WO #164→PR #177 filed
+autonomously by the 08:34 scheduled cron, WO #165→PR #194; 12 member issues closed), the fixer
+began failing every run at claude-code-action's `Exchanging OIDC token for app token` step
+(`Failed to parse JSON`, 3 internal retries) — a sustained ~25-min outage of the Claude GitHub
+App token-exchange service, upstream of the factory and unrelated to our code/prompt/quota.
+Decisions: (1) do NOT engineer around it by switching the compiled auth from the OIDC/app-token
+path to a PAT/`github_token` — that is a security-model change (golden rules #4/#7) not warranted
+by a transient outage; (2) do NOT hammer retries — each failed run still counts against the
+`rate.limiter` day budget (`gh run list | length` counts failures), so spamming a down service
+burns the very budget the real work needs; (3) the factory is **armed and autonomous**, so the
+daily crons resume the drain when the service recovers (limits reset at UTC midnight) — the 08:34
+cron already proved unattended draining works. Operational rule recorded: when a live agent line
+fails, first classify infra-vs-ours (read the failing STEP, not just the conclusion) before
+changing anything; a sustained upstream outage is a wait, not a fix. Temporary drain-mode rate
+limits (6/15) were restored to the designed 2/3 afterward.
+
+## 2026-07-05 — ADR-020: Issue processing — the batcher/fixer pipeline; the queue is GitHub itself
+Shipped the issue-processing capability as two cooperating assembly lines (the **Issue
+Factory** template, worked example targeting `bamr87/lifehacker.dev` in `examples/issue-factory/`):
+a new `processor.issue_batcher` (specialised agent, built-in SURVEY → ASSESS → GROUP → FILE
+WORK ORDERS → MARK contract) reviews every open issue, groups related ones (≤ `maxGroupSize`,
+confirmed against the checked-out code) into **work-order issues** labeled `factory:work-order`,
+and marks members `factory:queued`; an hour later a plain `agent.claude` fix line picks the
+oldest work order and ships ONE PR whose body carries `Closes #N` per member. Three shape
+decisions: (1) **The queue is GitHub issues, not a file.** A `.factory/workorders.yml` queue
+(like the CMS backlog) would need `contents: write` on main for bookkeeping and hide state from
+the tracker; work-order issues are human-visible, human-editable, and deletable — and "GitHub is
+the database" (ADR-001). (2) **Sorter/fixer separation is compiler-enforced**: the batcher gets
+no file-edit/git/PR verbs, the fixer never gets `gh pr merge` — a human merge is the only
+landing path (extends the ADR-015/017 no-self-merge invariant). (3) **Two lines, one kill
+switch** (`ISSUE_FACTORY_ENABLED` on both gates) since arming intake without the fixer (or vice
+versa) is never useful. Also: survey-mode agents now get `Bash(gh issue view:*)` (they must READ
+the issues they discover — previously only list/search). Fan-out (one job per work order via a
+computed matrix) stays parked with the OODA dispatcher; the fix line drains the queue one
+order/run, rate-limited at 3/day. Alt considered: a single do-everything agent (rejected: one
+line can't separate the triage grants from the code-write grants — least privilege dies).
+
 ## 2026-07-05 — ADR-019: Frontend framework refactor — global chrome vs. per-view toolbar, token unification, capability drill-down
 The top bar had grown to ~16 controls (7 nav tabs + 6 Build-only actions + Connect + Deploy +
 power) and newer panels had drifted off-palette. Refactored for a flexible, consistent shell:

@@ -23,6 +23,25 @@ describe('template catalog', () => {
     }
   });
 
+  it('issue-factory: two lines (batch + fix) behind ONE kill switch, sorter and fixer strictly separated', () => {
+    const t = TEMPLATES.find((x) => x.id === 'issue-factory')!;
+    const { workflows } = compile(t.blueprint);
+    expect(workflows.map((w) => w.filename)).toEqual([
+      'factory--issue-factory-1.yml',
+      'factory--issue-factory-2.yml',
+    ]);
+    const [batch, fix] = workflows;
+    // both lines armed/disarmed by the same repo variable
+    expect(batch.yaml).toContain('ENABLED: ${{ vars.ISSUE_FACTORY_ENABLED }}');
+    expect(fix.yaml).toContain('ENABLED: ${{ vars.ISSUE_FACTORY_ENABLED }}');
+    // line 1 sorts (work orders), line 2 fixes (one PR) — capabilities must not bleed across
+    expect(batch.yaml).toContain('issue_batcher');
+    expect(batch.yaml).not.toContain('Bash(gh pr create:*)');
+    expect(fix.yaml).toContain('.factory/prompts/issue-fixer.md');
+    expect(fix.yaml).toContain('Bash(gh pr create:*)');
+    expect(fix.yaml).not.toContain('Bash(gh pr merge:*)');
+  });
+
   it('every template compiles with zero error-level diagnostics', () => {
     for (const t of TEMPLATES) {
       const { workflows, diagnostics } = compile(t.blueprint);

@@ -44,6 +44,7 @@
               "filter.condition",
               "processor.dependabot_meta",
               "processor.feedback_controller",
+              "processor.issue_batcher",
               "gate.approval",
               "gate.enablement",
               "rate.limiter",

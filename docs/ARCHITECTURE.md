@@ -111,6 +111,15 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
   upstream change to a prompt/config → record a `pending` ledger entry → open ONE PR. Granted
   telemetry-read + file-edit + PR-open; **never `gh pr merge`** (no-self-merge invariant). The
   feedback loop that lets the factory improve itself (ADR-017).
+- `processor.issue_batcher` — the intake sorter of the issue-processing pipeline. A specialised
+  agent with a built-in contract: survey open issues → assess actionability (non-actionable →
+  `factory:needs-human`) → group related issues (shared root cause/subsystem/files, ≤
+  `maxGroupSize`) → file ONE work-order issue per batch (`factory:work-order`, member task list +
+  root-cause hypothesis + fix plan) → mark members `factory:queued`. The queue is GitHub itself:
+  a downstream fix line (a plain `agent.claude` + `sink.open_pr`) consumes work orders, one PR
+  per order, `Closes #N` per member. Granted issue read/label/comment/create only — **no
+  file-edit, git, or PR verbs** (the sorter must not fix; `issues: write`, contents stay
+  read-only) (ADR-020).
 
 **Sinks** (signal green)
 - `sink.comment`, `sink.label`, `sink.create_issue`, `sink.open_pr`, `sink.commit_files`
