@@ -2,9 +2,9 @@
 // Fleet Command cockpit render smoke: HUD tiles, district cards, rankings, audit
 // findings, and the schedule board — all primed straight into the store (no network).
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FleetOpsPanel } from './FleetOpsPanel';
 import type { WorkflowFacts } from '../fleet/types';
 import { useFleetOpsStore, type FleetWorkflowMetrics, type RepoSnapshot } from '../state/fleetops';
@@ -22,13 +22,16 @@ function mkFacts(over: Partial<WorkflowFacts> = {}): WorkflowFacts {
     reusableCalls: [],
     jobCount: 1,
     hasMatrix: false,
+    matrixDynamic: false,
+    localWorkflowCalls: [],
+    waitBound: false,
     timeoutMinutes: 10,
     runners: ['ubuntu-latest'],
     concurrency: { present: true, group: 'ci', cancelInProgress: 'always' },
     permissions: { declared: true, topLevelRead: true, topLevelWrite: false, writeScopes: [] },
     actions: [],
     compositeLocals: [],
-    ai: { present: false, runners: [], models: [], maxTurns: null, authMode: 'none', agents: [] },
+    ai: { present: false, runners: [], models: [], maxTurns: null, maxCostUsd: null, authMode: 'none', agents: [] },
     killSwitches: [],
     planApply: false,
     guards: [],
@@ -104,6 +107,7 @@ function mkSnapshot(over: Partial<RepoSnapshot> = {}): RepoSnapshot {
     workflowStates: [],
     variables: [],
     runs: [],
+    jobsByRun: {},
     etag: null,
     scannedAt: 1,
     ...over,
@@ -225,6 +229,7 @@ describe('FleetOpsPanel', () => {
                 runners: ['claude-code-action'],
                 models: [],
                 maxTurns: null,
+                maxCostUsd: null,
                 authMode: 'oauth-first',
                 agents: [],
               },
@@ -245,5 +250,72 @@ describe('FleetOpsPanel', () => {
     useFleetOpsStore.setState({ roster: [], snapshots: {}, fleetMetrics: [], totals: null, byType: [] });
     render(<FleetOpsPanel onDrill={noDrill} />);
     expect(screen.getByText(/Import a monorepo hub|Build a roster/i)).toBeTruthy();
+  });
+
+  it('lists per-workflow rows on the Workflows board with a Manage action', async () => {
+    const user = userEvent.setup();
+    render(<FleetOpsPanel onDrill={noDrill} />);
+    await user.click(screen.getByRole('button', { name: /Workflows/ }));
+    expect(screen.getByText('CI gate')).toBeTruthy(); // archetype label for 'ci-gate'
+    expect(screen.getByRole('button', { name: 'Manage' })).toBeTruthy();
+  });
+
+  it('opens the drawer for a workflow and shows its AI cost-centre capabilities', async () => {
+    useFleetOpsStore.setState({
+      snapshots: {
+        'o/alpha': mkSnapshot({
+          facts: [
+            mkFacts({
+              path: '.github/workflows/quest.yml',
+              name: 'Quest Walkthrough',
+              archetype: 'agentic-validator',
+              dashType: 'ai',
+              waitBound: true,
+              ai: {
+                present: true,
+                runners: ['agentic-engine'],
+                models: ['claude-opus'],
+                maxTurns: 40,
+                maxCostUsd: 5,
+                authMode: 'oauth-first',
+                agents: [],
+              },
+            }),
+          ],
+        }),
+      },
+      fleetMetrics: [
+        mkMetrics({
+          path: 'o/alpha::.github/workflows/quest.yml',
+          displayPath: '.github/workflows/quest.yml',
+          name: 'Quest Walkthrough',
+        }),
+      ],
+    });
+    const user = userEvent.setup();
+    render(<FleetOpsPanel onDrill={noDrill} />);
+    await user.click(screen.getByRole('button', { name: /Workflows/ }));
+    await user.click(screen.getByRole('button', { name: 'Manage' }));
+    const dialog = screen.getByRole('dialog', { name: /Manage Quest Walkthrough/ });
+    expect(within(dialog).getByText('Agentic validator')).toBeTruthy();
+    expect(within(dialog).getByText('agentic-engine')).toBeTruthy();
+    expect(within(dialog).getAllByText(/≤ \$5\/run/).length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText(/wait-bound/i).length).toBeGreaterThan(0);
+  });
+
+  it('gates a mutation behind a confirm that names the consequence before calling the store', async () => {
+    const dispatchWorkflowFile = vi.fn(async () => {});
+    useFleetOpsStore.setState({ dispatchWorkflowFile });
+    const user = userEvent.setup();
+    render(<FleetOpsPanel onDrill={noDrill} />);
+    await user.click(screen.getByRole('button', { name: /Workflows/ }));
+    await user.click(screen.getByRole('button', { name: 'Manage' }));
+    await user.click(screen.getByRole('button', { name: '▶ Run now' }));
+    // The confirm names the consequence, and the store is NOT called yet.
+    expect(screen.getByText(/dispatch a fresh run/i)).toBeTruthy();
+    expect(dispatchWorkflowFile).not.toHaveBeenCalled();
+    // Confirming runs the mutation against the store.
+    await user.click(screen.getByRole('button', { name: 'Run now' }));
+    expect(dispatchWorkflowFile).toHaveBeenCalledWith('o/alpha', '.github/workflows/ci.yml');
   });
 });

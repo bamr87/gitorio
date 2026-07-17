@@ -103,13 +103,20 @@ export type Archetype =
   | 'standard-ci-caller' // thin `uses: …/standard-ci.yml@main` wrapper
   | 'mention-handler' // the @claude comment/issue handler
   | 'prose-kit' // seeded markdown-oneline enforcer
-  | 'ci-gate' // repo-local tiered CI pipeline
+  | 'ci-gate' // repo-local CI pipeline (push+PR, no writes)
+  | 'pr-gate' // PR-only deterministic gate (lint/validate → comment/label)
+  | 'pr-editor' // PR-triggered AI reviewer/editor (no merge)
   | 'reusable-library' // `on: workflow_call` — called by others
   | 'content-factory' // cron agent producing content PRs
+  | 'issue-to-content' // issue-triggered AI that opens a content PR (e.g. quest-forge)
+  | 'agent-gatekeeper' // issue-triggered AI reviewer that labels/comments, no PR
+  | 'agentic-validator' // agent that plays/validates content end-to-end (agentic_validate)
+  | 'perfection-loop' // scheduled plan→fan-out→fix AI content loop
   | 'auto-merge-bot' // merges green bot PRs under policy
   | 'self-repair' // workflow_run-on-failure fixer loop
   | 'issue-autopilot' // triage→verify→resolve issue pipeline
   | 'nightly-audit' // scheduled sweep → sticky issue
+  | 'autonomy-loop' // scheduled self-audit/evolve that opens an improvement PR
   | 'cross-repo-filer' // writes issues/PRs to another repo
   | 'scout' // web-reading discovery agent
   | 'meta-loop' // measures/improves the automation itself
@@ -146,19 +153,27 @@ export type GuardKind =
   | 'rate-limiter' // counts today's runs, refuses past a cap
   | 'synchronize-skip' // skips its own push-triggered re-run
   | 'smuggle-guard' // re-classifies the diff before merging
-  | 'sticky-marker' // HTML-comment marker for idempotent issue/comment upsert
+  | 'sticky-marker' // marker OR stable-title dedup for idempotent issue/comment upsert
   | 'same-repo-only' // refuses fork/other-repo heads
-  | 'mention-phrase'; // only fires on an explicit @mention phrase
+  | 'mention-phrase' // only fires on an explicit @mention phrase
+  | 'gate-job' // a `gate` job gating the line on a vars.*_ENABLED switch
+  | 'concurrency-singleton'; // a per-entity concurrency group serializes the line
 
 /** AI usage found in one workflow (per-file rollup; a file can mix runners). */
 export interface AiFacts {
   present: boolean;
-  /** Which invocation shapes appear (a workflow can use several). */
-  runners: ('claude-code-action' | 'claude-cli' | 'claude-run' | 'run-sh' | 'other')[];
+  /**
+   * Which invocation shapes appear (a workflow can use several).
+   * `agentic-engine` = a bare `@anthropic-ai/claude-code` CLI / `agentic_validate.py`
+   * driver — the it-journey quest engine, the fleet's single biggest AI cost center.
+   */
+  runners: ('claude-code-action' | 'claude-cli' | 'claude-run' | 'run-sh' | 'agentic-engine' | 'other')[];
   /** Models named in the file; empty when the model lives in a composite/config (common). */
   models: string[];
   /** Largest --max-turns found, or null. */
   maxTurns: number | null;
+  /** Hard dollar spend cap (`--max-cost-usd N`) — the fleet's only per-run cost ceiling, or null. */
+  maxCostUsd: number | null;
   authMode: AuthMode;
   /** Named agent roles (`agent: x` / `--agent x`). */
   agents: string[];
@@ -185,6 +200,15 @@ export interface WorkflowFacts {
   // structure
   jobCount: number;
   hasMatrix: boolean;
+  /** True when a matrix is computed at runtime (`matrix: fromJSON(needs.*.outputs.*)`) — unknown fan-out width. */
+  matrixDynamic: boolean;
+  /** Same-repo reusable-workflow calls (`uses: ./.github/workflows/x.yml`) — intra-repo belts. */
+  localWorkflowCalls: string[];
+  /**
+   * True when the workflow spends its minutes WAITING (a `sleep` + `gh pr checks` poll
+   * loop), not computing — its "cost" is wall-clock, retireable with `--auto` + required checks.
+   */
+  waitBound: boolean;
   /** Max declared job `timeout-minutes`, or null when none declared anywhere. */
   timeoutMinutes: number | null;
   runners: string[];

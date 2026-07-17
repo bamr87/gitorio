@@ -223,4 +223,150 @@ describe('work orders', () => {
       store.getState().filedWorkOrders['o/alpha:.github/workflows/ci.yml:kill-switch'],
     ).toBe(url);
   });
+
+  it('the persisted localStorage payload carries no token or client material', () => {
+    const storage = memoryStorage();
+    const store = createFleetOpsStore(storage);
+    // The client (and any Claude/PAT secret material) lives in the github store — never here.
+    connect(fakeClient());
+    store.getState().addRepos('o/alpha o/beta');
+    const raw = storage.dump().get(FLEETOPS_KEY) ?? '{}';
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    expect(Object.keys(parsed).sort()).toEqual(['hubSlug', 'roster', 'windowDays']);
+    expect(raw.toLowerCase()).not.toContain('token');
+    expect(raw).not.toContain('client');
+  });
+});
+
+describe('workflow maintenance', () => {
+  const CI = '.github/workflows/ci.yml';
+
+  it('rerunLatestFailed re-runs the newest failed run, then rescans', async () => {
+    const rerunRun = vi.fn<(repo: unknown, runId: number) => Promise<void>>(async () => {});
+    const listFactoryRuns = vi.fn(async () => ({
+      runs: [
+        run({ runId: 5, conclusion: 'failure', createdAt: '2026-07-10T00:00:00Z' }),
+        run({ runId: 9, conclusion: 'timed_out', createdAt: '2026-07-16T00:00:00Z' }),
+        run({ runId: 3, conclusion: 'success', createdAt: '2026-07-17T00:00:00Z' }),
+      ],
+      etag: 'e',
+      notModified: false,
+      rateRemaining: 10,
+    }));
+    const store = createFleetOpsStore(memoryStorage());
+    connect(fakeClient({ rerunRun, listFactoryRuns }));
+    await store.getState().scanRepo('o/alpha');
+    await store.getState().rerunLatestFailed('o/alpha', CI);
+    expect(rerunRun).toHaveBeenCalledTimes(1);
+    expect(rerunRun.mock.calls[0][1]).toBe(9); // newest retryable (not the newer success)
+    // Initial scan + post-action rescan both hit the runs endpoint.
+    expect(listFactoryRuns.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(store.getState().actionBusy['o/alpha:rerun']).toBe(false);
+  });
+
+  it('rerunLatestFailed is a no-op when the workflow has no failed run', async () => {
+    const rerunRun = vi.fn(async () => {});
+    const listFactoryRuns = vi.fn(async () => ({
+      runs: [run({ runId: 1, conclusion: 'success' })],
+      etag: 'e',
+      notModified: false,
+      rateRemaining: 10,
+    }));
+    const store = createFleetOpsStore(memoryStorage());
+    connect(fakeClient({ rerunRun, listFactoryRuns }));
+    await store.getState().scanRepo('o/alpha');
+    await store.getState().rerunLatestFailed('o/alpha', CI);
+    expect(rerunRun).not.toHaveBeenCalled();
+    expect(store.getState().error).toBeNull();
+  });
+
+  it('setKillSwitch writes "true"/"false" via setVariable, then rescans', async () => {
+    const setVariable = vi.fn(async () => {});
+    const store = createFleetOpsStore(memoryStorage());
+    connect(fakeClient({ setVariable }));
+    await store.getState().scanRepo('o/alpha');
+    await store.getState().setKillSwitch('o/alpha', 'CONTENT_FACTORY_ENABLED', false);
+    expect(setVariable).toHaveBeenLastCalledWith(
+      expect.anything(),
+      'CONTENT_FACTORY_ENABLED',
+      'false',
+    );
+    await store.getState().setKillSwitch('o/alpha', 'CONTENT_FACTORY_ENABLED', true);
+    expect(setVariable).toHaveBeenLastCalledWith(
+      expect.anything(),
+      'CONTENT_FACTORY_ENABLED',
+      'true',
+    );
+  });
+
+  it('setWorkflowEnabledById toggles the workflow file, then rescans', async () => {
+    const setWorkflowEnabled = vi.fn(async () => {});
+    const store = createFleetOpsStore(memoryStorage());
+    connect(fakeClient({ setWorkflowEnabled }));
+    await store.getState().scanRepo('o/alpha');
+    await store.getState().setWorkflowEnabledById('o/alpha', 1, false);
+    expect(setWorkflowEnabled).toHaveBeenLastCalledWith(expect.anything(), 1, false);
+  });
+
+  it('loadRunJobs caches the run jobs on the snapshot', async () => {
+    const listRunJobs = vi.fn(async () => [
+      {
+        jobId: 1,
+        name: 'build',
+        status: 'completed',
+        conclusion: 'success',
+        startedAt: null,
+        completedAt: null,
+        htmlUrl: 'https://x/j1',
+        steps: [],
+      },
+    ]);
+    const store = createFleetOpsStore(memoryStorage());
+    connect(fakeClient({ listRunJobs }));
+    await store.getState().scanRepo('o/alpha');
+    await store.getState().loadRunJobs('o/alpha', 2);
+    const jobs = store.getState().snapshots['o/alpha'].jobsByRun[2];
+    expect(Array.isArray(jobs)).toBe(true);
+    expect((jobs as { name: string }[])[0].name).toBe('build');
+    // Cached: a second load must not hit the client again.
+    await store.getState().loadRunJobs('o/alpha', 2);
+    expect(listRunJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it('loadRunJobs clears the cache on error so a later click can retry (no cached [] masquerading as "no jobs")', async () => {
+    const listRunJobs = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('jobs 503'))
+      .mockResolvedValueOnce([
+        { jobId: 1, name: 'build', status: 'completed', conclusion: 'success', startedAt: null, completedAt: null, htmlUrl: 'https://x/j1', steps: [] },
+      ]);
+    const store = createFleetOpsStore(memoryStorage());
+    connect(fakeClient({ listRunJobs }));
+    await store.getState().scanRepo('o/alpha');
+    await store.getState().loadRunJobs('o/alpha', 2);
+    // The transient failure must NOT leave a cached [] blocking retry.
+    expect(store.getState().snapshots['o/alpha'].jobsByRun[2]).toBeUndefined();
+    await store.getState().loadRunJobs('o/alpha', 2);
+    const jobs = store.getState().snapshots['o/alpha'].jobsByRun[2];
+    expect((jobs as { name: string }[])[0].name).toBe('build');
+    expect(listRunJobs).toHaveBeenCalledTimes(2);
+  });
+
+  it('a failed maintenance action surfaces the error and clears the busy flag', async () => {
+    const dispatchWorkflow = vi.fn(async () => {
+      throw new Error('dispatch boom');
+    });
+    const store = createFleetOpsStore(memoryStorage());
+    connect(fakeClient({ dispatchWorkflow }));
+    await store.getState().scanRepo('o/alpha');
+    await store.getState().dispatchWorkflowFile('o/alpha', CI);
+    expect(store.getState().error).toBe('dispatch boom');
+    expect(store.getState().actionBusy['o/alpha:dispatch']).toBe(false);
+  });
+
+  it('maintenance without a connection reports the connect error', async () => {
+    const store = createFleetOpsStore(memoryStorage());
+    await store.getState().dispatchWorkflowFile('o/alpha', CI);
+    expect(store.getState().error).toMatch(/Connect/);
+  });
 });

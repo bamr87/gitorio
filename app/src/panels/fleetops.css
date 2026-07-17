@@ -101,6 +101,11 @@
 .fleetops__boards {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
+}
+.fleetops__boards .chip.is-active {
+  border-color: var(--copper);
+  color: var(--copper);
 }
 
 /* ── districts ── */
@@ -377,4 +382,230 @@
   color: var(--dim);
   font-family: var(--readout);
   font-size: 11px;
+}
+
+/* ── workflows board ── */
+.wfboard {
+  overflow-x: auto;
+}
+.wfboard__arch {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--steel);
+  white-space: nowrap;
+}
+.wfboard__cap {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--alarm);
+  white-space: nowrap;
+}
+.wfboard__wait {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--copper);
+  white-space: nowrap;
+}
+
+/* ── workflow drawer (per-workflow management slide-over) ── */
+.wfdrawer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+.wfdrawer__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 9, 0.55);
+}
+.wfdrawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(560px, 96vw);
+  overflow-y: auto;
+  background: var(--panel);
+  border-left: 3px solid var(--copper);
+  box-shadow: -18px 0 50px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+}
+.wfdrawer__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--seam);
+}
+.wfdrawer__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.wfdrawer__repo {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--steel);
+}
+.wfdrawer__name {
+  font-size: 15px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.wfdrawer__path {
+  font-family: var(--readout);
+  font-size: 10px;
+  color: var(--dim);
+}
+.wfdrawer__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px 0;
+}
+.wfdrawer__arch {
+  border-left: 3px solid var(--dim);
+}
+.wfdrawer__arch--ai { border-left-color: var(--steel); }
+.wfdrawer__arch--ci { border-left-color: var(--signal); }
+.wfdrawer__arch--deploy { border-left-color: #4db6ac; }
+.wfdrawer__arch--release { border-left-color: #9ccc65; }
+.wfdrawer__arch--docs { border-left-color: #b0a46b; }
+.wfdrawer__arch--security { border-left-color: var(--copper); }
+.wfdrawer__arch--dependencies { border-left-color: #ce7bb0; }
+.wfdrawer__arch--automation { border-left-color: #7986cb; }
+.wfdrawer__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+}
+.wfdrawer__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink);
+}
+.wfdrawer__deeplink {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--copper);
+}
+.wfdrawer__jobs {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wfdrawer__job {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.wfdrawer__job:hover {
+  color: var(--copper);
+}
+.wfdrawer__dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wfdrawer__row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.wfdrawer__row dt {
+  font-family: var(--readout);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+.wfdrawer__row dd {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.wfdrawer__cron {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--steel);
+  margin-right: 6px;
+}
+.wfdrawer__cron--dormant {
+  color: var(--dim);
+}
+.wfdrawer__ai {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.wfdrawer__aimeta {
+  display: block;
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--dim);
+  margin-top: 4px;
+}
+.wfdrawer__chips {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.wfdrawer__warn {
+  color: var(--copper);
+  font-size: 11.5px;
+}
+.wfdrawer__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.wfdrawer__metric {
+  display: flex;
+  flex-direction: column;
+}
+.wfdrawer__metricnum {
+  font-family: var(--readout);
+  font-size: 16px;
+  color: var(--ink);
+}
+.wfdrawer__metriclbl {
+  font-family: var(--readout);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+.wfdrawer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* .btn--small carries a left margin for inline toolbars; the drawer lays them out in a gap grid */
+.wfdrawer__actions .btn--small {
+  margin-left: 0;
+}
+.wfdrawer__hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.wfdrawer__confirm {
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.5;
 }

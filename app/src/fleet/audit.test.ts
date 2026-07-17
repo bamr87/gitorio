@@ -18,13 +18,16 @@ function makeFacts(over: Partial<WorkflowFacts> = {}): WorkflowFacts {
     reusableCalls: [],
     jobCount: 1,
     hasMatrix: false,
+    matrixDynamic: false,
+    localWorkflowCalls: [],
+    waitBound: false,
     timeoutMinutes: null,
     runners: ['ubuntu-latest'],
     concurrency: { present: false, group: null, cancelInProgress: 'unset' },
     permissions: { declared: false, topLevelRead: false, topLevelWrite: false, writeScopes: [] },
     actions: [],
     compositeLocals: [],
-    ai: { present: false, runners: [], models: [], maxTurns: null, authMode: 'none', agents: [] },
+    ai: { present: false, runners: [], models: [], maxTurns: null, maxCostUsd: null, authMode: 'none', agents: [] },
     killSwitches: [],
     planApply: false,
     guards: [],
@@ -41,7 +44,15 @@ function makeFacts(over: Partial<WorkflowFacts> = {}): WorkflowFacts {
 
 /** AiFacts for a present claude-code-action step in the given auth mode. */
 function aiIn(authMode: AuthMode): WorkflowFacts['ai'] {
-  return { present: true, runners: ['claude-code-action'], models: [], maxTurns: null, authMode, agents: [] };
+  return {
+    present: true,
+    runners: ['claude-code-action'],
+    models: [],
+    maxTurns: null,
+    maxCostUsd: null,
+    authMode,
+    agents: [],
+  };
 }
 
 /** Findings for one rule id. */
@@ -66,6 +77,7 @@ describe('AUDIT_RULES', () => {
     expect(sevOf['auth-oauth-first']).toBe('warn');
     expect(sevOf['pin-branch']).toBe('warn');
     expect(sevOf['standard-trio']).toBe('warn');
+    expect(sevOf['pin-sha']).toBe('info');
     expect(sevOf['plan-apply']).toBe('info');
     expect(sevOf['sticky-marker']).toBe('info');
     expect(sevOf['disabled-workflow']).toBe('info');
@@ -143,6 +155,102 @@ describe('loop-safety', () => {
     const cronWriter = makeFacts({ triggers: [{ kind: 'schedule' }], sinks: ['pr'] });
     expect(ofRule(auditWorkflow(cronWriter), 'loop-safety')).toHaveLength(0);
   });
+
+  // ── self-retrigger matrix: an unguarded writer only fails when its sink re-emits
+  //    an event it subscribes to; otherwise it is safe and passes with no guard.
+  it('passes an unguarded PR writer whose only sink is a comment (comment emits issue_comment, not pull_request)', () => {
+    const safe = makeFacts({ triggers: [{ kind: 'pull_request', detail: 'opened' }], sinks: ['comment'] });
+    expect(ofRule(auditWorkflow(safe), 'loop-safety')).toHaveLength(0);
+  });
+
+  it('passes a loopy issue_comment commenter guarded by a gate job', () => {
+    const gated = makeFacts({
+      triggers: [{ kind: 'issue_comment' }],
+      sinks: ['comment'],
+      guards: ['gate-job'],
+    });
+    expect(ofRule(auditWorkflow(gated), 'loop-safety')).toHaveLength(0);
+  });
+
+  it('passes a loopy issue_comment commenter serialized by a singleton concurrency group', () => {
+    const gated = makeFacts({
+      triggers: [{ kind: 'issue_comment' }],
+      sinks: ['comment'],
+      guards: ['concurrency-singleton'],
+    });
+    expect(ofRule(auditWorkflow(gated), 'loop-safety')).toHaveLength(0);
+  });
+
+  it('fails an unguarded commit writer on a pull_request that subscribes to synchronize', () => {
+    const loopy = makeFacts({
+      triggers: [{ kind: 'pull_request', detail: 'opened, synchronize' }],
+      sinks: ['commit'],
+    });
+    const hit = ofRule(auditWorkflow(loopy), 'loop-safety');
+    expect(hit).toHaveLength(1);
+    expect(hit[0].severity).toBe('fail');
+    expect(hit[0].message).toContain('commit');
+    expect(hit[0].message).toContain('pull_request');
+  });
+
+  it('passes an unguarded commit writer on a pull_request WITHOUT synchronize (its own push cannot retrigger it)', () => {
+    const safe = makeFacts({
+      triggers: [{ kind: 'pull_request', detail: 'opened, reopened' }],
+      sinks: ['commit'],
+    });
+    expect(ofRule(auditWorkflow(safe), 'loop-safety')).toHaveLength(0);
+  });
+
+  it('credits a repo whose event-triggered writers are all safe: loop-safety passes with no fail finding', () => {
+    const audit = auditRepo([
+      makeFacts({ path: '.github/workflows/content-quality.yml', triggers: [{ kind: 'pull_request', detail: 'opened' }], sinks: ['comment'] }),
+      makeFacts({ path: '.github/workflows/content-review.yml', triggers: [{ kind: 'pull_request', detail: 'opened, reopened' }], sinks: ['commit'] }),
+    ]);
+    expect(ofRule(audit.findings, 'loop-safety')).toHaveLength(0);
+    expect(audit.passedRules).toContain('loop-safety');
+  });
+
+  // A bare `on: pull_request` (no types:) defaults to [opened, synchronize, reopened], so a
+  // self-push IS loopy — the default-set case the emission model must not miss.
+  it('fails a bare pull_request (no types:) commit writer — the default set includes synchronize', () => {
+    const loopy = makeFacts({ triggers: [{ kind: 'pull_request' }], sinks: ['commit'] });
+    const hit = ofRule(auditWorkflow(loopy), 'loop-safety');
+    expect(hit).toHaveLength(1);
+    expect(hit[0].severity).toBe('fail');
+  });
+
+  // A PR-labeler on pull_request:[labeled] re-emits pull_request(labeled): a real self-loop.
+  it('fails an unguarded PR labeler on pull_request:[labeled] (label re-emits pull_request labeled)', () => {
+    const loopy = makeFacts({
+      triggers: [{ kind: 'pull_request', detail: 'labeled' }],
+      sinks: ['label'],
+    });
+    const hit = ofRule(auditWorkflow(loopy), 'loop-safety');
+    expect(hit).toHaveLength(1);
+    expect(hit[0].severity).toBe('fail');
+  });
+
+  // synchronize-skip only covers the commit→synchronize path; it must NOT bless a label loop
+  // (a types:[labeled] trigger incidentally carries synchronize-skip from omitting synchronize).
+  it('does not let synchronize-skip bless a non-commit (label) loop', () => {
+    const loopy = makeFacts({
+      triggers: [{ kind: 'pull_request', detail: 'labeled' }],
+      sinks: ['label'],
+      guards: ['synchronize-skip'],
+    });
+    expect(ofRule(auditWorkflow(loopy), 'loop-safety')).toHaveLength(1);
+  });
+
+  // …but a synchronize-subscribed commit writer with the `event.action != synchronize`
+  // expression guard (synchronize-skip) IS correctly covered for the commit path.
+  it('lets synchronize-skip cover a commit-only synchronize loop', () => {
+    const covered = makeFacts({
+      triggers: [{ kind: 'pull_request', detail: 'opened, synchronize' }],
+      sinks: ['commit'],
+      guards: ['synchronize-skip'],
+    });
+    expect(ofRule(auditWorkflow(covered), 'loop-safety')).toHaveLength(0);
+  });
 });
 
 describe('concurrency', () => {
@@ -214,6 +322,26 @@ describe('ai-timeout', () => {
     const bounded = makeFacts({ ai: aiIn('oauth-first'), timeoutMinutes: 30 });
     expect(ofRule(auditWorkflow(bounded), 'ai-timeout')).toHaveLength(0);
   });
+
+  it('warns on an agentic-engine AI job (agentic_validate quest engine) with no timeout', () => {
+    const agentic = makeFacts({
+      path: '.github/workflows/quest-walkthrough.yml',
+      archetype: 'agentic-validator',
+      ai: {
+        present: true,
+        runners: ['agentic-engine'],
+        models: [],
+        maxTurns: 40,
+        maxCostUsd: null,
+        authMode: 'oauth-first',
+        agents: [],
+      },
+    });
+    const hit = ofRule(auditWorkflow(agentic), 'ai-timeout');
+    expect(hit).toHaveLength(1);
+    expect(hit[0].severity).toBe('warn');
+    expect(hit[0].message).toContain('timeout-minutes');
+  });
 });
 
 describe('pin rules', () => {
@@ -254,6 +382,53 @@ describe('pin rules', () => {
       actions: [{ action: './.github/actions/claude-run', ref: null, pin: 'local' }],
     });
     expect(ofRule(auditWorkflow(localOnly), 'pin-unpinned')).toHaveLength(0);
+  });
+});
+
+describe('pin-sha', () => {
+  it('flags tag-pinned marketplace actions in a SHA-majority repo, exempting reusable and local refs', () => {
+    const shaLine = makeFacts({
+      path: '.github/workflows/ci.yml',
+      actions: [
+        { action: 'actions/checkout', ref: 'a1b2c3d', pin: 'sha' },
+        { action: 'actions/setup-node', ref: 'e4f5a6b', pin: 'sha' },
+      ],
+    });
+    const tagLine = makeFacts({
+      path: '.github/workflows/quest.yml',
+      actions: [
+        { action: 'actions/cache', ref: 'v4', pin: 'tag' },
+        // reusable-workflow ref (…/*.yml) — exempt even when tag-pinned
+        { action: 'bamr87/bamr87/.github/workflows/standard-ci.yml', ref: 'v1', pin: 'tag' },
+        // local composite — exempt
+        { action: './.github/actions/claude-run', ref: null, pin: 'local' },
+      ],
+    });
+    const audit = auditRepo([shaLine, tagLine]);
+    const hits = ofRule(audit.findings, 'pin-sha');
+    expect(hits).toHaveLength(1);
+    expect(hits[0].severity).toBe('info');
+    expect(hits[0].path).toBe('.github/workflows/quest.yml');
+    expect(hits[0].message).toContain('actions/cache@v4');
+    expect(hits[0].message).toContain('SHA-pin');
+    expect(hits[0].fix).toContain('actions/cache');
+  });
+
+  it('does not nag a tag-majority repo (edgar/law-style): rule never applies', () => {
+    const tagHeavy = makeFacts({
+      path: '.github/workflows/ci.yml',
+      actions: [
+        { action: 'actions/checkout', ref: 'v4', pin: 'tag' },
+        { action: 'actions/setup-node', ref: 'v4', pin: 'tag' },
+      ],
+    });
+    const onlySha = makeFacts({
+      path: '.github/workflows/build.yml',
+      actions: [{ action: 'actions/cache', ref: 'a1b2c3d', pin: 'sha' }],
+    });
+    const audit = auditRepo([tagHeavy, onlySha]);
+    expect(ofRule(audit.findings, 'pin-sha')).toHaveLength(0);
+    expect(audit.passedRules).not.toContain('pin-sha');
   });
 });
 
@@ -307,6 +482,28 @@ describe('sticky-marker', () => {
   });
 });
 
+describe('plan-apply + sticky-marker stay silent given corrected facts', () => {
+  it('a plan/apply issue-filing cron with a sticky-marker guard fires neither rule', () => {
+    // A nightly-audit line: facts.planApply true and the widened sticky-marker guard both set.
+    const disciplined = makeFacts({
+      path: '.github/workflows/nightly-audit.yml',
+      archetype: 'nightly-audit',
+      triggers: [{ kind: 'schedule', detail: '0 6 * * *' }, { kind: 'workflow_dispatch' }],
+      crons: ['0 6 * * *'],
+      sinks: ['issue'],
+      planApply: true,
+      guards: ['sticky-marker'],
+    });
+    const findings = auditWorkflow(disciplined);
+    expect(ofRule(findings, 'plan-apply')).toHaveLength(0);
+    expect(ofRule(findings, 'sticky-marker')).toHaveLength(0);
+
+    const audit = auditRepo([disciplined]);
+    expect(audit.passedRules).toContain('plan-apply');
+    expect(audit.passedRules).toContain('sticky-marker');
+  });
+});
+
 describe('exemplary workflow', () => {
   it('a fully conventional scheduled AI line yields zero findings', () => {
     const exemplary = makeFacts({
@@ -333,6 +530,7 @@ describe('exemplary workflow', () => {
         runners: ['claude-run'],
         models: ['claude-sonnet-4'],
         maxTurns: 30,
+        maxCostUsd: null,
         authMode: 'oauth-first',
         agents: ['grow-lifehacker'],
       },
@@ -415,7 +613,7 @@ describe('auditRepo — applicability and passedRules', () => {
     expect(audit.passedRules).toContain('permissions');
     expect(audit.passedRules).toContain('top-level-write');
     // No AI, no crons, no actions, no event triggers → these never applied.
-    for (const id of ['auth-oauth-first', 'kill-switch', 'ai-timeout', 'loop-safety', 'concurrency', 'pin-branch', 'pin-unpinned', 'plan-apply', 'dormant-cron', 'sticky-marker']) {
+    for (const id of ['auth-oauth-first', 'kill-switch', 'ai-timeout', 'loop-safety', 'concurrency', 'pin-branch', 'pin-unpinned', 'pin-sha', 'plan-apply', 'dormant-cron', 'sticky-marker']) {
       expect(audit.passedRules).not.toContain(id);
       expect(ofRule(audit.findings, id)).toHaveLength(0);
     }
