@@ -154,3 +154,11 @@ export const useGithubStore = create<GithubState>((set, get) => ({
 
   setPower: (power) => set({ power }),
 }));
+
+// Dev-only: lets a tokenless smoke test seed `login`/`repo` so login-gated views
+// (Fleet Command, Monitor) render without a live PAT. Mirrors ADR-011's __fleetStore.
+// Stripped from prod builds.
+if (import.meta.env.DEV) {
+  (globalThis as unknown as { __githubStore?: typeof useGithubStore }).__githubStore =
+    useGithubStore;
+}

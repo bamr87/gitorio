@@ -148,6 +148,19 @@ export interface FactoryRun {
   runStartedAt: string | null;
   updatedAt: string;
   createdAt: string;
+  /** 1 for a first attempt; >1 means the run was re-run (the rework signal). */
+  runAttempt: number;
+}
+
+/** One registered workflow from the Actions workflows API (id needed to enable/disable). */
+export interface RepoWorkflow {
+  id: number;
+  name: string;
+  /** `.github/workflows/<file>.yml`, or `dynamic/…` for GitHub-injected workflows. */
+  path: string;
+  /** `active` | `disabled_manually` | `disabled_inactivity` | … */
+  state: string;
+  htmlUrl: string;
 }
 
 /** Result of a conditional (ETag) runs poll. A 304 sets `notModified` and empty `runs`. */
@@ -254,6 +267,24 @@ export interface GithubClient {
 
   /** Cancel an in-progress run. */
   cancelRun(repo: RepoRef, runId: number): Promise<void>;
+
+  /**
+   * Registered workflows for a repo (id, path, `state` — the disable/enable handle).
+   * Never throws for a repo without Actions — returns `[]` on 403/404.
+   */
+  listRepoWorkflows(repo: RepoRef): Promise<RepoWorkflow[]>;
+
+  /** Re-run a completed run (all jobs) — the "clear the jam" maintain action. */
+  rerunRun(repo: RepoRef, runId: number): Promise<void>;
+
+  /** Enable or disable a workflow by id — powering a machine on/off from the cockpit. */
+  setWorkflowEnabled(repo: RepoRef, workflowId: number, enabled: boolean): Promise<void>;
+
+  /** Open an issue (the audit's "file a work order" action); returns the html_url. */
+  createIssue(
+    repo: RepoRef,
+    args: { title: string; body: string; labels?: string[] },
+  ): Promise<string>;
 
   /**
    * List repository Actions variables (the enablement-gate kill switches). Never throws for

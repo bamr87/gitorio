@@ -376,6 +376,7 @@ describe('listFactoryRuns', () => {
       runStartedAt: '2026-07-01T10:00:00Z',
       updatedAt: '2026-07-01T10:05:00Z',
       createdAt: '2026-07-01T10:00:00Z',
+      runAttempt: 1,
     });
     expect(poll.runs[1].conclusion).toBe('success');
 
@@ -539,5 +540,182 @@ describe('repo variables (enablement-gate kill switches)', () => {
     const [url, init] = post as unknown as [string, RequestInit];
     expect(url).toBe('https://api.github.com/repos/o/r/actions/variables');
     expect(jsonBody(init)).toEqual({ name: 'NEW_FLAG', value: 'true' });
+  });
+});
+
+describe('listFactoryRuns — rework attempts', () => {
+  it('maps run_attempt → runAttempt and defaults a missing run_attempt to 1', async () => {
+    const { client } = await connect(
+      () =>
+        new Response(
+          JSON.stringify({
+            workflow_runs: [
+              {
+                id: 201,
+                run_number: 9,
+                run_attempt: 3, // re-run twice — the rework signal
+                status: 'completed',
+                conclusion: 'success',
+                event: 'schedule',
+                html_url: 'https://github.com/o/r/actions/runs/201',
+                path: '.github/workflows/factory--reworked.yml',
+                run_started_at: '2026-07-02T10:00:00Z',
+                updated_at: '2026-07-02T10:05:00Z',
+                created_at: '2026-07-02T10:00:00Z',
+              },
+              {
+                id: 200,
+                run_number: 8,
+                // no run_attempt field — older payloads omit it on first attempts
+                status: 'completed',
+                conclusion: 'success',
+                event: 'push',
+                html_url: 'https://github.com/o/r/actions/runs/200',
+                path: '.github/workflows/factory--clean.yml',
+                run_started_at: '2026-07-01T10:00:00Z',
+                updated_at: '2026-07-01T10:02:00Z',
+                created_at: '2026-07-01T10:00:00Z',
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    );
+
+    const poll = await client.listFactoryRuns(REPO);
+    expect(poll.runs.map((r) => [r.runId, r.runAttempt])).toEqual([
+      [201, 3],
+      [200, 1],
+    ]);
+  });
+});
+
+describe('listRepoWorkflows', () => {
+  it('maps the workflows payload to camelCase (html_url → htmlUrl)', async () => {
+    const { client, fetchImpl } = await connect(
+      () =>
+        new Response(
+          JSON.stringify({
+            workflows: [
+              {
+                id: 161335,
+                name: 'content-factory',
+                path: '.github/workflows/content-factory.yml',
+                state: 'active',
+                html_url: 'https://github.com/o/r/blob/main/.github/workflows/content-factory.yml',
+              },
+              {
+                id: 269289,
+                name: 'Pages',
+                path: 'dynamic/pages/pages-build-deployment',
+                state: 'disabled_manually',
+                html_url: 'https://github.com/o/r/actions/workflows/pages.yml',
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    );
+
+    const workflows = await client.listRepoWorkflows(REPO);
+    expect(workflows).toEqual([
+      {
+        id: 161335,
+        name: 'content-factory',
+        path: '.github/workflows/content-factory.yml',
+        state: 'active',
+        htmlUrl: 'https://github.com/o/r/blob/main/.github/workflows/content-factory.yml',
+      },
+      {
+        id: 269289,
+        name: 'Pages',
+        path: 'dynamic/pages/pages-build-deployment',
+        state: 'disabled_manually',
+        htmlUrl: 'https://github.com/o/r/actions/workflows/pages.yml',
+      },
+    ]);
+
+    const [url, init] = callMatching(fetchImpl, (u) => u.includes('/actions/workflows'));
+    expect(url).toBe('https://api.github.com/repos/o/r/actions/workflows?per_page=100');
+    expect(init.method).toBe('GET');
+  });
+
+  it('returns [] instead of throwing when Actions is forbidden (403) or absent (404)', async () => {
+    const forbidden = await connect(() => new Response('{"message":"Forbidden"}', { status: 403 }));
+    expect(await forbidden.client.listRepoWorkflows(REPO)).toEqual([]);
+
+    const absent = await connect(() => new Response('{"message":"Not Found"}', { status: 404 }));
+    expect(await absent.client.listRepoWorkflows(REPO)).toEqual([]);
+  });
+});
+
+describe('rerunRun / setWorkflowEnabled (maintain actions)', () => {
+  it('rerunRun POSTs to the run rerun endpoint', async () => {
+    const { client, fetchImpl } = await connect(() => new Response(null, { status: 201 }));
+    await client.rerunRun(REPO, 314);
+
+    const [url, init] = callMatching(fetchImpl, (u) => u.includes('/rerun'));
+    expect(url).toBe('https://api.github.com/repos/o/r/actions/runs/314/rerun');
+    expect(init.method).toBe('POST');
+  });
+
+  it('setWorkflowEnabled PUTs …/enable when true and …/disable when false', async () => {
+    const { client, fetchImpl } = await connect(() => new Response(null, { status: 204 }));
+    await client.setWorkflowEnabled(REPO, 161335, true);
+    await client.setWorkflowEnabled(REPO, 161335, false);
+
+    const [onUrl, onInit] = callMatching(fetchImpl, (u) => u.endsWith('/enable'));
+    expect(onUrl).toBe('https://api.github.com/repos/o/r/actions/workflows/161335/enable');
+    expect(onInit.method).toBe('PUT');
+
+    const [offUrl, offInit] = callMatching(fetchImpl, (u) => u.endsWith('/disable'));
+    expect(offUrl).toBe('https://api.github.com/repos/o/r/actions/workflows/161335/disable');
+    expect(offInit.method).toBe('PUT');
+  });
+});
+
+describe('createIssue', () => {
+  it('POSTs title + body + labels to /issues and returns the html_url', async () => {
+    const { client, fetchImpl } = await connect(
+      () =>
+        new Response(JSON.stringify({ html_url: 'https://github.com/o/r/issues/42' }), {
+          status: 201,
+        }),
+    );
+    const url = await client.createIssue(REPO, {
+      title: 'Audit: unpinned action',
+      body: 'Pin actions/checkout to a sha.',
+      labels: ['fleet-audit'],
+    });
+    expect(url).toBe('https://github.com/o/r/issues/42');
+
+    const [reqUrl, init] = callMatching(fetchImpl, (u) => u.endsWith('/issues'));
+    expect(reqUrl).toBe('https://api.github.com/repos/o/r/issues');
+    expect(init.method).toBe('POST');
+    expect(jsonBody(init)).toEqual({
+      title: 'Audit: unpinned action',
+      body: 'Pin actions/checkout to a sha.',
+      labels: ['fleet-audit'],
+    });
+  });
+
+  it('omits the labels key when labels are absent or empty', async () => {
+    const noLabels = await connect(
+      () => new Response(JSON.stringify({ html_url: 'https://github.com/o/r/issues/1' }), { status: 201 }),
+    );
+    await noLabels.client.createIssue(REPO, { title: 't', body: 'b' });
+    expect(jsonBody(callMatching(noLabels.fetchImpl, (u) => u.endsWith('/issues'))[1])).toEqual({
+      title: 't',
+      body: 'b',
+    });
+
+    const emptyLabels = await connect(
+      () => new Response(JSON.stringify({ html_url: 'https://github.com/o/r/issues/2' }), { status: 201 }),
+    );
+    await emptyLabels.client.createIssue(REPO, { title: 't', body: 'b', labels: [] });
+    expect(jsonBody(callMatching(emptyLabels.fetchImpl, (u) => u.endsWith('/issues'))[1])).toEqual({
+      title: 't',
+      body: 'b',
+    });
   });
 });

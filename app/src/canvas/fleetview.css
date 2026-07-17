@@ -12,3 +12,10 @@
 
 /* the observe-bar + banner classes are shared with the existing theme.css */
 .fleetview .react-flow, .fleetview .canvas { flex: 1; min-height: 0; }
+
+/* Fleet mode switch: Command cockpit vs Observe map */
+.fleetmode {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}

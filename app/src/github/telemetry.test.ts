@@ -28,6 +28,7 @@ function mk(overrides: Partial<FactoryRun> & { slug: string }): FactoryRun {
     conclusion: 'success',
     event: 'push',
     htmlUrl: `https://github.com/o/r/actions/runs/${runId}`,
+    runAttempt: 1,
     createdAt: at(0),
     runStartedAt: at(0),
     updatedAt: at(60),

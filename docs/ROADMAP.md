@@ -68,8 +68,24 @@ Goal: point GitFactory at *various* repos, *multiple* at once, and see automatio
 - [x] **C — Cross-repo edges.** `sink.cross_repo_issue` machine matching the proven `gh … --repo`
       + scoped-PAT pattern (authorable + deployable). Still parked: `repository_dispatch` trigger
       + inter-repo belts drawn on a *combined* fleet canvas. (ADR-016)
-- Backlog for this track: import fidelity (agent-authored sinks like content-factory's PR
-  aren't visible in static YAML — mark "agent-driven"); log-zip viewing in the run drill-down.
+- [x] **Fleet Ops — the fleet-wide cockpit (ADR-020).** A Fleet-tab **Command** mode (the
+      single-repo map is now the **Observe** toggle) that scans a *roster* of repos and renders
+      four game-like boards to monitor/review/analyze/align/improve their Actions org-wide.
+      Three pure engines: `fleet/facts.ts` (deep per-workflow facts — resolves the `claude-run`
+      composite AI path, kill switches, cross-repo/token-chain privilege, dormant crons,
+      provenance headers; 21 archetypes + dash cost type), `fleet/metrics.ts` (an exact port of
+      the dash's `actions_analytics.py` — cost/effectiveness/waste/p95/flags/priority — plus
+      **rework** (`run_attempt>1`) and **queue latency**), and `fleet/audit.ts` (14 alignment
+      rules → 0–100 score + S–D certification grade). Roster imports from a hub's `.gitmodules`
+      (`fleet/manifest.ts`); the first **multi-repo** store (`state/fleetops.ts`, concurrency-3
+      user-driven scan, slugs-only persistence). Cockpit boards: **Districts** (LED-wall repo
+      cards + grades), **Rankings** (offender/slowest/rework/hall-of-fame leaderboards),
+      **Audit** (certification + one-click work-order issue filing with a dedup marker),
+      **Schedule** (24h cron congestion + armed/disarmed kill switches + dormant automation).
+      Validated against the real `zer0-mistakes` + `lifehacker.dev` fleets (19 verbatim fixtures)
+      and live in-browser; adversarially reviewed; 370 tests / 34 files.
+- Backlog for this track (feature-scout specs FF-0010…FF-0016, awaiting roadmap approval):
+facts-parser recursion into composite actions + reusable workflows (≈90% of AI/sink logic hides there in some repos); persistent open-issue dedup sweep before filing; scan-result caching (ETags/facts/metrics to localStorage); one-click kill-switch arm/disarm (confirmed mutation — `setVariable` already exists); a fleet-wide generated-workflow drift board (blueprint-hash diff); a runner-pricing table (minutes → dollars); auto-remediation draft PRs for mechanical audit findings. Plus earlier: import fidelity (agent-authored sinks like content-factory's PR aren't visible in static YAML — now marked via the `content-factory` archetype + `pr` obligation sink); log-zip viewing in the run drill-down.
 
 ## Phase 8 — Headless CMS + feedback loops (ADR-017)
 Goal: configure an autonomous, configurable, headless content management system with AI integrations and feedback loops — grounded in the real `lifehacker.dev` fleet (a research subagent reverse-engineered its 16 workflows, `claude-run` composite action, OODA dispatcher, and `loop-tuner` before any machine was designed). Runtime stays `claude-code-action@v1`; lifehacker's *patterns* are adopted as machines + app concepts.

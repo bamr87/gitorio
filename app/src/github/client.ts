@@ -18,6 +18,7 @@ import type {
   RepoFile,
   RepoRef,
   RepoVariable,
+  RepoWorkflow,
   RunConclusion,
   RunJob,
   RunsPoll,
@@ -395,6 +396,7 @@ function buildClient(
           runStartedAt: r.run_started_at ?? null,
           updatedAt: r.updated_at,
           createdAt: r.created_at,
+          runAttempt: r.run_attempt ?? 1,
         }))
         // Safety net: the API returns newest-first, but sort explicitly by createdAt desc.
         .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
@@ -436,6 +438,50 @@ function buildClient(
 
     async cancelRun(repo: RepoRef, runId: number): Promise<void> {
       await request('POST', `/repos/${repo.owner}/${repo.repo}/actions/runs/${runId}/cancel`);
+    },
+
+    async listRepoWorkflows(repo: RepoRef): Promise<RepoWorkflow[]> {
+      try {
+        const body = await request<{ workflows?: RawRepoWorkflow[] }>(
+          'GET',
+          `/repos/${repo.owner}/${repo.repo}/actions/workflows?per_page=100`,
+        );
+        const raw = Array.isArray(body?.workflows) ? body.workflows : [];
+        return raw.map((w) => ({
+          id: w.id,
+          name: w.name,
+          path: w.path,
+          state: w.state,
+          htmlUrl: w.html_url,
+        }));
+      } catch (err) {
+        // Actions disabled or no access — an empty catalogue, not a fatal error.
+        if (err instanceof GithubError && (err.status === 403 || err.status === 404)) return [];
+        throw err;
+      }
+    },
+
+    async rerunRun(repo: RepoRef, runId: number): Promise<void> {
+      await request('POST', `/repos/${repo.owner}/${repo.repo}/actions/runs/${runId}/rerun`);
+    },
+
+    async setWorkflowEnabled(repo: RepoRef, workflowId: number, enabled: boolean): Promise<void> {
+      await request(
+        'PUT',
+        `/repos/${repo.owner}/${repo.repo}/actions/workflows/${workflowId}/${enabled ? 'enable' : 'disable'}`,
+      );
+    },
+
+    async createIssue(
+      repo: RepoRef,
+      args: { title: string; body: string; labels?: string[] },
+    ): Promise<string> {
+      const body = await request<{ html_url: string }>(
+        'POST',
+        `/repos/${repo.owner}/${repo.repo}/issues`,
+        { title: args.title, body: args.body, ...(args.labels?.length ? { labels: args.labels } : {}) },
+      );
+      return body.html_url;
     },
 
     async listVariables(repo: RepoRef): Promise<RepoVariable[]> {
@@ -497,9 +543,18 @@ interface RawRunJob {
 }
 
 /** The subset of the Actions `workflow_runs` payload this client consumes. */
+interface RawRepoWorkflow {
+  id: number;
+  name: string;
+  path: string;
+  state: string;
+  html_url: string;
+}
+
 interface RawWorkflowRun {
   id: number;
   run_number: number;
+  run_attempt?: number;
   status: string;
   conclusion: RunConclusion;
   event: string;
