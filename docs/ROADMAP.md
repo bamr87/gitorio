@@ -84,7 +84,22 @@ Goal: point GitFactory at *various* repos, *multiple* at once, and see automatio
       **Schedule** (24h cron congestion + armed/disarmed kill switches + dormant automation).
       Validated against the real `zer0-mistakes` + `lifehacker.dev` fleets (19 verbatim fixtures)
       and live in-browser; adversarially reviewed; 370 tests / 34 files.
-- Backlog for this track (feature-scout specs FF-0010…FF-0016, awaiting roadmap approval):
+- [x] **Adapt to the #1 consumer + a management surface (ADR-021).** Turned Fleet Ops on
+      `it-journey` (44% of fleet minutes, 31 workflows) and closed a full survey's gaps. Facts:
+      an **`agentic-engine`** runner (it-journey's biggest, previously-invisible AI cost center)
+      + `maxCostUsd`/`matrixDynamic`/`localWorkflowCalls`/`waitBound` + github-script sinks;
+      **7 new archetypes** (agent-gatekeeper, issue-to-content, agentic-validator, perfection-loop,
+      pr-gate, pr-editor, autonomy-loop) → 28 total. Audit: a real self-retrigger `loop-safety`
+      model (stops under-grading disciplined repos) + `gate-job`/`concurrency-singleton` guards +
+      a **`pin-sha`** reward → 15 rules. A fifth **Workflows** board (cost-cap column) + a
+      **`WorkflowDrawer`** wiring the maintain actions (Run now / Re-run last failure / Cancel /
+      **Arm-Disarm the `*_ENABLED` gate** = FF-0013 / Enable-Disable), each confirm-gated.
+      Validated against the real `it-journey` + `edgar-data-parse` + `law-ai` fleets (38 fixtures)
+      and live in-browser; adversarially reviewed (5 findings fixed, incl. two loop-safety
+      false-negatives); 443 tests / 35 files.
+- Deferred (survey § D, next up): a per-matrix-leg cost/step timeline; an expected-vs-real failure
+classifier (continue-on-error legs, rate-limit soft-skips, cancel-in-progress cancels are *intended* outcomes the raw conclusion misreads); quest-ledger (`.quests/`) surfacing; and "re-run only the missing legs" for a dynamic-matrix loop.
+- Backlog for this track (feature-scout specs FF-0010…FF-0016; FF-0013 kill-switch toggle shipped in ADR-021):
 facts-parser recursion into composite actions + reusable workflows (≈90% of AI/sink logic hides there in some repos); persistent open-issue dedup sweep before filing; scan-result caching (ETags/facts/metrics to localStorage); one-click kill-switch arm/disarm (confirmed mutation — `setVariable` already exists); a fleet-wide generated-workflow drift board (blueprint-hash diff); a runner-pricing table (minutes → dollars); auto-remediation draft PRs for mechanical audit findings. Plus earlier: import fidelity (agent-authored sinks like content-factory's PR aren't visible in static YAML — now marked via the `content-factory` archetype + `pr` obligation sink); log-zip viewing in the run drill-down.
 
 ## Phase 8 — Headless CMS + feedback loops (ADR-017)

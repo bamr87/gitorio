@@ -25,7 +25,13 @@ import type {
   WorkflowFacts,
   WorkflowMetrics,
 } from '../fleet/types';
-import type { FactoryRun, RepoVariable, RepoWorkflow } from '../github/types';
+import type {
+  FactoryRun,
+  RepoVariable,
+  RepoWorkflow,
+  RunConclusion,
+  RunJob,
+} from '../github/types';
 import { parseRepo } from '../github/types';
 import { useGithubStore } from './github';
 
@@ -42,6 +48,8 @@ export interface RepoSnapshot {
   /** Repo Actions variables — the kill-switch armed/disarmed readout. */
   variables: RepoVariable[];
   runs: FactoryRun[];
+  /** Lazy per-run job cache for the workflow drill-down — 'loading' while in flight. */
+  jobsByRun: Record<number, RunJob[] | 'loading'>;
   etag: string | null;
   scannedAt: number | null;
 }
@@ -92,6 +100,25 @@ function loadPersisted(storage: StorageLike | null): PersistedFleetOps {
 
 const errMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
+/** Shown when a maintenance action is attempted without a connected client. */
+const NO_CLIENT = 'Connect with a token first — fleet maintenance actions run through the session client.';
+
+/** Conclusions the "re-run last failure" action treats as a retryable jam. */
+const RETRYABLE: RunConclusion[] = ['failure', 'timed_out', 'startup_failure'];
+
+/** `actionBusy` key for a repo action, so a maintenance button can disable itself. */
+export const busyKey = (slug: string, action: string): string => `${slug}:${action}`;
+
+/** Newest retryable-failure run for one workflow path, or null when the path is clean. */
+function newestFailedRun(runs: FactoryRun[], path: string): FactoryRun | null {
+  let best: FactoryRun | null = null;
+  for (const r of runs) {
+    if (r.path !== path || !RETRYABLE.includes(r.conclusion)) continue;
+    if (!best || r.createdAt > best.createdAt) best = r;
+  }
+  return best;
+}
+
 function emptySnapshot(slug: string): RepoSnapshot {
   return {
     slug,
@@ -103,6 +130,7 @@ function emptySnapshot(slug: string): RepoSnapshot {
     workflowStates: [],
     variables: [],
     runs: [],
+    jobsByRun: {},
     etag: null,
     scannedAt: null,
   };
@@ -161,6 +189,8 @@ export interface FleetOpsState extends DerivedViews {
   error: string | null;
   /** Issue html_urls already filed this session, keyed by finding — disables re-filing. */
   filedWorkOrders: Record<string, string>;
+  /** In-flight maintenance actions, keyed `slug:action` — drives per-button disabling. */
+  actionBusy: Record<string, boolean>;
 
   addRepos: (text: string) => void;
   removeRepo: (slug: string) => void;
@@ -176,6 +206,20 @@ export interface FleetOpsState extends DerivedViews {
     title: string,
     body: string,
   ) => Promise<string | null>;
+
+  // ── workflow maintenance (the parked "maintain" actions, wired) ──
+  /** Re-run the newest failed/timed-out/startup-failure run of `path`; no-op if clean. */
+  rerunLatestFailed: (slug: string, path: string) => Promise<void>;
+  /** `workflow_dispatch` a workflow file on its default branch, then re-scan. */
+  dispatchWorkflowFile: (slug: string, file: string) => Promise<void>;
+  /** Cancel one in-progress run, then re-scan. */
+  cancelRunById: (slug: string, runId: number) => Promise<void>;
+  /** Arm/disarm a `vars.*_ENABLED` kill switch by writing "true"/"false", then re-scan. */
+  setKillSwitch: (slug: string, varName: string, on: boolean) => Promise<void>;
+  /** Enable/disable a registered workflow by id (distinct from the kill switch), then re-scan. */
+  setWorkflowEnabledById: (slug: string, workflowId: number, enabled: boolean) => Promise<void>;
+  /** Load one run's jobs (with steps) into the snapshot's `jobsByRun` cache. */
+  loadRunJobs: (slug: string, runId: number) => Promise<void>;
 }
 
 export function createFleetOpsStore(storage: StorageLike | null) {
@@ -194,7 +238,27 @@ export function createFleetOpsStore(storage: StorageLike | null) {
     }
   };
 
-  return create<FleetOpsState>((set, get) => ({
+  return create<FleetOpsState>((set, get) => {
+    // Every maintenance action shares one shape: flag the button busy, call the client,
+    // then re-scan so the board reflects reality; a failure surfaces as the store error.
+    const runAction = async (
+      slug: string,
+      action: string,
+      fn: () => Promise<void>,
+    ): Promise<void> => {
+      const key = busyKey(slug, action);
+      set({ actionBusy: { ...get().actionBusy, [key]: true }, error: null });
+      try {
+        await fn();
+        await get().scanRepo(slug);
+      } catch (e) {
+        set({ error: errMessage(e) });
+      } finally {
+        set({ actionBusy: { ...get().actionBusy, [key]: false } });
+      }
+    };
+
+    return {
     ...loadPersisted(storage),
     snapshots: {},
     scanning: false,
@@ -202,6 +266,7 @@ export function createFleetOpsStore(storage: StorageLike | null) {
     rateRemaining: null,
     error: null,
     filedWorkOrders: {},
+    actionBusy: {},
     fleetMetrics: [],
     totals: null,
     byType: [],
@@ -297,6 +362,7 @@ export function createFleetOpsStore(storage: StorageLike | null) {
           workflowStates,
           variables,
           runs,
+          jobsByRun: {},
           etag: poll.notModified ? prev.etag : poll.etag,
           scannedAt: Date.now(),
         };
@@ -361,7 +427,111 @@ export function createFleetOpsStore(storage: StorageLike | null) {
         return null;
       }
     },
-  }));
+
+    rerunLatestFailed: async (slug, path) => {
+      const { client } = useGithubStore.getState();
+      if (!client) {
+        set({ error: NO_CLIENT });
+        return;
+      }
+      const ref = parseRepo(slug);
+      if (!ref) return;
+      const failed = newestFailedRun(get().snapshots[slug]?.runs ?? [], path);
+      if (!failed) {
+        // Nothing to re-run — clear any stale error rather than acting on a healthy line.
+        set({ error: null });
+        return;
+      }
+      await runAction(slug, 'rerun', () => client.rerunRun(ref, failed.runId));
+    },
+
+    dispatchWorkflowFile: async (slug, file) => {
+      const { client } = useGithubStore.getState();
+      if (!client) {
+        set({ error: NO_CLIENT });
+        return;
+      }
+      const ref = parseRepo(slug);
+      if (!ref) return;
+      await runAction(slug, 'dispatch', () => client.dispatchWorkflow(ref, file));
+    },
+
+    cancelRunById: async (slug, runId) => {
+      const { client } = useGithubStore.getState();
+      if (!client) {
+        set({ error: NO_CLIENT });
+        return;
+      }
+      const ref = parseRepo(slug);
+      if (!ref) return;
+      await runAction(slug, 'cancel', () => client.cancelRun(ref, runId));
+    },
+
+    setKillSwitch: async (slug, varName, on) => {
+      const { client } = useGithubStore.getState();
+      if (!client) {
+        set({ error: NO_CLIENT });
+        return;
+      }
+      const ref = parseRepo(slug);
+      if (!ref) return;
+      // Arms/disarms the vars.*_ENABLED gate (the fleet convention) — distinct from
+      // disabling the workflow file itself; a disarmed line still exists, just short-circuits.
+      await runAction(slug, `kill:${varName}`, () =>
+        client.setVariable(ref, varName, on ? 'true' : 'false'),
+      );
+    },
+
+    setWorkflowEnabledById: async (slug, workflowId, enabled) => {
+      const { client } = useGithubStore.getState();
+      if (!client) {
+        set({ error: NO_CLIENT });
+        return;
+      }
+      const ref = parseRepo(slug);
+      if (!ref) return;
+      await runAction(slug, `enable:${workflowId}`, () =>
+        client.setWorkflowEnabled(ref, workflowId, enabled),
+      );
+    },
+
+    loadRunJobs: async (slug, runId) => {
+      const { client } = useGithubStore.getState();
+      if (!client) {
+        set({ error: NO_CLIENT });
+        return;
+      }
+      const ref = parseRepo(slug);
+      if (!ref) return;
+      const snap = get().snapshots[slug];
+      if (!snap || snap.jobsByRun[runId]) return; // absent snapshot or already cached
+      const setJobs = (v: RunJob[] | 'loading'): void => {
+        const cur = get().snapshots[slug];
+        if (!cur) return;
+        set({
+          snapshots: {
+            ...get().snapshots,
+            [slug]: { ...cur, jobsByRun: { ...cur.jobsByRun, [runId]: v } },
+          },
+        });
+      };
+      setJobs('loading');
+      try {
+        setJobs(await client.listRunJobs(ref, runId));
+      } catch (e) {
+        // Clear the cache entry (don't leave []) so the guard above lets a later click retry —
+        // a cached [] would masquerade as "No jobs." forever after a transient failure.
+        const cur = get().snapshots[slug];
+        if (cur) {
+          const rest = { ...cur.jobsByRun };
+          delete rest[runId];
+          set({ snapshots: { ...get().snapshots, [slug]: { ...cur, jobsByRun: rest } } });
+        }
+        set({ error: errMessage(e) });
+      }
+    },
+    };
+  });
 }
 
 export const useFleetOpsStore = createFleetOpsStore(

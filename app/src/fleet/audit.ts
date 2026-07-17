@@ -81,8 +81,8 @@ function repoRule(
 /** Events whose payloads a writer can retrigger — the feedback-loop surface. */
 const LOOP_EVENT_TRIGGERS = ['issue_comment', 'issues', 'pull_request', 'pull_request_target'];
 
-/** Sinks that can feed those events back. */
-const LOOP_WRITE_SINKS: SinkKind[] = ['comment', 'issue', 'pr', 'commit'];
+/** Sinks that can feed one of those events back. */
+const LOOP_WRITE_SINKS: SinkKind[] = ['comment', 'issue', 'label', 'pr', 'commit'];
 
 /** Triggers where parallel runs pile up or race without a concurrency group. */
 const PILE_UP_TRIGGERS = ['push', 'pull_request', 'schedule'];
@@ -110,6 +110,66 @@ function sinksIn(f: WorkflowFacts, kinds: SinkKind[]): SinkKind[] {
  */
 function isReusableWorkflowRef(a: ActionUse): boolean {
   return /\.ya?ml$/i.test(a.action);
+}
+
+/** A marketplace action `uses:` — excludes reusable-workflow refs (`…/*.yml`) and local composites. */
+function isMarketplaceAction(a: ActionUse): boolean {
+  return !isReusableWorkflowRef(a) && a.pin !== 'local';
+}
+
+/**
+ * Whether a `pull_request`/`pull_request_target` trigger subscribes to a given activity.
+ * facts.ts surfaces the explicit `types:` in the trigger `detail`; a MISSING detail means
+ * the `types:` block was omitted, so GitHub's DEFAULT PR activity set — [opened, synchronize,
+ * reopened] — applies. So `synchronize`/`opened`/`reopened` count when the detail is absent
+ * (the default includes them), while non-default activities like `labeled` count only when
+ * an explicit `detail` names them.
+ */
+function prSubscribes(f: WorkflowFacts, activity: string, inDefaultSet: boolean): boolean {
+  return f.triggers.some((t) => {
+    if (t.kind !== 'pull_request' && t.kind !== 'pull_request_target') return false;
+    if (t.detail === undefined) return inDefaultSet; // no types: → GitHub default set
+    return t.detail.includes(activity);
+  });
+}
+
+/** A self-push (`commit` to the PR branch) re-emits `synchronize`, which is in the default set. */
+function subscribesSynchronize(f: WorkflowFacts): boolean {
+  return prSubscribes(f, 'synchronize', true);
+}
+
+/**
+ * The write sinks that can retrigger this workflow: a sink is loopy only when the event it
+ * emits is one the workflow already subscribes to. Emission map — comment→issue_comment;
+ * issue→issues; label→issues(labeled) for an issue label OR pull_request(labeled) for a PR
+ * label; pr→pull_request(opened); merge→nothing (terminal); commit→push (always) plus
+ * pull_request(synchronize) when the PR trigger subscribes to synchronize. A writer whose
+ * sinks emit nothing it listens for cannot feed itself and needs no guard.
+ */
+function selfRetriggerSinks(f: WorkflowFacts): SinkKind[] {
+  const subscribed = new Set(f.triggers.map((t) => t.kind));
+  const prFamily = subscribed.has('pull_request') || subscribed.has('pull_request_target');
+  const sync = subscribesSynchronize(f);
+  // `labeled` is NOT in the default PR set, so it only counts with an explicit `types:`.
+  const prLabeled = prFamily && prSubscribes(f, 'labeled', false);
+  const loops = (s: SinkKind): boolean => {
+    switch (s) {
+      case 'comment':
+        return subscribed.has('issue_comment');
+      case 'issue':
+        return subscribed.has('issues');
+      case 'label':
+        // the `label` sink can be an issue label (→issues) or a PR label (→pull_request labeled)
+        return subscribed.has('issues') || prLabeled;
+      case 'pr':
+        return prFamily;
+      case 'commit':
+        return subscribed.has('push') || (prFamily && sync);
+      default:
+        return false; // merge (terminal), deploy, cross_repo_issue, dispatch — emit nothing we listen for
+    }
+  };
+  return f.sinks.filter(loops);
 }
 
 // ── the rulebook ──────────────────────────────────────────────────────────────
@@ -159,21 +219,29 @@ const RULES: readonly AuditRule[] = [
   wfRule(
     {
       id: 'loop-safety',
-      title: 'Loop guard on event-triggered writers',
+      title: 'Loop guard on self-retriggering writers',
       severity: 'fail',
       standard:
-        'A workflow triggered by issue/comment/PR events that also writes comments, issues, PRs, or commits carries at least one loop guard.',
+        'A workflow whose write sink can re-emit an event it subscribes to carries at least one loop guard; a writer that cannot retrigger itself (its sink emits nothing it listens for) needs none.',
     },
     (f) => hasTrigger(f, LOOP_EVENT_TRIGGERS) && sinksIn(f, LOOP_WRITE_SINKS).length > 0,
-    (f) =>
-      f.guards.length === 0
-        ? [
-            {
-              message: `event-triggered writer with no loop guard (attempt limit, label opt-in, actor guard, rate limiter, or marker) — ${triggersIn(f, LOOP_EVENT_TRIGGERS).join(', ')} triggers writing ${sinksIn(f, LOOP_WRITE_SINKS).join(', ')}`,
-              fix: 'Add at least one guard: a MAX_ATTEMPTS counter, a label opt-in check, an actor/bot guard, a run-count rate limiter, or a sticky marker.',
-            },
-          ]
-        : [],
+    (f) => {
+      const loopy = selfRetriggerSinks(f);
+      if (loopy.length === 0) return [];
+      // A GENERAL guard (attempt limit, label opt-in, actor guard, rate limiter, gate job,
+      // singleton concurrency, sticky marker, …) breaks any loop. `synchronize-skip` is
+      // narrower: it neutralizes ONLY the commit→synchronize path, so it counts only when
+      // every loopy sink is `commit` — never for a label/comment/pr self-retrigger.
+      const generalGuards = f.guards.filter((g) => g !== 'synchronize-skip');
+      if (generalGuards.length > 0) return [];
+      if (f.guards.includes('synchronize-skip') && loopy.every((s) => s === 'commit')) return [];
+      return [
+        {
+          message: `event-triggered writer with no loop guard — writing ${loopy.join(', ')} re-emits an event its own trigger subscribes to (${triggersIn(f, LOOP_EVENT_TRIGGERS).join(', ')})`,
+          fix: 'Add a loop guard (attempt-limit counter, label opt-in, actor/bot guard, rate limiter, sticky marker, gate job, or singleton concurrency), or stop subscribing to the activity the sink emits (e.g. drop pull_request synchronize).',
+        },
+      ];
+    },
   ),
 
   wfRule(
@@ -291,6 +359,42 @@ const RULES: readonly AuditRule[] = [
           message: `${a.action} has no @ref — it resolves to whatever the default branch holds`,
           fix: `Add an explicit pin: ${a.action}@<tag-or-sha>.`,
         })),
+  ),
+
+  repoRule(
+    {
+      id: 'pin-sha',
+      title: 'SHA-pin marketplace actions',
+      severity: 'info',
+      standard:
+        'In repos that pin marketplace actions to commit SHAs by convention (SHA-pins outnumber tag-pins), every marketplace action is SHA-pinned rather than left tag-pinned.',
+    },
+    ({ facts }) => {
+      let sha = 0;
+      let tag = 0;
+      for (const f of facts) {
+        for (const a of f.actions) {
+          if (!isMarketplaceAction(a)) continue;
+          if (a.pin === 'sha') sha += 1;
+          else if (a.pin === 'tag') tag += 1;
+        }
+      }
+      return sha > tag;
+    },
+    ({ facts }) => {
+      const out: RepoViolation[] = [];
+      for (const f of facts) {
+        for (const a of f.actions) {
+          if (!isMarketplaceAction(a) || a.pin !== 'tag') continue;
+          out.push({
+            path: f.path,
+            message: `${a.action}@${a.ref ?? '?'} is tag-pinned while this repo SHA-pins marketplace actions by convention`,
+            fix: `Pin ${a.action} to a full commit SHA (${a.action}@<sha>) to match the repo's SHA-pinning convention.`,
+          });
+        }
+      }
+      return out;
+    },
   ),
 
   wfRule(

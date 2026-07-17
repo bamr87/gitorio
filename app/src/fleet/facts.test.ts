@@ -1,15 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import { classifyArchetype, classifyDashType, extractFacts } from './facts';
 import type { ArchetypeSignals } from './facts';
+import type { AiFacts } from './types';
 
 // ── fixtures: verbatim real fleet workflows (see fixtures/README.md) ─────────
 // The path passed to extractFacts is the file's real in-repo path — the repo
 // prefix (zm--/lh--/ij--/cv--/hub--) exists only in the fixture filename.
 
 import cvMarkdownOneline from './fixtures/cv--markdown-oneline.yml?raw';
+import edgRefreshData from './fixtures/edg--refresh-data.yml?raw';
 import hubStandardCi from './fixtures/hub--standard-ci.yml?raw';
+import ijAgentAudit from './fixtures/ij--agent-audit.yml?raw';
+import ijAgentPlanThenAct from './fixtures/ij--agent-plan-then-act.yml?raw';
+import ijAgenticQuestReview from './fixtures/ij--agentic-quest-review.yml?raw';
+import ijCmsDailyLoop from './fixtures/ij--cms-daily-loop.yml?raw';
+import ijContentAutoMerge from './fixtures/ij--content-auto-merge.yml?raw';
 import ijContentFactory from './fixtures/ij--content-factory.yml?raw';
+import ijContentQuality from './fixtures/ij--content-quality.yml?raw';
+import ijContentReview from './fixtures/ij--content-review.yml?raw';
 import ijDependabotAutoMerge from './fixtures/ij--dependabot-auto-merge.yml?raw';
+import ijFrontmatterValidation from './fixtures/ij--frontmatter-validation.yml?raw';
+import ijIssueAutopilot from './fixtures/ij--issue-autopilot.yml?raw';
+import ijLinkChecker from './fixtures/ij--link-checker.yml?raw';
+import ijQuestFix from './fixtures/ij--quest-fix.yml?raw';
+import ijQuestForge from './fixtures/ij--quest-forge.yml?raw';
+import ijQuestIdeaIntake from './fixtures/ij--quest-idea-intake.yml?raw';
+import ijQuestPerfection from './fixtures/ij--quest-perfection.yml?raw';
+import ijQuestWalkthrough from './fixtures/ij--quest-walkthrough.yml?raw';
+import ijSyncGhPages from './fixtures/ij--sync-gh-pages.yml?raw';
+import lawEvolve from './fixtures/law--evolve.yml?raw';
+import lawNightlyTests from './fixtures/law--nightly-tests.yml?raw';
 import lhAiUsage from './fixtures/lh--ai-usage.yml?raw';
 import lhAutoFix from './fixtures/lh--auto-fix.yml?raw';
 import lhAutoMerge from './fixtures/lh--auto-merge.yml?raw';
@@ -298,6 +318,304 @@ describe('extractFacts — ij dependabot-auto-merge.yml', () => {
   });
 });
 
+// ── it-journey: the agentic-engine cost center (the #1 fleet consumer) ─────────
+
+describe('extractFacts — ij agentic-quest-review.yml (agentic engine, no claude-run)', () => {
+  const f = facts('agentic-quest-review.yml', ijAgenticQuestReview);
+
+  it('detects the agentic engine even with NO claude-run step, so ai.present is true', () => {
+    expect(f.ai.present).toBe(true);
+    expect(f.ai.runners).toEqual(['agentic-engine']);
+  });
+
+  it('reads the per-run cost ceiling and turn cap, wired oauth-first', () => {
+    expect(f.ai.maxCostUsd).toBe(3);
+    expect(f.ai.maxTurns).toBe(30);
+    expect(f.ai.authMode).toBe('oauth-first');
+  });
+
+  it('classifies as an agentic-validator that comments via github-script', () => {
+    expect(f.archetype).toBe('agentic-validator');
+    expect(f.sinks).toContain('comment');
+    expect(f.triggers.map((t) => t.kind)).toContain('pull_request');
+  });
+});
+
+describe('extractFacts — ij agent-plan-then-act.yml (control-plane demo, not AI)', () => {
+  const f = facts('agent-plan-then-act.yml', ijAgentPlanThenAct);
+
+  it('does NOT read a runner from run.sh mentioned only in a comment / step title', () => {
+    expect(f.ai.present).toBe(false);
+    expect(f.ai.runners).toEqual([]);
+    expect(f.archetype).toBe('other');
+  });
+
+  it('still sees the kill switch and the serializing concurrency group', () => {
+    expect(f.killSwitches).toContain('AGENT_DEMO_ENABLED');
+    expect(f.guards).toContain('concurrency-singleton');
+    expect(f.guards).not.toContain('gate-job');
+  });
+});
+
+describe('extractFacts — ij quest-perfection.yml (the perfection loop orchestrator)', () => {
+  const f = facts('quest-perfection.yml', ijQuestPerfection);
+
+  it('classifies as perfection-loop (beats dispatch-hub and content-factory)', () => {
+    expect(f.archetype).toBe('perfection-loop');
+    expect(f.crons.length).toBeGreaterThan(0);
+  });
+
+  it('sees the runtime fan-out matrix and the intra-repo workflow call', () => {
+    expect(f.hasMatrix).toBe(true);
+    expect(f.matrixDynamic).toBe(true);
+    expect(f.localWorkflowCalls).toContain('./.github/workflows/quest-fix.yml');
+    expect(f.reusableCalls).not.toContain('./.github/workflows/quest-fix.yml');
+    expect(f.compositeLocals).not.toContain('./.github/workflows/quest-fix.yml');
+  });
+
+  it('runs both the composite and the agentic engine, gated by a gate job', () => {
+    expect(f.ai.runners).toContain('agentic-engine');
+    expect(f.ai.runners).toContain('claude-run');
+    expect(f.killSwitches).toContain('QUEST_PERFECTION_ENABLED');
+    expect(f.guards).toContain('gate-job');
+    expect(f.guards).toContain('concurrency-singleton');
+  });
+});
+
+describe('extractFacts — ij quest-walkthrough.yml (agentic validator)', () => {
+  const f = facts('quest-walkthrough.yml', ijQuestWalkthrough);
+
+  it('classifies as agentic-validator, running the engine + the walker composite', () => {
+    expect(f.archetype).toBe('agentic-validator');
+    expect(f.ai.runners).toContain('agentic-engine');
+    expect(f.ai.runners).toContain('claude-run');
+  });
+
+  it('opens the report as a PR', () => {
+    expect(f.sinks).toContain('pr');
+  });
+});
+
+describe('extractFacts — ij quest-forge.yml (issue → content PR)', () => {
+  const f = facts('quest-forge.yml', ijQuestForge);
+
+  it('classifies as issue-to-content: issue-triggered AI opening a PR', () => {
+    expect(f.archetype).toBe('issue-to-content');
+    expect(f.ai.present).toBe(true);
+    expect(f.triggers.map((t) => t.kind)).toContain('issues');
+    expect(f.sinks).toContain('pr');
+  });
+});
+
+describe('extractFacts — ij quest-idea-intake.yml (agent gatekeeper)', () => {
+  const f = facts('quest-idea-intake.yml', ijQuestIdeaIntake);
+
+  it('classifies as agent-gatekeeper: issue-triggered AI that only comments/labels', () => {
+    expect(f.archetype).toBe('agent-gatekeeper');
+    expect(f.ai.present).toBe(true);
+    expect(f.sinks).toContain('comment');
+    expect(f.sinks).not.toContain('pr');
+  });
+});
+
+describe('extractFacts — ij agent-audit.yml (meta-loop, not content-factory)', () => {
+  const f = facts('agent-audit.yml', ijAgentAudit);
+
+  it('classifies as a meta-loop that audits the AI fleet itself', () => {
+    expect(f.archetype).toBe('meta-loop');
+    expect(f.crons.length).toBeGreaterThan(0);
+    expect(f.ai.present).toBe(true);
+    expect(f.sinks).toContain('pr');
+  });
+});
+
+describe('extractFacts — ij content-review.yml (PR-triggered AI editor)', () => {
+  const f = facts('content-review.yml', ijContentReview);
+
+  it('classifies as a pr-editor (PR + AI, no merge)', () => {
+    expect(f.archetype).toBe('pr-editor');
+    expect(f.ai.present).toBe(true);
+    expect(f.sinks).not.toContain('merge');
+    expect(f.sinks).toContain('comment');
+  });
+
+  it('is loop-safe because its pull_request types omit synchronize', () => {
+    expect(f.guards).toContain('synchronize-skip');
+  });
+});
+
+describe('extractFacts — ij content-quality.yml + frontmatter-validation.yml (pr-gates)', () => {
+  it('content-quality is a deterministic pr-gate that only comments', () => {
+    const f = facts('content-quality.yml', ijContentQuality);
+    expect(f.archetype).toBe('pr-gate');
+    expect(f.ai.present).toBe(false);
+    expect(f.sinks).toContain('comment');
+  });
+
+  it('frontmatter-validation is a pr-gate; its github-script comment is a comment sink', () => {
+    const f = facts('frontmatter-validation.yml', ijFrontmatterValidation);
+    expect(f.archetype).toBe('pr-gate');
+    expect(f.ai.present).toBe(false);
+    expect(f.sinks).toContain('comment');
+    expect(f.sinks).not.toContain('issue');
+  });
+});
+
+describe('extractFacts — ij sync-gh-pages.yml (a Pages publisher that merges a PR)', () => {
+  const f = facts('sync-gh-pages.yml', ijSyncGhPages);
+
+  it('classifies as deploy even though it merges a mirror PR', () => {
+    expect(f.archetype).toBe('deploy');
+    expect(f.sinks).toContain('merge');
+    expect(f.crons.length).toBeGreaterThan(0);
+  });
+});
+
+describe('extractFacts — ij link-checker.yml (nightly audit filing an issue)', () => {
+  const f = facts('link-checker.yml', ijLinkChecker);
+
+  it('sees the --create-issue sink and classifies as a nightly-audit', () => {
+    expect(f.sinks).toContain('issue');
+    expect(f.archetype).toBe('nightly-audit');
+    expect(f.ai.present).toBe(false);
+  });
+});
+
+describe('extractFacts — ij content-auto-merge.yml (wait-bound auto-merge bot)', () => {
+  const f = facts('content-auto-merge.yml', ijContentAutoMerge);
+
+  it('stays an auto-merge-bot with the smuggle guard', () => {
+    expect(f.archetype).toBe('auto-merge-bot');
+    expect(f.sinks).toContain('merge');
+    expect(f.guards).toContain('smuggle-guard');
+  });
+
+  it('is wait-bound: it burns minutes polling checks, not computing', () => {
+    expect(f.waitBound).toBe(true);
+  });
+
+  it('routes three label lanes, each with its own kill switch', () => {
+    expect(f.killSwitches).toContain('CONTENT_AUTOMERGE_ENABLED');
+    expect(f.killSwitches.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('extractFacts — ij dependabot-auto-merge.yml is also wait-bound', () => {
+  it('polls the PR checks before merging', () => {
+    expect(facts('dependabot-auto-merge.yml', ijDependabotAutoMerge).waitBound).toBe(true);
+  });
+});
+
+describe('extractFacts — ij issue-autopilot.yml (the daily issue pipeline)', () => {
+  const f = facts('issue-autopilot.yml', ijIssueAutopilot);
+
+  it('classifies as issue-autopilot with a runtime-computed matrix', () => {
+    expect(f.archetype).toBe('issue-autopilot');
+    expect(f.hasMatrix).toBe(true);
+    expect(f.matrixDynamic).toBe(true);
+    expect(f.triggers.map((t) => t.kind)).toContain('issues');
+  });
+
+  it('writes to the issue tracker and opens a resolve PR', () => {
+    expect(f.sinks).toContain('issue');
+    expect(f.sinks).toContain('pr');
+  });
+
+  it('exposes plan/apply via the resolve dispatch toggle, and gates on a gate job', () => {
+    expect(f.planApply).toBe(true);
+    expect(f.guards).toContain('gate-job');
+    expect(f.guards).toContain('concurrency-singleton');
+    expect(f.killSwitches.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('extractFacts — ij cms-daily-loop.yml (content factory, enable_* plan/apply)', () => {
+  const f = facts('cms-daily-loop.yml', ijCmsDailyLoop);
+
+  it('classifies as a content-factory with a bare-CLI agentic engine', () => {
+    expect(f.archetype).toBe('content-factory');
+    expect(f.ai.present).toBe(true);
+    expect(f.ai.runners).toContain('agentic-engine');
+    expect(f.ai.runners).toContain('claude-cli');
+  });
+
+  it('reads the enable_substantive false-default toggle as plan/apply', () => {
+    expect(f.planApply).toBe(true);
+    expect(f.killSwitches).toContain('CMS_LOOP_SUBSTANTIVE');
+    expect(f.killSwitches).toContain('CMS_MECHANICAL_AUTOMERGE');
+  });
+
+  it('has no fan-out matrix, so matrixDynamic is false', () => {
+    expect(f.hasMatrix).toBe(false);
+    expect(f.matrixDynamic).toBe(false);
+  });
+});
+
+describe('extractFacts — ij quest-fix.yml (reusable library)', () => {
+  const f = facts('quest-fix.yml', ijQuestFix);
+
+  it('classifies as reusable-library (on: workflow_call)', () => {
+    expect(f.isReusable).toBe(true);
+    expect(f.archetype).toBe('reusable-library');
+  });
+
+  it('still surfaces the agentic engine it runs when called', () => {
+    expect(f.ai.runners).toContain('agentic-engine');
+  });
+});
+
+describe('extractFacts — ij content-factory.yml gate + static matrix', () => {
+  const f = facts('content-factory.yml', ijContentFactory);
+
+  it('has a gate job and a static (non-dynamic) collection matrix', () => {
+    expect(f.guards).toContain('gate-job');
+    expect(f.hasMatrix).toBe(true);
+    expect(f.matrixDynamic).toBe(false);
+  });
+});
+
+// ── law-ai + fredgar: cron loops that must not mis-hit autopilot / ledger ──────
+
+describe('extractFacts — law evolve.yml (weekly autonomy loop, not issue-autopilot)', () => {
+  const f = facts('evolve.yml', lawEvolve);
+
+  it('classifies as autonomy-loop despite the word "autopilot" in its name', () => {
+    // It files a `gh issue create` but has NO issues trigger, so it is not an
+    // issue-autopilot — it is a scheduled evolve loop that opens a PR.
+    expect(f.archetype).toBe('autonomy-loop');
+    expect(f.ai.present).toBe(false);
+    expect(f.sinks).toContain('pr');
+    expect(f.sinks).toContain('issue');
+    expect(f.triggers.map((t) => t.kind)).not.toContain('issues');
+  });
+});
+
+describe('extractFacts — law nightly-tests.yml (autonomy loop, not a ledger)', () => {
+  const f = facts('nightly-tests.yml', lawNightlyTests);
+
+  it('classifies as autonomy-loop: uploading an artifact is not a ledger sweep', () => {
+    expect(f.archetype).toBe('autonomy-loop');
+    expect(f.ai.present).toBe(false);
+    expect(f.sinks).toContain('pr');
+  });
+
+  it('exposes plan/apply via its dry_run dispatch input', () => {
+    expect(f.planApply).toBe(true);
+  });
+});
+
+describe('extractFacts — edg refresh-data.yml (a dispatch-only data refresher)', () => {
+  const f = facts('refresh-data.yml', edgRefreshData);
+
+  it('classifies as other — it dispatches a publish, but writes no PR/issue/deploy sink', () => {
+    // Ground truth: no pr/commit/issue sink and no deploy signal in name/path, so it
+    // falls through the taxonomy to `other` (the survey guessed data-sync).
+    expect(f.archetype).toBe('other');
+    expect(f.ai.present).toBe(false);
+    expect(f.sinks).toContain('dispatch');
+  });
+});
+
 // ── cv-builder-pro + hub ──────────────────────────────────────────────────────
 
 describe('extractFacts — cv markdown-oneline.yml (seeded prose kit)', () => {
@@ -433,9 +751,18 @@ function signals(extra: Partial<ArchetypeSignals> = {}): ArchetypeSignals {
     reusableCalls: [],
     jobCount: 1,
     hasMatrix: false,
+    matrixDynamic: false,
     sinks: [],
     crossRepoTargets: [],
-    ai: { present: false, runners: [], models: [], maxTurns: null, authMode: 'none', agents: [] },
+    ai: {
+      present: false,
+      runners: [],
+      models: [],
+      maxTurns: null,
+      maxCostUsd: null,
+      authMode: 'none',
+      agents: [],
+    },
     guards: [],
     generated: null,
     ...extra,
@@ -454,5 +781,87 @@ describe('classifyArchetype — precedence', () => {
 
   it('nothing matched falls through to other', () => {
     expect(classifyArchetype(signals(), '')).toBe('other');
+  });
+});
+
+/** A present AiFacts with the given runner(s), for direct classifier tests. */
+function ai(runners: AiFacts['runners']): AiFacts {
+  return {
+    present: runners.length > 0,
+    runners,
+    models: [],
+    maxTurns: null,
+    maxCostUsd: null,
+    authMode: 'oauth-first',
+    agents: [],
+  };
+}
+
+describe('classifyArchetype — the agentic-engine cost-center archetypes (direct)', () => {
+  it('perfection-loop needs cron + AI + dynamic matrix + a fromJSON(plan) matrix', () => {
+    const s = signals({
+      crons: ['0 11 * * *'],
+      ai: ai(['agentic-engine']),
+      matrixDynamic: true,
+      sinks: ['pr'],
+    });
+    expect(classifyArchetype(s, 'matrix: ${{ fromJson(needs.plan.outputs.matrix) }}')).toBe(
+      'perfection-loop',
+    );
+  });
+
+  it('agentic-validator needs the agentic-engine runner AND the engine signal in text', () => {
+    const s = signals({ ai: ai(['agentic-engine']), triggers: [{ kind: 'workflow_dispatch' }] });
+    expect(classifyArchetype(s, 'python3 test/quest-validator/agentic_validate.py --mode execute')).toBe(
+      'agentic-validator',
+    );
+    // The engine runner alone is not enough without the validate/--mode signal.
+    expect(classifyArchetype(s, 'echo no engine here')).not.toBe('agentic-validator');
+  });
+
+  it('issue-to-content vs agent-gatekeeper turns on the PR sink', () => {
+    const base = { triggers: [{ kind: 'issues' }], ai: ai(['claude-run']) };
+    expect(classifyArchetype(signals({ ...base, sinks: ['pr'] }), '')).toBe('issue-to-content');
+    expect(classifyArchetype(signals({ ...base, sinks: ['comment'] }), '')).toBe('agent-gatekeeper');
+  });
+
+  it('issue-autopilot requires an issues/label trigger, not just the word autopilot', () => {
+    // A scheduled "evolve (weekly autopilot)" that files issues but has no issues
+    // trigger is an autonomy-loop, never an issue-autopilot.
+    const evolve = signals({
+      name: 'Evolve (weekly autopilot)',
+      crons: ['0 13 * * 1'],
+      triggers: [{ kind: 'schedule' }, { kind: 'workflow_dispatch' }],
+      sinks: ['pr', 'issue'],
+    });
+    expect(classifyArchetype(evolve, '')).toBe('autonomy-loop');
+    // Add the issues trigger + AI + matrix and it becomes the autopilot.
+    const autopilot = signals({
+      name: 'Issue Autopilot',
+      crons: ['0 7 * * *'],
+      triggers: [{ kind: 'schedule' }, { kind: 'issues' }],
+      ai: ai(['claude-run']),
+      hasMatrix: true,
+      sinks: ['issue', 'pr'],
+    });
+    expect(classifyArchetype(autopilot, '')).toBe('issue-autopilot');
+  });
+
+  it('deploy beats auto-merge-bot: a gh-pages publisher that merges a PR is a deploy', () => {
+    const s = signals({
+      name: 'Sync gh-pages from main',
+      path: '.github/workflows/sync-gh-pages.yml',
+      sinks: ['merge', 'comment'],
+    });
+    expect(classifyArchetype(s, '')).toBe('deploy');
+  });
+
+  it('pr-editor / pr-gate / ci-gate: PR-only AI vs PR-only gate vs push+PR pipeline', () => {
+    const prAi = signals({ triggers: [{ kind: 'pull_request' }], ai: ai(['claude-run']), sinks: ['comment'] });
+    expect(classifyArchetype(prAi, '')).toBe('pr-editor');
+    const prGate = signals({ triggers: [{ kind: 'pull_request' }], sinks: ['comment'] });
+    expect(classifyArchetype(prGate, '')).toBe('pr-gate');
+    const ciGate = signals({ triggers: [{ kind: 'push' }, { kind: 'pull_request' }] });
+    expect(classifyArchetype(ciGate, '')).toBe('ci-gate');
   });
 });

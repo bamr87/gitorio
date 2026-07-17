@@ -15,15 +15,23 @@ import { ledForRun } from '../github/telemetry';
 import type { FactoryRun, LedState } from '../github/types';
 import { useFleetOpsStore, type FleetWorkflowMetrics, type RepoSnapshot } from '../state/fleetops';
 import { parseCron } from '../utils/cron';
+import { archetypeLabel, WorkflowDrawer } from './WorkflowDrawer';
 
-type Board = 'districts' | 'rankings' | 'audit' | 'schedule';
+type Board = 'districts' | 'rankings' | 'workflows' | 'audit' | 'schedule';
 
 const BOARDS: { id: Board; label: string }[] = [
   { id: 'districts', label: '🏭 Districts' },
   { id: 'rankings', label: '🏆 Rankings' },
+  { id: 'workflows', label: '🔧 Workflows' },
   { id: 'audit', label: '📋 Audit' },
   { id: 'schedule', label: '⏱ Schedule' },
 ];
+
+/** The workflow a maintainer has opened in the drawer. */
+interface Selected {
+  slug: string;
+  path: string;
+}
 
 const fmtMin = (min: number): string =>
   min >= 90 ? `${(min / 60).toFixed(1)}h` : `${Math.round(min)}m`;
@@ -78,8 +86,20 @@ export function FleetOpsPanel({ onDrill }: { onDrill: (slug: string) => void }) 
   const [board, setBoard] = useState<Board>('districts');
   const [hubInput, setHubInput] = useState(hubSlug || '');
   const [addInput, setAddInput] = useState('');
+  const [selected, setSelected] = useState<Selected | null>(null);
 
   const ready = Object.values(snapshots).filter((s) => s.status === 'ready');
+  // Resolve the open drawer's live data — dropping it if a rescan removed the workflow.
+  const drawer = useMemo(() => {
+    if (!selected) return null;
+    const snap = snapshots[selected.slug];
+    const facts = snap?.facts.find((f) => f.path === selected.path);
+    if (!snap || !facts) return null;
+    const metrics = fleetMetrics.find(
+      (m) => m.repo === selected.slug && m.displayPath === selected.path,
+    );
+    return { snap, facts, metrics };
+  }, [selected, snapshots, fleetMetrics]);
   const alarms = useMemo(() => {
     const metricAlarms = fleetMetrics.filter(
       (m) => m.flags.includes('failing') || m.flags.includes('high-cost-low-value'),
@@ -237,10 +257,136 @@ export function FleetOpsPanel({ onDrill }: { onDrill: (slug: string) => void }) 
             />
           )}
           {board === 'rankings' && <RankingsBoard rows={fleetMetrics} />}
+          {board === 'workflows' && (
+            <WorkflowsBoard
+              snapshots={ready}
+              fleetMetrics={fleetMetrics}
+              onManage={(slug, path) => setSelected({ slug, path })}
+            />
+          )}
           {board === 'audit' && <AuditBoard snapshots={ready} />}
           {board === 'schedule' && <ScheduleBoard snapshots={ready} />}
         </>
       )}
+
+      {drawer && selected && (
+        <WorkflowDrawer
+          slug={selected.slug}
+          facts={drawer.facts}
+          snapshot={drawer.snap}
+          metrics={drawer.metrics}
+          onClose={() => setSelected(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Workflows (per-workflow management table across the fleet) ────────────────
+
+interface WorkflowRow {
+  slug: string;
+  facts: WorkflowFacts;
+  led: LedState;
+  metrics?: FleetWorkflowMetrics;
+}
+
+function WorkflowsBoard({
+  snapshots,
+  fleetMetrics,
+  onManage,
+}: {
+  snapshots: RepoSnapshot[];
+  fleetMetrics: FleetWorkflowMetrics[];
+  onManage: (slug: string, path: string) => void;
+}) {
+  const rows = useMemo<WorkflowRow[]>(() => {
+    const out: WorkflowRow[] = [];
+    for (const snap of snapshots) {
+      const latest = latestByPath(snap.runs);
+      const byPath = new Map(
+        fleetMetrics.filter((m) => m.repo === snap.slug).map((m) => [m.displayPath, m]),
+      );
+      for (const f of snap.facts) {
+        out.push({ slug: snap.slug, facts: f, led: ledForRun(latest.get(f.path)), metrics: byPath.get(f.path) });
+      }
+    }
+    // Costliest lines first (survey triage order): burned minutes, then priority.
+    return out.sort(
+      (a, b) =>
+        (b.metrics?.totalMin ?? 0) - (a.metrics?.totalMin ?? 0) ||
+        (b.metrics?.priority ?? 0) - (a.metrics?.priority ?? 0),
+    );
+  }, [snapshots, fleetMetrics]);
+
+  if (rows.length === 0) {
+    return <p className="tabpane__empty">No workflows scanned yet — scan the fleet first.</p>;
+  }
+  return (
+    <div className="wfboard">
+      <table className="rank__table">
+        <thead>
+          <tr>
+            <th>repo</th>
+            <th>workflow</th>
+            <th>archetype</th>
+            <th></th>
+            <th>runs</th>
+            <th>burned</th>
+            <th>waste</th>
+            <th>p95</th>
+            <th>cost cap</th>
+            <th>signals</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const m = r.metrics;
+            return (
+              <tr key={`${r.slug}:${r.facts.path}`}>
+                <td className="rank__repo">{r.slug}</td>
+                <td className="rank__wf" title={r.facts.path}>{r.facts.name}</td>
+                <td className="wfboard__arch">{archetypeLabel(r.facts.archetype)}</td>
+                <td>
+                  <span
+                    className={`led led--${r.led}`}
+                    role="img"
+                    aria-label={`${basename(r.facts.path)} — ${ledWord(r.led)}`}
+                    title={`${basename(r.facts.path)} — ${ledWord(r.led)}`}
+                  />
+                </td>
+                <td className="rank__num">{m ? m.runs : '–'}</td>
+                <td className="rank__num">{m ? fmtMin(m.totalMin) : '–'}</td>
+                <td className={`rank__num${m && m.wasteMin > 0 ? ' auditboard__fail' : ''}`}>
+                  {m ? fmtMin(m.wasteMin) : '–'}
+                </td>
+                <td className="rank__num">{m ? fmtMin(m.p95Min) : '–'}</td>
+                <td className="rank__num">
+                  {r.facts.ai.maxCostUsd != null ? (
+                    <span className="wfboard__cap">≤ ${r.facts.ai.maxCostUsd}</span>
+                  ) : r.facts.waitBound ? (
+                    <span className="wfboard__wait" title="Wait-bound — burns wall-clock minutes polling">⏳ wait</span>
+                  ) : (
+                    <span className="dim">—</span>
+                  )}
+                </td>
+                <td><FlagChips flags={m?.flags ?? []} /></td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn btn--small"
+                    title={`Manage ${r.facts.name}`}
+                    onClick={() => onManage(r.slug, r.facts.path)}
+                  >
+                    Manage
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
