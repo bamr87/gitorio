@@ -24,6 +24,7 @@ const SINK_LABEL: Record<SinkKind, string> = {
   comment: 'comment',
   label: 'label',
   commit: 'commit',
+  merge: 'merge',
   deploy: 'deploy',
   cross_repo_issue: '↗ issue',
   dispatch: 'dispatch',

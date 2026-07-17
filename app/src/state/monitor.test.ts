@@ -15,6 +15,7 @@ const run = (over: Partial<FactoryRun> = {}): FactoryRun => ({
   runStartedAt: '2026-07-05T00:00:00Z',
   updatedAt: '2026-07-05T00:01:00Z',
   createdAt: '2026-07-05T00:00:00Z',
+  runAttempt: 1,
   ...over,
 });
 

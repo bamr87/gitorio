@@ -33,7 +33,7 @@ beforeEach(() => {
   });
   useMonitorStore.setState({
     runs: [
-      { path: '.github/workflows/factory--warden.yml', slug: 'warden', runId: 7, runNumber: 7, status: 'completed', conclusion: 'success', event: 'workflow_dispatch', htmlUrl: 'https://x/7', runStartedAt: '2026-07-05T00:00:00Z', updatedAt: '2026-07-05T00:01:00Z', createdAt: '2026-07-05T00:00:00Z' },
+      { path: '.github/workflows/factory--warden.yml', slug: 'warden', runId: 7, runNumber: 7, status: 'completed', conclusion: 'success', event: 'workflow_dispatch', htmlUrl: 'https://x/7', runStartedAt: '2026-07-05T00:00:00Z', updatedAt: '2026-07-05T00:01:00Z', createdAt: '2026-07-05T00:00:00Z', runAttempt: 1 },
     ],
     stats: { total: 1, completed: 1, success: 1, failure: 0, inProgress: 0, successRate: 1, p50DurationSec: 60 },
     jobsByRun: {},

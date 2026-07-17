@@ -1,0 +1,380 @@
+/* Fleet Command cockpit — industrial control-room styling on the shared theme tokens. */
+
+.fleetops {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* the fleetview container zeroes tabpane padding for the canvas; restore it here */
+.fleetview .fleetops {
+  padding: 4px 16px 16px;
+}
+.fleetview .fleetmode {
+  padding: 8px 12px 0;
+}
+
+/* ── command bar ── */
+.fleetops__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fleetops__label {
+  font-family: var(--readout);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--copper);
+}
+.fleetops__input {
+  width: 220px;
+}
+.fleetops__spacer {
+  flex: 1;
+}
+.fleetops__window {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--dim);
+}
+.fleetops__window select {
+  margin-left: 4px;
+}
+.fleetops__rate {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--dim);
+  border: 1px solid var(--seam);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+/* ── HUD ── */
+.fleetops__hud {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+@media (max-width: 1100px) {
+  .fleetops__hud {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+.stat__num--alarm {
+  color: var(--alarm);
+}
+
+/* compute-share strip */
+.fleetops__types {
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.typebar {
+  font-family: var(--readout);
+  font-size: 10px;
+  color: var(--floor);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 4px;
+  background: var(--dim);
+}
+.typebar--ai { background: var(--steel); }
+.typebar--ci { background: var(--signal); }
+.typebar--deploy { background: #4db6ac; }
+.typebar--release { background: #9ccc65; }
+.typebar--docs { background: #b0a46b; }
+.typebar--security { background: var(--copper); }
+.typebar--dependencies { background: #ce7bb0; }
+.typebar--automation { background: #7986cb; }
+.typebar--other { background: var(--dim); }
+
+.fleetops__boards {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── districts ── */
+.districts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+}
+.district {
+  background: var(--panel);
+  border: 1px solid var(--seam);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.district--error {
+  border-color: var(--alarm);
+}
+.district__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.district__name {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink);
+  font-family: var(--readout);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.district__name:hover {
+  color: var(--copper);
+  text-decoration: underline;
+}
+.district__leds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.district__meta {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--dim);
+}
+.district__alarm {
+  color: var(--alarm);
+}
+.district__minutes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.district__minbar {
+  display: block;
+  height: 6px;
+  min-width: 2px;
+  background: var(--steel);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.district__wastebar {
+  display: block;
+  height: 100%;
+  background: var(--alarm);
+}
+.district__minlbl {
+  font-family: var(--readout);
+  font-size: 10px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.district__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+
+/* ── grades ── */
+.grade {
+  font-family: var(--readout);
+  font-weight: 700;
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid var(--seam);
+  flex: none;
+}
+.grade--s { color: var(--floor); background: var(--copper); border-color: var(--copper); box-shadow: 0 0 8px rgba(227, 155, 59, 0.55); }
+.grade--a { color: var(--signal); border-color: var(--signal); }
+.grade--b { color: var(--steel); border-color: var(--steel); }
+.grade--c { color: var(--copper); border-color: var(--copper-dim); }
+.grade--d { color: var(--alarm); border-color: var(--alarm); }
+.grade--none { color: var(--dim); }
+
+/* ── flags ── */
+.flagchips {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.flagchip {
+  font-family: var(--readout);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--seam);
+  color: var(--dim);
+  white-space: nowrap;
+}
+.flagchip--failing,
+.flagchip--high-cost-low-value { color: var(--alarm); border-color: var(--alarm); }
+.flagchip--flaky,
+.flagchip--slow,
+.flagchip--cancel-heavy,
+.flagchip--rework-heavy { color: var(--copper); border-color: var(--copper-dim); }
+.flagchip--cron-heavy { color: var(--steel); border-color: var(--steel); }
+
+/* ── rankings / audit tables ── */
+.rankings,
+.auditboard,
+.schedboard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: auto;
+}
+.rank__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.rank__table th {
+  font-family: var(--readout);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--seam);
+}
+.rank__table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--panel-2);
+  vertical-align: top;
+}
+.rank__repo {
+  font-family: var(--readout);
+  font-size: 11px;
+  color: var(--steel);
+  white-space: nowrap;
+}
+.rank__wf {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.rank__num {
+  font-family: var(--readout);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.auditboard__fail {
+  color: var(--alarm);
+  font-weight: 700;
+}
+
+/* ── audit findings ── */
+.auditboard__detail {
+  background: var(--panel);
+  border: 1px solid var(--seam);
+  border-radius: 6px;
+  padding: 10px;
+}
+.findings {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.finding {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.finding__sev {
+  font-family: var(--readout);
+  width: 14px;
+  flex: none;
+  text-align: center;
+}
+.finding--fail .finding__sev { color: var(--alarm); }
+.finding--warn .finding__sev { color: var(--copper); }
+.finding--info .finding__sev { color: var(--dim); }
+.finding__body {
+  flex: 1;
+  font-size: 12px;
+  color: var(--ink);
+}
+.finding__path {
+  margin: 0 6px;
+  color: var(--steel);
+}
+.finding__fix {
+  display: block;
+  color: var(--dim);
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* ── schedule ── */
+.schedboard__histogram {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 90px;
+  padding: 6px;
+  background: var(--panel);
+  border: 1px solid var(--seam);
+  border-radius: 6px;
+}
+.schedboard__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  height: 100%;
+  gap: 2px;
+}
+.schedboard__fill {
+  background: var(--steel);
+  border-radius: 2px 2px 0 0;
+  min-height: 1px;
+}
+.schedboard__fill--hot {
+  background: var(--alarm);
+  box-shadow: 0 0 6px rgba(224, 96, 84, 0.5);
+}
+.schedboard__hour {
+  font-family: var(--readout);
+  font-size: 8px;
+  color: var(--dim);
+  text-align: center;
+}
+.schedboard__dormant {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--dim);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.armed {
+  color: var(--signal);
+  font-family: var(--readout);
+  font-size: 11px;
+}
+.dim {
+  color: var(--dim);
+  font-family: var(--readout);
+  font-size: 11px;
+}

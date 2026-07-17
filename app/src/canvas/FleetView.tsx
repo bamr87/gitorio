@@ -2,6 +2,7 @@ import './fleetview.css';
 import { useState } from 'react';
 import { FleetCanvas } from './FleetCanvas';
 import { ConnectDialog } from '../panels/ConnectDialog';
+import { FleetOpsPanel } from '../panels/FleetOpsPanel';
 import { useFleetStore } from '../state/fleet';
 import { useGithubStore } from '../state/github';
 import { useSettingsStore } from '../state/settings';
@@ -21,6 +22,8 @@ export function FleetView() {
 
   const [connectOpen, setConnectOpen] = useState(false);
   const [arbitrary, setArbitrary] = useState('');
+  // Command = the multi-repo cockpit; Observe = the single-repo fleet map drill-in.
+  const [board, setBoard] = useState<'command' | 'observe'>('command');
 
   const chips = [...new Set([connectedRepo ? repoSlug(connectedRepo) : null, ...recentRepos].filter(Boolean))] as string[];
   const observedSlug = observedRepo ? repoSlug(observedRepo) : null;
@@ -29,7 +32,7 @@ export function FleetView() {
     return (
       <div className="tabpane fleetview">
         <p className="tabpane__empty">
-          Connect a token to observe any repo’s live workflow fleet.{' '}
+          Connect a token to command your workflow fleet.{' '}
           <button type="button" className="btn btn--small" onClick={() => setConnectOpen(true)}>Connect</button>
         </p>
         {connectOpen && <ConnectDialog onClose={() => setConnectOpen(false)} />}
@@ -37,8 +40,36 @@ export function FleetView() {
     );
   }
 
+  const drill = (slug: string) => {
+    setBoard('observe');
+    void observeRepo(slug);
+  };
+
   return (
     <div className="tabpane fleetview">
+      <nav className="fleetmode" aria-label="Fleet mode">
+        <button
+          type="button"
+          className={`chip${board === 'command' ? ' is-active' : ''}`}
+          aria-pressed={board === 'command'}
+          onClick={() => setBoard('command')}
+        >
+          ⌘ Command
+        </button>
+        <button
+          type="button"
+          className={`chip${board === 'observe' ? ' is-active' : ''}`}
+          aria-pressed={board === 'observe'}
+          onClick={() => setBoard('observe')}
+        >
+          🛰 Observe
+        </button>
+      </nav>
+
+      {board === 'command' && <FleetOpsPanel onDrill={drill} />}
+
+      {board === 'observe' && (
+        <>
       <div className="fleetbar">
         <span className="fleetbar__label">🛰 Observe</span>
         <div className="fleetbar__chips">
@@ -97,6 +128,8 @@ export function FleetView() {
         <p className="tabpane__empty">
           Pick a repo above to reverse-import its <code>.github/workflows/</code> into a live fleet map — one node per workflow, workflow_run belts, cross-repo edges, telemetry LEDs.
         </p>
+      )}
+        </>
       )}
     </div>
   );
