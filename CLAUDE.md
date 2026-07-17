@@ -1,9 +1,6 @@
 # GitFactory — CLAUDE.md
 
-GitFactory is a **Factorio-style factory builder for GitHub automation**. Users drag
-machines onto a canvas, connect them with belts, and the blueprint **compiles to real
-GitHub Actions workflows** that run Claude Code agents against real repositories. The
-frontend is fully static; GitHub is the database, the event bus, and the compute layer.
+GitFactory is a **Factorio-style factory builder for GitHub automation**. Users drag machines onto a canvas, connect them with belts, and the blueprint **compiles to real GitHub Actions workflows** that run Claude Code agents against real repositories. The frontend is fully static; GitHub is the database, the event bus, and the compute layer.
 
 ## The metaphor (use it consistently in code, UI copy, and docs)
 
@@ -29,8 +26,7 @@ frontend is fully static; GitHub is the database, the event bus, and the compute
 9. Monitoring = polling workflow runs + issue/PR timelines; no server, respect rate limits with conditional requests (ETags).
 10. Loop guards are compiler-enforced: agents that write comments must never retrigger themselves.
 
-Read `docs/ARCHITECTURE.md` before touching the compiler or auth. Read `docs/ROADMAP.md`
-to see what phase we're in.
+Read `docs/ARCHITECTURE.md` before touching the compiler or auth. Read `docs/ROADMAP.md` to see what phase we're in.
 
 ## Golden rules
 
@@ -69,70 +65,33 @@ npm run build      # typecheck + production build to app/dist
 - ✅ Scaffold: runnable canvas MVP (palette → drag → belts → inspector), blueprint
   import/export/encode, compiler v0 with invariant tests, example factory dogfooded in `.factory/`.
 - ✅ Foundation: repo is under git (root = `gitorio/`, `app/` a direct child; branch
-  `main`), dev hygiene in place (`.editorconfig`, `.gitattributes`, `.nvmrc` = 22,
-  Dependabot, PR template, CONTRIBUTING, SECURITY).
+`main`), dev hygiene in place (`.editorconfig`, `.gitattributes`, `.nvmrc` = 22, Dependabot, PR template, CONTRIBUTING, SECURITY).
 - ✅ GitHub connect MVP (seed 03): fetch-based `github/` client (PAT in sessionStorage),
   preflight checklist, load `.factory/blueprint.json` into the canvas, **Deploy** blueprint
   + `factory--*.yml` via the contents API (commit or PR mode), sealed-box power hookup
-  (`CLAUDE_CODE_OAUTH_TOKEN` default / `ANTHROPIC_API_KEY` fallback), and a drift banner.
-  Pure planner (`deploy.ts`) split from I/O
-  executor (`execute.ts`). Verified green: 49 tests, typecheck, prod build, browser smoke.
-  Live end-to-end demo needs a user PAT + scratch repo.
+(`CLAUDE_CODE_OAUTH_TOKEN` default / `ANTHROPIC_API_KEY` fallback), and a drift banner. Pure planner (`deploy.ts`) split from I/O executor (`execute.ts`). Verified green: 49 tests, typecheck, prod build, browser smoke. Live end-to-end demo needs a user PAT + scratch repo.
 - ✅ Telemetry MVP (seed 04): ETag-conditional polling of `factory--*` runs
-  (`client.listFactoryRuns` + pure `github/telemetry.ts`), machine status LEDs via
-  `compile.assemblyLines()`, and a floating panel (stats + run list) that polls only while
-  open. Verified green: 66 tests, typecheck, build, render smoke.
+(`client.listFactoryRuns` + pure `github/telemetry.ts`), machine status LEDs via `compile.assemblyLines()`, and a floating panel (stats + run list) that polls only while open. Verified green: 66 tests, typecheck, build, render smoke.
 - ✅ Observe mode (plug-and-play, Phase A): reverse-import ANY repo's
-  `.github/workflows/*.yml` into a read-only **fleet map** — one node per workflow,
-  `workflow_run` + cross-repo belts, live telemetry LEDs. Pure parser (`fleet/parse.ts`)
+`.github/workflows/*.yml` into a read-only **fleet map** — one node per workflow, `workflow_run` + cross-repo belts, live telemetry LEDs. Pure parser (`fleet/parse.ts`)
   + `fleet/import.ts` + `FleetCanvas`. Validated on the real `lifehacker.dev` fleet. Next:
   multi-repo switcher (B), cross-repo machine (C) — see ROADMAP § Fleet.
 - ✅ Granular machines + live automerge: `trigger.workflow_run`, `sink.merge_pr`,
-  `processor.dependabot_meta` (ADR-014) + `gate.approval`, `rate.limiter`,
-  `sink.cross_repo_issue` (ADR-016) — **19 machine types**, schema-synced + drift-guarded.
-  The Dependency Warden ran live on gitorio: reviewed Dependabot PRs #1–#5, auto-merged the
-  vetted-safe ones. Merge policy hardened after an incident (ADR-015, PR #12).
+`processor.dependabot_meta` (ADR-014) + `gate.approval`, `rate.limiter`, `sink.cross_repo_issue` (ADR-016) — **19 machine types**, schema-synced + drift-guarded. The Dependency Warden ran live on gitorio: reviewed Dependabot PRs #1–#5, auto-merged the vetted-safe ones. Merge policy hardened after an incident (ADR-015, PR #12).
 - ✅ Feature-rich frontend (ADR-016): **six-tab shell** — Build (canvas + palette search +
-  undo/redo + rich Inspector + templates gallery) · Prompt Studio (browse/edit/lint/diff/
-  PR-writes) · Content (headless-CMS cockpit) · Monitor (per-line stats, jobs+steps drill-down,
-  ▶ Run now / ✕ Cancel, cron overview) · Fleet (multi-repo observe switcher, Fleet B) · Settings
-  (live preflight, connections, preferences). Browser-verified live against gitorio.
+undo/redo + rich Inspector + templates gallery) · Prompt Studio (browse/edit/lint/diff/ PR-writes) · Content (headless-CMS cockpit) · Monitor (per-line stats, jobs+steps drill-down, ▶ Run now / ✕ Cancel, cron overview) · Fleet (multi-repo observe switcher, Fleet B) · Settings (live preflight, connections, preferences). Browser-verified live against gitorio.
 - ✅ Headless CMS + feedback loops (ADR-017): studied the live `lifehacker.dev` fleet and adopted
-  its governance/feedback/queue *patterns* onto the claude-code-action core. **`gate.enablement`**
-  (default-OFF repo-variable kill switch), **`processor.feedback_controller`** (the loop-tuner:
-  measure own telemetry → improvements ledger → smallest fix → ONE PR, never merges),
-  **dry-run/apply** duality (plan-first manual), **`.factory/config.yml` + `.factory/backlog.yml`**
+its governance/feedback/queue *patterns* onto the claude-code-action core. **`gate.enablement`** (default-OFF repo-variable kill switch), **`processor.feedback_controller`** (the loop-tuner: measure own telemetry → improvements ledger → smallest fix → ONE PR, never merges), **dry-run/apply** duality (plan-first manual), **`.factory/config.yml` + `.factory/backlog.yml`**
   + a **Content tab** cockpit (config/backlog/kill-switch toggles via the Actions variables API),
-  a **Headless CMS template**, and a fix to the `open_pr`/`commit_files` git grants. **21 machine
-  types**, schema-synced + drift-guarded.
+a **Headless CMS template**, and a fix to the `open_pr`/`commit_files` git grants. **21 machine types**, schema-synced + drift-guarded.
 - ✅ Docs Gardener + Docs view (ADR-018): a demonstrable daily content factory on gitorio — a
-  **Docs Gardener** template (cron + plan-first manual → gate → rate limiter → agent → open PR)
-  that scans `_docs`, improves `itemsPerRun` items using configured **review criteria** + **skill
-  specializations**, dogfooded (prompt + `.factory/config.yml` + standalone blueprint + compiled
-  `factory--docs-gardener.yml`, default-OFF via `DOCS_GARDENER_ENABLED`, generated by
-  `app/scripts/gen-docs-gardener.ts`). A **Docs tab** renders the repo-root `_docs/*.md` (bundled
-  via `import.meta.glob`, dependency-free Markdown renderer) — gitorio's Pages IS the app, so the
-  docs deploy to Pages; improve → merge → redeploy → view updates. Config extended with `skills`/
-  `reviewCriteria`/`docsDir`/`itemsPerRun` (Content-tab editors); compiler gained a `blueprintPath`
-  header option; `open_pr`/`commit_files` now grant `Read/Edit/Write`. **7-tab shell** (added Docs).
-  **25 test files, 209 tests**, typecheck + prod build green (build validates the `_docs` glob).
+**Docs Gardener** template (cron + plan-first manual → gate → rate limiter → agent → open PR) that scans `_docs`, improves `itemsPerRun` items using configured **review criteria** + **skill specializations**, dogfooded (prompt + `.factory/config.yml` + standalone blueprint + compiled `factory--docs-gardener.yml`, default-OFF via `DOCS_GARDENER_ENABLED`, generated by `app/scripts/gen-docs-gardener.ts`). A **Docs tab** renders the repo-root `_docs/*.md` (bundled via `import.meta.glob`, dependency-free Markdown renderer) — gitorio's Pages IS the app, so the docs deploy to Pages; improve → merge → redeploy → view updates. Config extended with `skills`/ `reviewCriteria`/`docsDir`/`itemsPerRun` (Content-tab editors); compiler gained a `blueprintPath` header option; `open_pr`/`commit_files` now grant `Read/Edit/Write`. **7-tab shell** (added Docs). **25 test files, 209 tests**, typecheck + prod build green (build validates the `_docs` glob).
 - ✅ Frontend framework refactor (ADR-019): decluttered the shell — the global top bar is now only
-  logo · nav · connection · power; Build-context actions moved to a per-view **BuildToolbar**
-  (undo/redo · Templates · **Blueprint ▾** dropdown · LEDs · Deploy) backed by a new accessible
-  **Menu** primitive. **Token unification**: newer panels referenced undefined `--border`/`--muted`/
-  `--accent`/`--input` (off-palette GitHub fallbacks) — added them as aliases to the industrial
-  palette in `:root`, so every tab is now consistent. **Capability drill-down**: pure
-  `describeWorkflow(yaml)` parses compiled YAML → the Inspector shows an agent's **Capabilities ·
-  compiled** (granted tools as readable phrases, token permissions, obligations, kill-switch) and
-  Monitor lines are expandable to the same facts. **28 test files, 220 tests**, typecheck + build
-  green, browser-verified.
+logo · nav · connection · power; Build-context actions moved to a per-view **BuildToolbar** (undo/redo · Templates · **Blueprint ▾** dropdown · LEDs · Deploy) backed by a new accessible **Menu** primitive. **Token unification**: newer panels referenced undefined `--border`/`--muted`/ `--accent`/`--input` (off-palette GitHub fallbacks) — added them as aliases to the industrial palette in `:root`, so every tab is now consistent. **Capability drill-down**: pure `describeWorkflow(yaml)` parses compiled YAML → the Inspector shows an agent's **Capabilities · compiled** (granted tools as readable phrases, token permissions, obligations, kill-switch) and Monitor lines are expandable to the same facts. **28 test files, 220 tests**, typecheck + build green, browser-verified.
 - ⬜ Parked (with reasons in ROADMAP): OODA dispatcher + computed-matrix fan-out + work-leasing
-  (ADR-017, Phase 8 tail), belt mode (Phase 6.1), §8 red-team pass, GitHub App
-  device flow (Phase 7 — blocked on browser CORS; needs the optional worker), `repository_dispatch`
-  trigger + combined-canvas inter-repo belts (Fleet C tail).
+(ADR-017, Phase 8 tail), belt mode (Phase 6.1), §8 red-team pass, GitHub App device flow (Phase 7 — blocked on browser CORS; needs the optional worker), `repository_dispatch` trigger + combined-canvas inter-repo belts (Fleet C tail).
 - Known rough edges: multi-line blueprints name files by `<meta.name> <index>` (no per-line
-  names); v0 belt mode not yet (agent-obligation mode only). `@types/node` added to tsconfig
-  for node-context tests.
+names); v0 belt mode not yet (agent-obligation mode only). `@types/node` added to tsconfig for node-context tests.
 
 ## Repo map
 

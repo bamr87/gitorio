@@ -6,8 +6,7 @@ order: 2
 
 # Machines and Belts
 
-A blueprint is a graph of **machines** connected by **belts**. Machines come in three
-categories.
+A blueprint is a graph of **machines** connected by **belts**. Machines come in three categories.
 
 ## Triggers (copper)
 
@@ -32,18 +31,12 @@ Processors sit in the middle of a line.
 
 ## Sinks (signal green)
 
-Sinks are the outcome of a line: `sink.comment`, `sink.label`, `sink.create_issue`,
-`sink.open_pr`, `sink.commit_files`, `sink.merge_pr`, and `sink.cross_repo_issue`.
+Sinks are the outcome of a line: `sink.comment`, `sink.label`, `sink.create_issue`, `sink.open_pr`, `sink.commit_files`, `sink.merge_pr`, and `sink.cross_repo_issue`.
 
 ## Belts
 
-A belt is a directed edge from one machine's output to the next machine's input. Downstream
-sinks of an agent become the agent's **obligations** — a numbered contract appended to its
-prompt — plus the matching `--allowedTools` grants. A trigger wired straight to a sink with
-no agent between them compiles to deterministic `gh` CLI steps.
+A belt is a directed edge from one machine's output to the next machine's input. Downstream sinks of an agent become the agent's **obligations** — a numbered contract appended to its prompt — plus the matching `--allowedTools` grants. A trigger wired straight to a sink with no agent between them compiles to deterministic `gh` CLI steps.
 
 ## Assembly lines
 
-Each connected subgraph that contains at least one trigger is one **assembly line**, and
-each line compiles to one workflow file. Machines with no trigger upstream are idle and
-produce a diagnostic rather than a workflow.
+Each connected subgraph that contains at least one trigger is one **assembly line**, and each line compiles to one workflow file. Machines with no trigger upstream are idle and produce a diagnostic rather than a workflow.

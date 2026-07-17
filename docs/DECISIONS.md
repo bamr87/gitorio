@@ -3,310 +3,65 @@
 Append entries; never rewrite history. Format: date, decision, why, alternatives.
 
 ## 2026-07-03 — ADR-001: Blueprint lives in the target repo
-`.factory/blueprint.json` in the repo it automates. Why: versioning, review,
-portability, shareability for free; the UI stays stateless. Alt: app-side storage
-(rejected: needs a backend, splits truth from the repo).
+`.factory/blueprint.json` in the repo it automates. Why: versioning, review, portability, shareability for free; the UI stays stateless. Alt: app-side storage (rejected: needs a backend, splits truth from the repo).
 
 ## 2026-07-03 — ADR-002: GitHub Actions is the runtime
-Compile to workflows using anthropics/claude-code-action@v1 rather than running
-agents in a service. Why: zero infrastructure, secrets stay in GitHub, output is
-auditable YAML that works without GitFactory. Alt: hosted orchestrator (rejected
-for v1: cost, trust surface, defeats the static-site premise).
+Compile to workflows using anthropics/claude-code-action@v1 rather than running agents in a service. Why: zero infrastructure, secrets stay in GitHub, output is auditable YAML that works without GitFactory. Alt: hosted orchestrator (rejected for v1: cost, trust surface, defeats the static-site premise).
 
 ## 2026-07-03 — ADR-003: Integrated mode first, belt mode later
-Sinks downstream of an agent become prompt obligations + scoped tool grants, not
-deterministic steps. Why: fewer moving parts; the action already excels at gh
-operations. Belt mode (typed JSON handoff) is Phase 6 once ergonomics are proven.
+Sinks downstream of an agent become prompt obligations + scoped tool grants, not deterministic steps. Why: fewer moving parts; the action already excels at gh operations. Belt mode (typed JSON handoff) is Phase 6 once ergonomics are proven.
 
 ## 2026-07-03 — ADR-004: Static + fine-grained PAT first, App device flow second
-PAT in sessionStorage unblocks everything with zero backend; device flow (no
-client secret needed) upgrades UX in Phase 7. Web-flow OAuth requires a token
-exchange secret → optional worker, never a core dependency.
+PAT in sessionStorage unblocks everything with zero backend; device flow (no client secret needed) upgrades UX in Phase 7. Web-flow OAuth requires a token exchange secret → optional worker, never a core dependency.
 
 ## 2026-07-03 — ADR-005: Pass entity numbers, not bodies, into prompts
-Generated workflow prompts reference issue/PR numbers; the agent fetches content
-via gh. Keeps attacker-controlled text out of workflow files; injection is then
-mitigated by capability containment (--allowedTools), not content trust.
+Generated workflow prompts reference issue/PR numbers; the agent fetches content via gh. Keeps attacker-controlled text out of workflow files; injection is then mitigated by capability containment (--allowedTools), not content trust.
 
 ## 2026-07-03 — ADR-006: Toolchain pinned at Vite 8 / plugin-react 6
-@vitejs/plugin-react@6 peer-requires vite@^8, so the pair is vite ^8.1 +
-plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests,
-typecheck, prod build, dev-server smoke all green on Node 22.
+@vitejs/plugin-react@6 peer-requires vite@^8, so the pair is vite ^8.1 + plugin-react ^6 (TS ~5.9, vitest ^4, React 19). Verified: install, 13/13 tests, typecheck, prod build, dev-server smoke all green on Node 22.
 
 ## 2026-07-05 — ADR-019: Frontend framework refactor — global chrome vs. per-view toolbar, token unification, capability drill-down
-The top bar had grown to ~16 controls (7 nav tabs + 6 Build-only actions + Connect + Deploy +
-power) and newer panels had drifted off-palette. Refactored for a flexible, consistent shell:
-(1) **Global chrome vs. per-view actions.** The top bar is now *only* global chrome — logo · nav ·
-connection · power. Build-context actions moved into a dedicated **`BuildToolbar`** (a per-view
-action bar): factory name + counts · undo/redo (now visible, not just ⌘Z) · Templates · a
-**`Blueprint ▾` dropdown** collapsing the four import/export actions · LEDs · Deploy. Rationale: a
-view's actions belong to the view, so the global bar can't get crowded as tabs/actions grow. A new
-accessible **`Menu`** primitive (outside-click/Escape/select-close) backs the dropdown. Alt: overflow
-"⋯" menu on the single bar (rejected — hides primary actions); left sidebar nav (rejected — larger
-change, the tab bar is fine once decluttered).
-(2) **Design-token unification.** Panels shipped since ADR-016 referenced generic token names
-(`--border`, `--muted`, `--accent`, `--input`, `--hover`) that were **undefined** in the theme, so
-they silently fell back to off-palette GitHub colors. Added those as semantic aliases in `:root`
-mapping to the industrial palette (`--border: var(--seam)`, `--accent: var(--steel)`, …) — one change
-unifies Content/Docs/Monitor/Prompts/Settings with the control-room theme (verified: `--border`
-resolves to `--seam`). Alt: rewrite each panel's CSS to the canonical names (rejected — more churn,
-same result).
-(3) **Capability drill-down.** New pure `describeWorkflow(yaml)` parses a *compiled* workflow back
-into structured facts (triggers, schedule, permissions, kill-switch, rate limit, and the agent's
-model/tools/obligations) — parsing the real emitted YAML means the detail views can't drift from what
-ships. Feeds two surfaces: the Build **Inspector** gains a **Capabilities · compiled** section for a
-selected agent ("this agent may: comment on issues, apply labels…" + token permissions + obligations
+The top bar had grown to ~16 controls (7 nav tabs + 6 Build-only actions + Connect + Deploy + power) and newer panels had drifted off-palette. Refactored for a flexible, consistent shell: (1) **Global chrome vs. per-view actions.** The top bar is now *only* global chrome — logo · nav · connection · power. Build-context actions moved into a dedicated **`BuildToolbar`** (a per-view action bar): factory name + counts · undo/redo (now visible, not just ⌘Z) · Templates · a **`Blueprint ▾` dropdown** collapsing the four import/export actions · LEDs · Deploy. Rationale: a view's actions belong to the view, so the global bar can't get crowded as tabs/actions grow. A new accessible **`Menu`** primitive (outside-click/Escape/select-close) backs the dropdown. Alt: overflow "⋯" menu on the single bar (rejected — hides primary actions); left sidebar nav (rejected — larger change, the tab bar is fine once decluttered). (2) **Design-token unification.** Panels shipped since ADR-016 referenced generic token names (`--border`, `--muted`, `--accent`, `--input`, `--hover`) that were **undefined** in the theme, so they silently fell back to off-palette GitHub colors. Added those as semantic aliases in `:root` mapping to the industrial palette (`--border: var(--seam)`, `--accent: var(--steel)`, …) — one change unifies Content/Docs/Monitor/Prompts/Settings with the control-room theme (verified: `--border` resolves to `--seam`). Alt: rewrite each panel's CSS to the canonical names (rejected — more churn, same result). (3) **Capability drill-down.** New pure `describeWorkflow(yaml)` parses a *compiled* workflow back into structured facts (triggers, schedule, permissions, kill-switch, rate limit, and the agent's model/tools/obligations) — parsing the real emitted YAML means the detail views can't drift from what ships. Feeds two surfaces: the Build **Inspector** gains a **Capabilities · compiled** section for a selected agent ("this agent may: comment on issues, apply labels…" + token permissions + obligations
 + kill-switch), and **Monitor** lines are now **expandable** to the same facts. `describeTool` turns
-raw `--allowedTools` grants into readable phrases. Verified: 220 tests / 28 files (+Menu, BuildToolbar,
-describe), typecheck + prod build green, browser-verified (slim bar, Blueprint menu, agent
-capabilities, palette consistency).
+raw `--allowedTools` grants into readable phrases. Verified: 220 tests / 28 files (+Menu, BuildToolbar, describe), typecheck + prod build green, browser-verified (slim bar, Blueprint menu, agent capabilities, palette consistency).
 
 ## 2026-07-05 — ADR-018: The Docs Gardener — a demonstrable daily content factory + a Docs view on Pages
-Made the headless-CMS concrete on gitorio itself: a daily factory that reviews + improves the
-`_docs` collection, those docs rendered in the frontend (which Pages serves), and skill/config
-options. Decisions:
-(1) **Docs Gardener factory** — a template (cron `0 8 * * *` + plan-first manual → `gate.enablement`
-`DOCS_GARDENER_ENABLED` → `rate.limiter` 2/day → `agent.claude` → `sink.open_pr`). A Claude agent
-scans `config.docsDir`, picks the `config.itemsPerRun` most-improvable docs, applies the configured
-review criteria + the matching skill specialization, edits them, and opens ONE PR (never merges;
-default-OFF). Dogfooded onto gitorio from the SAME sources the app uses via `app/scripts/gen-docs-
-gardener.ts` (template + compiler + config model), so the committed artifacts can't drift.
-(2) **Docs rendered in the frontend, on Pages** — gitorio's Pages IS the Vite app (not Jekyll), so
-"render docs on Pages" = a **Docs view** in the app. `_docs/*.md` bundle at build time via
-`import.meta.glob('../../../_docs/*.md', {query:'?raw'})` (repo-root collection; `server.fs.allow:
-['..']` for dev), parsed by a **dependency-free Markdown renderer** (`docs/markdown.ts` → block AST
-→ React elements, no dangerouslySetInnerHTML — kept the bundle lean vs. adding `marked`). The loop is
-visible: gardener improves a doc → merge → Pages redeploy → the Docs view updates. The factory that
-tends the docs and the site that renders them are one repo.
-(3) **Skill specializations + content config** — extended `.factory/config.yml` (`FactoryConfig`) with
-`skills` (named lenses: technical-writer / tutorial-author / api-reference — lifehacker's
-`.claude/skills/` idea, but centrally configured so the app edits them), `reviewCriteria` (the
-reviewer's checklist), `docsDir`, and `itemsPerRun`. Editable from the **Content tab** (skills +
-criteria list editors, docs settings); read by the agent at runtime, so tuning needs no recompile.
-(4) **Compiler `blueprintPath` option** — the header's `blueprint:` line is now overridable, so a
-standalone/named factory (the docs gardener, kept separate from the repo's main blueprint) points
-drift detection at the right file (`.factory/docs-gardener.blueprint.json`).
-Also fixed a real latent gap: `sink.open_pr`/`sink.commit_files` didn't grant `Read/Edit/Write`, so an
-agent could never actually change the files it was told to commit — never hit before because no prior
-template edits files then opens a PR. Now granted. **21 machine types** (unchanged); 7-tab shell
-(added **Docs**); +~35 tests (209 total across 25 files), typecheck + prod build green (the build
-validates the outside-root `_docs` glob); Docs view browser-verified live.
+Made the headless-CMS concrete on gitorio itself: a daily factory that reviews + improves the `_docs` collection, those docs rendered in the frontend (which Pages serves), and skill/config options. Decisions: (1) **Docs Gardener factory** — a template (cron `0 8 * * *` + plan-first manual → `gate.enablement` `DOCS_GARDENER_ENABLED` → `rate.limiter` 2/day → `agent.claude` → `sink.open_pr`). A Claude agent scans `config.docsDir`, picks the `config.itemsPerRun` most-improvable docs, applies the configured review criteria + the matching skill specialization, edits them, and opens ONE PR (never merges; default-OFF). Dogfooded onto gitorio from the SAME sources the app uses via `app/scripts/gen-docs- gardener.ts` (template + compiler + config model), so the committed artifacts can't drift. (2) **Docs rendered in the frontend, on Pages** — gitorio's Pages IS the Vite app (not Jekyll), so "render docs on Pages" = a **Docs view** in the app. `_docs/*.md` bundle at build time via `import.meta.glob('../../../_docs/*.md', {query:'?raw'})` (repo-root collection; `server.fs.allow: ['..']` for dev), parsed by a **dependency-free Markdown renderer** (`docs/markdown.ts` → block AST → React elements, no dangerouslySetInnerHTML — kept the bundle lean vs. adding `marked`). The loop is visible: gardener improves a doc → merge → Pages redeploy → the Docs view updates. The factory that tends the docs and the site that renders them are one repo. (3) **Skill specializations + content config** — extended `.factory/config.yml` (`FactoryConfig`) with `skills` (named lenses: technical-writer / tutorial-author / api-reference — lifehacker's `.claude/skills/` idea, but centrally configured so the app edits them), `reviewCriteria` (the reviewer's checklist), `docsDir`, and `itemsPerRun`. Editable from the **Content tab** (skills + criteria list editors, docs settings); read by the agent at runtime, so tuning needs no recompile. (4) **Compiler `blueprintPath` option** — the header's `blueprint:` line is now overridable, so a standalone/named factory (the docs gardener, kept separate from the repo's main blueprint) points drift detection at the right file (`.factory/docs-gardener.blueprint.json`). Also fixed a real latent gap: `sink.open_pr`/`sink.commit_files` didn't grant `Read/Edit/Write`, so an agent could never actually change the files it was told to commit — never hit before because no prior template edits files then opens a PR. Now granted. **21 machine types** (unchanged); 7-tab shell (added **Docs**); +~35 tests (209 total across 25 files), typecheck + prod build green (the build validates the outside-root `_docs` glob); Docs view browser-verified live.
 
 ## 2026-07-05 — ADR-017: Headless-CMS primitives from lifehacker.dev, on the claude-code-action core
-Studied the real `bamr87/lifehacker.dev` fleet (16 workflows, a `claude-run` composite action, a
-Ruby OODA dispatcher, a `loop-tuner` feedback controller, default-OFF `*_ENABLED` repo-variable
-gates) to make GitFactory configure "an autonomous, configurable, headless CMS with feedback
-loops." **Decision: adopt its governance/feedback/queue *patterns* as new machines + app concepts,
-but keep `anthropics/claude-code-action@v1` as the runtime** (rejected: refactoring the compiler to
-emit lifehacker's CLI-runner + `ai.yml` + raw-API fallback — a big rewrite of a tested core for no
-capability GitFactory lacks; and a per-blueprint runner toggle — 2× the emit paths/tests). What
-shipped:
-(1) **`gate.enablement`** — a default-OFF kill switch. The compiler emits a tiny `gate` job that
-checks a repo **variable** (`vars.<NAME>`) — and, for agent lines, that Claude auth exists — and the
-`line` job `needs: gate` + runs only on `needs.gate.outputs.go == 'true'`. An unset variable reads as
-idle, never as "safe to run." Flipping the variable arms/disarms a line instantly with no redeploy;
-a compromised agent can't re-arm itself (setting a variable needs an admin scope the fleet token
-lacks). The app reads/writes these via new client methods `listVariables`/`getVariable`/`setVariable`
-(values are readable, unlike secrets — that's what lets the Content tab show a line as armed/idle).
-(2) **`processor.feedback_controller`** (the loop-tuner) — a specialised agent (reuses the
-claude-code-action step) carrying a built-in contract: MEASURE the factory's own telemetry over a
-window → VERIFY the last change against an improvements ledger (`.factory/metrics/improvements.yml`
+Studied the real `bamr87/lifehacker.dev` fleet (16 workflows, a `claude-run` composite action, a Ruby OODA dispatcher, a `loop-tuner` feedback controller, default-OFF `*_ENABLED` repo-variable gates) to make GitFactory configure "an autonomous, configurable, headless CMS with feedback loops." **Decision: adopt its governance/feedback/queue *patterns* as new machines + app concepts, but keep `anthropics/claude-code-action@v1` as the runtime** (rejected: refactoring the compiler to emit lifehacker's CLI-runner + `ai.yml` + raw-API fallback — a big rewrite of a tested core for no capability GitFactory lacks; and a per-blueprint runner toggle — 2× the emit paths/tests). What shipped: (1) **`gate.enablement`** — a default-OFF kill switch. The compiler emits a tiny `gate` job that checks a repo **variable** (`vars.<NAME>`) — and, for agent lines, that Claude auth exists — and the `line` job `needs: gate` + runs only on `needs.gate.outputs.go == 'true'`. An unset variable reads as idle, never as "safe to run." Flipping the variable arms/disarms a line instantly with no redeploy; a compromised agent can't re-arm itself (setting a variable needs an admin scope the fleet token lacks). The app reads/writes these via new client methods `listVariables`/`getVariable`/`setVariable` (values are readable, unlike secrets — that's what lets the Content tab show a line as armed/idle). (2) **`processor.feedback_controller`** (the loop-tuner) — a specialised agent (reuses the claude-code-action step) carrying a built-in contract: MEASURE the factory's own telemetry over a window → VERIFY the last change against an improvements ledger (`.factory/metrics/improvements.yml`
 + `history.jsonl`) → DIAGNOSE the upstream cause → make the SMALLEST change to a prompt/config →
-RECORD a new `pending` ledger entry (so the next run verifies it) → open exactly ONE PR. It is
-granted telemetry-read (`gh run list/view`, `gh pr list`), file edit (Read/Glob/Grep/Edit/Write),
-and PR-open (git + `gh pr create`) — and **deliberately NOT `gh pr merge`** (the no-self-merge
-invariant) or `gh workflow`. This is the headline "feedback loop."
-(3) **Dry-run/apply duality** — a `trigger.manual` "plan-first" mode exposes an `apply` boolean input;
-a manual run PLANS only unless ticked, while every non-manual event (schedule, workflow_run) applies
+RECORD a new `pending` ledger entry (so the next run verifies it) → open exactly ONE PR. It is granted telemetry-read (`gh run list/view`, `gh pr list`), file edit (Read/Glob/Grep/Edit/Write), and PR-open (git + `gh pr create`) — and **deliberately NOT `gh pr merge`** (the no-self-merge invariant) or `gh workflow`. This is the headline "feedback loop." (3) **Dry-run/apply duality** — a `trigger.manual` "plan-first" mode exposes an `apply` boolean input; a manual run PLANS only unless ticked, while every non-manual event (schedule, workflow_run) applies
 (`github.event_name != 'workflow_dispatch' || inputs.apply`). Deterministic mutating sink steps gate
-on it; agent lines get a PLAN/APPLY prompt note that flips them to report-only on a dry run.
-(4) **Central config + content backlog** — `.factory/config.yml` (model/budget/voice/paths the agents
-honor at runtime — lifehacker's `ai.yml` idea, one place) and `.factory/backlog.yml` (a typed
-work queue: kind/priority/status, with starvation detection). Pure parse/serialize (`content/model.ts`),
-a `content/` store, and a new **Content tab** cockpit (config form + backlog table + kill-switch
-toggles). PR-by-default writes; variable flips are instant.
-(5) **Headless CMS template** — stamps the whole loop: a daily+plan-first-manual content writer behind
-`CONTENT_FACTORY_ENABLED` (rate-limited → open PR a human merges) + a weekly loop-tuner behind
-`LOOP_TUNER_ENABLED`.
-Also fixed a parked correctness bug (ROADMAP): `sink.open_pr`/`sink.commit_files` granted only
-`gh pr create` — no `git add/commit/push` — so the obligation couldn't actually be met. `toolsFor`
-now grants the git verbs. 19 → **21 machine types**; +45 tests (193 total), typecheck + prod build
-green. Verified against the live lifehacker.dev fleet (a research subagent read every workflow +
-the composite action + the Ruby dispatcher before any machine was designed — golden rule #4).
+on it; agent lines get a PLAN/APPLY prompt note that flips them to report-only on a dry run. (4) **Central config + content backlog** — `.factory/config.yml` (model/budget/voice/paths the agents honor at runtime — lifehacker's `ai.yml` idea, one place) and `.factory/backlog.yml` (a typed work queue: kind/priority/status, with starvation detection). Pure parse/serialize (`content/model.ts`), a `content/` store, and a new **Content tab** cockpit (config form + backlog table + kill-switch toggles). PR-by-default writes; variable flips are instant. (5) **Headless CMS template** — stamps the whole loop: a daily+plan-first-manual content writer behind `CONTENT_FACTORY_ENABLED` (rate-limited → open PR a human merges) + a weekly loop-tuner behind `LOOP_TUNER_ENABLED`. Also fixed a parked correctness bug (ROADMAP): `sink.open_pr`/`sink.commit_files` granted only `gh pr create` — no `git add/commit/push` — so the obligation couldn't actually be met. `toolsFor` now grants the git verbs. 19 → **21 machine types**; +45 tests (193 total), typecheck + prod build green. Verified against the live lifehacker.dev fleet (a research subagent read every workflow + the composite action + the Ruby dispatcher before any machine was designed — golden rule #4).
 
 ## 2026-07-05 — ADR-016: Five-tab app shell; device flow stays parked (CORS)
-The frontend graduated from a single canvas to a **five-tab shell** (Build · Prompts ·
-Monitor · Fleet · Settings), driven by a tiny `state/ui` store so any panel can deep-link.
-Each tab is a self-contained panel over its own store; the compiler/telemetry/deploy cores
-are untouched. Shipped: Prompt Studio (Phase 5 — browse/edit/lint/diff/PR-writes + cron-aware
-scheduling in Monitor), Monitor (Phase-4 remainder — per-line stats, jobs+steps drill-down,
-▶ Run now / ✕ Cancel via new client `dispatchWorkflow`/`cancelRun`/`listRunJobs`), three new
-machines (`gate.approval`, `rate.limiter`, `sink.cross_repo_issue` — Phase 6 gates + Fleet C),
-a template gallery, undo/redo (blueprint snapshots, edit-burst coalescing), palette search,
-and Fleet B (multi-repo observe switcher via `settings.recentRepos` — slugs only, never
-tokens). **Device flow (Phase 7) stays parked**: verified GitHub's `login/device/code`
-endpoint serves no CORS headers to a browser origin, so a pure-static SPA cannot run device
-flow without the optional worker (ADR-004 Phase 2). PAT-in-sessionStorage remains the auth
-path; the Settings tab now surfaces the live preflight + connection switcher instead. Also
-parked: belt-mode typed handoffs (ADR-003 Phase 6.1) and the §8 red-team pass — both want a
-live scratch repo and their own session. Alt: a routed multi-page app (rejected — the shell
-is one store field; routing adds a dep for no gain on a single-view-at-a-time tool).
+The frontend graduated from a single canvas to a **five-tab shell** (Build · Prompts · Monitor · Fleet · Settings), driven by a tiny `state/ui` store so any panel can deep-link. Each tab is a self-contained panel over its own store; the compiler/telemetry/deploy cores are untouched. Shipped: Prompt Studio (Phase 5 — browse/edit/lint/diff/PR-writes + cron-aware scheduling in Monitor), Monitor (Phase-4 remainder — per-line stats, jobs+steps drill-down, ▶ Run now / ✕ Cancel via new client `dispatchWorkflow`/`cancelRun`/`listRunJobs`), three new machines (`gate.approval`, `rate.limiter`, `sink.cross_repo_issue` — Phase 6 gates + Fleet C), a template gallery, undo/redo (blueprint snapshots, edit-burst coalescing), palette search, and Fleet B (multi-repo observe switcher via `settings.recentRepos` — slugs only, never tokens). **Device flow (Phase 7) stays parked**: verified GitHub's `login/device/code` endpoint serves no CORS headers to a browser origin, so a pure-static SPA cannot run device flow without the optional worker (ADR-004 Phase 2). PAT-in-sessionStorage remains the auth path; the Settings tab now surfaces the live preflight + connection switcher instead. Also parked: belt-mode typed handoffs (ADR-003 Phase 6.1) and the §8 red-team pass — both want a live scratch repo and their own session. Alt: a routed multi-page app (rejected — the shell is one store field; routing adds a dep for no gain on a single-view-at-a-time tool).
 ## 2026-07-05 — ADR-015: Merge policy lives in instructions and structure, never in agent discretion
-Live incident during the first automerge runs: the Warden merged PR #5 (typescript 5.9→6.0,
-labelled `dep:needs-review` with two explicit "hold for a human" verdicts) and an earlier run
-double-posted a verdict despite the idempotency marker. Root cause: the compiled merge
-obligation said "Only merge when your **assessment** says it is safe" — inviting the agent's
-judgment ("CI is green, typecheck passes — that's exactly what the hold asked a human to
-check") to override the label policy in the operating prompt. When a capability grant and a
-prose guardrail disagree, a plausible-sounding reason wins often enough to be unsafe. Fixes:
-(1) the compiler's merge_pr obligation now subordinates judgment ("their guardrails override
-your own judgment: if they say hold, you hold") + regression test; (2) the warden prompt makes
-the label THE decision (re-assessment never authorizes a merge; only a human removing the
-label does) and forbids second verdict comments outright; (3) added sibling-recompute retry
-guidance (GitHub briefly flips other PRs to UNKNOWN after each merge — the cause of the
-one-merge-per-run behaviour that took 4 runs to drain 4 PRs). Outcome kept (user decision):
-TS 6 was verifiably green (PR CI, post-merge main CI, local typecheck+tests). Parked in
-ROADMAP: a deterministic label-gated merge line (`pull_request:[labeled]` trigger + filter +
-terminal merge sink) so merge policy compiles to YAML instead of prose — structure beats
-instructions.
+Live incident during the first automerge runs: the Warden merged PR #5 (typescript 5.9→6.0, labelled `dep:needs-review` with two explicit "hold for a human" verdicts) and an earlier run double-posted a verdict despite the idempotency marker. Root cause: the compiled merge obligation said "Only merge when your **assessment** says it is safe" — inviting the agent's judgment ("CI is green, typecheck passes — that's exactly what the hold asked a human to check") to override the label policy in the operating prompt. When a capability grant and a prose guardrail disagree, a plausible-sounding reason wins often enough to be unsafe. Fixes: (1) the compiler's merge_pr obligation now subordinates judgment ("their guardrails override your own judgment: if they say hold, you hold") + regression test; (2) the warden prompt makes the label THE decision (re-assessment never authorizes a merge; only a human removing the label does) and forbids second verdict comments outright; (3) added sibling-recompute retry guidance (GitHub briefly flips other PRs to UNKNOWN after each merge — the cause of the one-merge-per-run behaviour that took 4 runs to drain 4 PRs). Outcome kept (user decision): TS 6 was verifiably green (PR CI, post-merge main CI, local typecheck+tests). Parked in ROADMAP: a deterministic label-gated merge line (`pull_request:[labeled]` trigger + filter + terminal merge sink) so merge policy compiles to YAML instead of prose — structure beats instructions.
 
 ## 2026-07-04 — ADR-014: Granular components — workflow_run trigger, merge_pr sink, dependabot_meta processor
-Added three machines so flows like "auto-merge low-risk Dependabot updates" and "act on a
-workflow's pass/fail" are expressible. Three decisions, each verified against GitHub's live
-behaviour (golden rule #4 — confirmed via the Dependabot-automation docs before templating):
-(1) **`trigger.workflow_run`** is the trusted keystone. It runs on the default branch with a
-write token + secrets and is not attacker-loopy, so it carries no bot-guard — the secure way
-to act on a PR's CI result (incl. Dependabot/forks). Entity =
-`github.event.workflow_run.pull_requests[0].number`.
-(2) **`sink.merge_pr`** (`gh pr merge --<method> [--auto]`) is a **terminal** sink — merging
-emits no new comment/issue/PR event, so it can't retrigger its line. Terminal-only lines
-therefore drop the mandatory bot loop-guard (ADR-009 stays intact for content-writing lines),
-which is the ONLY way a `pull_request`-triggered line can act on Dependabot's bot-authored PRs.
-Grants `contents`+`pull-requests: write`; the compiler errors if there's no PR-bearing trigger
-and warns on an unscoped `pull_request` merge.
-(3) **`processor.dependabot_meta`** wraps `dependabot/fetch-metadata@v2`. Because
-fetch-metadata reads the `pull_request` event, this path is `pull_request`-triggered (NOT
-workflow_run), and its update-type gate must be a **step-level** `if:` on the merge step —
-job-level guards evaluate before any step runs, so `steps.*.outputs` aren't available there.
-The processor auto-scopes the line to `pull_request.user.login == 'dependabot[bot]'` (fetch-
-metadata is Dependabot-only). Verified: Dependabot `pull_request` runs DO honour the
-`permissions:` block for the GITHUB_TOKEN, so no `pull_request_target` (and its checkout-of-
-untrusted-code risk) is needed. Alt: route auto-merge through workflow_run too (rejected —
-fetch-metadata has no PR event there); a `pull_request_target` machine (rejected — security-
-sensitive, deferred). 10 invariant tests; both example flows compile clean (100 tests total).
+Added three machines so flows like "auto-merge low-risk Dependabot updates" and "act on a workflow's pass/fail" are expressible. Three decisions, each verified against GitHub's live behaviour (golden rule #4 — confirmed via the Dependabot-automation docs before templating): (1) **`trigger.workflow_run`** is the trusted keystone. It runs on the default branch with a write token + secrets and is not attacker-loopy, so it carries no bot-guard — the secure way to act on a PR's CI result (incl. Dependabot/forks). Entity = `github.event.workflow_run.pull_requests[0].number`. (2) **`sink.merge_pr`** (`gh pr merge --<method> [--auto]`) is a **terminal** sink — merging emits no new comment/issue/PR event, so it can't retrigger its line. Terminal-only lines therefore drop the mandatory bot loop-guard (ADR-009 stays intact for content-writing lines), which is the ONLY way a `pull_request`-triggered line can act on Dependabot's bot-authored PRs. Grants `contents`+`pull-requests: write`; the compiler errors if there's no PR-bearing trigger and warns on an unscoped `pull_request` merge. (3) **`processor.dependabot_meta`** wraps `dependabot/fetch-metadata@v2`. Because fetch-metadata reads the `pull_request` event, this path is `pull_request`-triggered (NOT workflow_run), and its update-type gate must be a **step-level** `if:` on the merge step — job-level guards evaluate before any step runs, so `steps.*.outputs` aren't available there. The processor auto-scopes the line to `pull_request.user.login == 'dependabot[bot]'` (fetch- metadata is Dependabot-only). Verified: Dependabot `pull_request` runs DO honour the `permissions:` block for the GITHUB_TOKEN, so no `pull_request_target` (and its checkout-of- untrusted-code risk) is needed. Alt: route auto-merge through workflow_run too (rejected — fetch-metadata has no PR event there); a `pull_request_target` machine (rejected — security- sensitive, deferred). 10 invariant tests; both example flows compile clean (100 tests total).
 
 ## 2026-07-04 — ADR-013: Scheduled/manual agent lines get "survey mode" PR-discovery grants
-A Dependency Warden (review the open Dependabot PRs, comment a verdict, label the safe ones)
-exposed a real gap: a `pull_request`-triggered line is the wrong tool for Dependabot, because
-(1) the compiler's mandatory bot loop-guard (`github.event.sender.type != 'Bot'`, ADR-009)
-correctly refuses to fire for a bot actor, and (2) GitHub gives Dependabot `pull_request`
-runs a **read-only token with no secrets**, so `CLAUDE_CODE_OAUTH_TOKEN` wouldn't even be
-present. The right shape is a **cron + manual** line that runs in the base-repo context (full
-secrets, writable token, no bot-guard) — the same OODA-warden pattern `lifehacker.dev` uses.
-But such a line has no triggering entity, so it must *discover* its own work, and the existing
-cron grants (`gh issue list`, `gh search issues`) **cannot see PRs** — verified empirically:
-`gh search issues` forces `type:issue` and `gh issue list` excludes PRs. So the compiler now
-recognises **survey mode** (an agent line fired only by cron/manual — `!hasIssueish && !hasPr
-&& !hasComment`) and grants read-only PR discovery/inspection (`gh pr list/view/diff`) plus,
-when a comment/label sink is downstream, the PR-scoped write tools (`gh pr comment`, `gh pr
-edit`) and `pull-requests: write` (PR comments/labels are governed by the pull-requests scope,
-not issues, even though gh routes through the shared number space). Still least-privilege: no
-`gh pr merge/create/close`, contents stays `read`. Consequence (accepted): the compiler can't
-read prompts, so *any* cron/manual comment/label agent (e.g. the nightly gardener) gets the
-issue+PR survey+write ceiling — the prompt narrows actual behaviour, the grant is a ceiling.
-Alt: a `pull_request_target` machine (rejected — security-sensitive trigger, later phase);
-Dependabot secrets scope (rejected — doesn't help the read-only `GITHUB_TOKEN` comment/label).
+A Dependency Warden (review the open Dependabot PRs, comment a verdict, label the safe ones) exposed a real gap: a `pull_request`-triggered line is the wrong tool for Dependabot, because (1) the compiler's mandatory bot loop-guard (`github.event.sender.type != 'Bot'`, ADR-009) correctly refuses to fire for a bot actor, and (2) GitHub gives Dependabot `pull_request` runs a **read-only token with no secrets**, so `CLAUDE_CODE_OAUTH_TOKEN` wouldn't even be present. The right shape is a **cron + manual** line that runs in the base-repo context (full secrets, writable token, no bot-guard) — the same OODA-warden pattern `lifehacker.dev` uses. But such a line has no triggering entity, so it must *discover* its own work, and the existing cron grants (`gh issue list`, `gh search issues`) **cannot see PRs** — verified empirically: `gh search issues` forces `type:issue` and `gh issue list` excludes PRs. So the compiler now recognises **survey mode** (an agent line fired only by cron/manual — `!hasIssueish && !hasPr && !hasComment`) and grants read-only PR discovery/inspection (`gh pr list/view/diff`) plus, when a comment/label sink is downstream, the PR-scoped write tools (`gh pr comment`, `gh pr edit`) and `pull-requests: write` (PR comments/labels are governed by the pull-requests scope, not issues, even though gh routes through the shared number space). Still least-privilege: no `gh pr merge/create/close`, contents stays `read`. Consequence (accepted): the compiler can't read prompts, so *any* cron/manual comment/label agent (e.g. the nightly gardener) gets the issue+PR survey+write ceiling — the prompt narrows actual behaviour, the grant is a ceiling. Alt: a `pull_request_target` machine (rejected — security-sensitive trigger, later phase); Dependabot secrets scope (rejected — doesn't help the read-only `GITHUB_TOKEN` comment/label).
 
 ## 2026-07-04 — ADR-012: Agent auth defaults to Claude Code OAuth token, ANTHROPIC_API_KEY fallback
-GitFactory's generated workflows (and the power hookup) now default to
-**`CLAUDE_CODE_OAUTH_TOKEN`** (from `claude setup-token` — a Claude Code subscription token)
-with **`ANTHROPIC_API_KEY`** as the fallback, matching the `claude-run` convention proven in
-`lifehacker.dev`. Verified against the live `claude-code-action@v1` `action.yml` (golden rule
-#4): both `claude_code_oauth_token` and `anthropic_api_key` are optional inputs; the former
-is "an alternative to" the latter. The compiler emits BOTH, but the API key uses the
+GitFactory's generated workflows (and the power hookup) now default to **`CLAUDE_CODE_OAUTH_TOKEN`** (from `claude setup-token` — a Claude Code subscription token) with **`ANTHROPIC_API_KEY`** as the fallback, matching the `claude-run` convention proven in `lifehacker.dev`. Verified against the live `claude-code-action@v1` `action.yml` (golden rule #4): both `claude_code_oauth_token` and `anthropic_api_key` are optional inputs; the former is "an alternative to" the latter. The compiler emits BOTH, but the API key uses the
 expression `${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}`
-so it is non-empty ONLY when the OAuth secret is unset — exactly one auth input is ever
-populated, avoiding any action-side precedence ambiguity and never sending both. The
-power-hookup UI provisions either secret (OAuth default), the power LED lights when either
-exists, and dev `.env` gains `VITE_CLAUDE_CODE_OAUTH_TOKEN` (build-guarded like the other
-secrets). Alt: pass only the OAuth token (rejected — breaks API-key users); pass both
-unconditionally (rejected — relies on unverified action precedence).
+so it is non-empty ONLY when the OAuth secret is unset — exactly one auth input is ever populated, avoiding any action-side precedence ambiguity and never sending both. The power-hookup UI provisions either secret (OAuth default), the power LED lights when either exists, and dev `.env` gains `VITE_CLAUDE_CODE_OAUTH_TOKEN` (build-guarded like the other secrets). Alt: pass only the OAuth token (rejected — breaks API-key users); pass both unconditionally (rejected — relies on unverified action precedence).
 
 ## 2026-07-04 — ADR-011: Observe mode reverse-imports workflows as a fleet map, not authoring machines
-To make GitFactory plug-and-play against ANY repo (starting with the real, hand-built
-`lifehacker.dev`), added a read-only **Observe mode** that reverse-imports
-`.github/workflows/*.yml`. Key decision: do NOT decompose arbitrary workflows into the 13
-authoring machine types — they use `workflow_run` chains, matrix fan-out, gate jobs, and a
-custom `claude-run` runner that don't fit and would misrepresent. Instead render **one node
-per workflow** with belts for `workflow_run` chains (intra-repo) and `--repo` issue-filing
-(cross-repo to external-repo "station" nodes). Why: faithful to how a real fleet actually
-works (event-driven between workflows), and it generalizes to any repo. The parser
-(`fleet/parse.ts`) is pure and total (never throws) and mixes YAML-structure reads with
-raw-text regex scans (robust across the shapes real workflows take); it correctly recovered
-lifehacker's `pipeline → auto-*` hub and cross-repo edges to `zer0-mistakes`/`it-journey`.
-Telemetry run-polling was generalized with a `pathPrefix` param (authored `factory--*`
-default; observe passes `.github/workflows/`). Each canvas now owns its own
-`ReactFlowProvider` (the shared one bled `machine` nodes into the fleet flow). A DEV-only
-`__fleetStore` window hook (tree-shaken from prod) enables tokenless UI smoke tests.
-Read-only per the user's "decide writes per-action later"; write paths (multi-repo, cross-
-repo authoring) are Phases B/C. Alt: shoehorn into authoring types (rejected: lossy).
+To make GitFactory plug-and-play against ANY repo (starting with the real, hand-built `lifehacker.dev`), added a read-only **Observe mode** that reverse-imports `.github/workflows/*.yml`. Key decision: do NOT decompose arbitrary workflows into the 13 authoring machine types — they use `workflow_run` chains, matrix fan-out, gate jobs, and a custom `claude-run` runner that don't fit and would misrepresent. Instead render **one node per workflow** with belts for `workflow_run` chains (intra-repo) and `--repo` issue-filing (cross-repo to external-repo "station" nodes). Why: faithful to how a real fleet actually works (event-driven between workflows), and it generalizes to any repo. The parser (`fleet/parse.ts`) is pure and total (never throws) and mixes YAML-structure reads with raw-text regex scans (robust across the shapes real workflows take); it correctly recovered lifehacker's `pipeline → auto-*` hub and cross-repo edges to `zer0-mistakes`/`it-journey`. Telemetry run-polling was generalized with a `pathPrefix` param (authored `factory--*` default; observe passes `.github/workflows/`). Each canvas now owns its own `ReactFlowProvider` (the shared one bled `machine` nodes into the fleet flow). A DEV-only `__fleetStore` window hook (tree-shaken from prod) enables tokenless UI smoke tests. Read-only per the user's "decide writes per-action later"; write paths (multi-repo, cross- repo authoring) are Phases B/C. Alt: shoehorn into authoring types (rejected: lossy).
 
 ## 2026-07-04 — ADR-010: Telemetry is ETag-polled and follows the open panel (MVP / seed 04)
-Built the Phase-4 telemetry MVP. Shape decisions: (1) **Poll, don't push.** No webhook
-worker — `client.listFactoryRuns` does a conditional GET on `/actions/runs` with
-`If-None-Match`; a 304 is free, so a 15s interval stays cheap. (2) **Poll only the open
-factory.** Polling starts when the telemetry panel opens and stops when it closes or the
-repo disconnects (ARCHITECTURE §6 rate-hygiene) — no background polling. (3) **Pure
-mapping split from I/O.** `github/telemetry.ts` (LED/stats, 11 tests) is pure; the store
-just wires runs → `assemblyLines(blueprint)` → per-node LEDs. To map a `factory--<slug>`
-run back onto its machines, refactored the compiler to export `assemblyLines()` — one
-partition helper now shared by `compile()` and telemetry so filenames line up exactly.
-Scope: run *list* (conclusion/duration/link) shipped; jobs drill-down + log-zip viewing
-(fflate) and per-line stat rows deferred to backlog. Alt: webhook→SSE push (rejected for
-MVP — needs the optional worker, breaks the zero-backend premise).
+Built the Phase-4 telemetry MVP. Shape decisions: (1) **Poll, don't push.** No webhook worker — `client.listFactoryRuns` does a conditional GET on `/actions/runs` with `If-None-Match`; a 304 is free, so a 15s interval stays cheap. (2) **Poll only the open factory.** Polling starts when the telemetry panel opens and stops when it closes or the repo disconnects (ARCHITECTURE §6 rate-hygiene) — no background polling. (3) **Pure mapping split from I/O.** `github/telemetry.ts` (LED/stats, 11 tests) is pure; the store just wires runs → `assemblyLines(blueprint)` → per-node LEDs. To map a `factory--<slug>` run back onto its machines, refactored the compiler to export `assemblyLines()` — one partition helper now shared by `compile()` and telemetry so filenames line up exactly. Scope: run *list* (conclusion/duration/link) shipped; jobs drill-down + log-zip viewing (fflate) and per-line stat rows deferred to backlog. Alt: webhook→SSE push (rejected for MVP — needs the optional worker, breaks the zero-backend premise).
 
 ## 2026-07-04 — ADR-009: Loop guards check the event actor (sender), not the entity author
-Fixed the flagged `issue_labeled` loop-guard bug by making the compiler's bot guard
-actor-based: one `github.event.sender.type != 'Bot'` clause per loopy line, replacing the
-three entity-author checks (`issue.user` / `pull_request.user` / `comment.user`). Why: the
-author is only incidentally the actor for `issues.opened`; on `issues.labeled` the actor is
-the labeller and on `pull_request.synchronize` the actor is the pusher, so an agent's own
-label/push would pass an author check and retrigger the line (golden rule #6). `sender` is
-the account that caused the event, so `sender.type == 'Bot'` blocks every agent-authored
-write; the three cases collapse to one clause (equivalent for opened/comment, strictly
-correct for labeled/synchronize). For non-event runs (merged cron) `github.event.sender` is
-null and `null != 'Bot'` is true, so those runs still proceed. Regression tests cover
-labeled + synchronize; the reference output in `examples/compiled/` was updated. Alt:
-patch only the labeled path (rejected — leaves the identical PR-synchronize hole and makes
-the guard logic non-uniform).
+Fixed the flagged `issue_labeled` loop-guard bug by making the compiler's bot guard actor-based: one `github.event.sender.type != 'Bot'` clause per loopy line, replacing the three entity-author checks (`issue.user` / `pull_request.user` / `comment.user`). Why: the author is only incidentally the actor for `issues.opened`; on `issues.labeled` the actor is the labeller and on `pull_request.synchronize` the actor is the pusher, so an agent's own label/push would pass an author check and retrigger the line (golden rule #6). `sender` is the account that caused the event, so `sender.type == 'Bot'` blocks every agent-authored write; the three cases collapse to one clause (equivalent for opened/comment, strictly correct for labeled/synchronize). For non-event runs (merged cron) `github.event.sender` is null and `null != 'Bot'` is true, so those runs still proceed. Regression tests cover labeled + synchronize; the reference output in `examples/compiled/` was updated. Alt: patch only the labeled path (rejected — leaves the identical PR-synchronize hole and makes the guard logic non-uniform).
 
 ## 2026-07-03 — ADR-008: GitHub I/O via a thin fetch client + tweetnacl sealed box (MVP / seed 03)
-Implemented the Phase-3 MVP (connect → load/deploy → power). Two shape decisions:
-(1) **fetch, not Octokit.** The transport client (`app/src/github/client.ts`) is a thin
-typed wrapper over `fetch` against `api.github.com`, not `@octokit/rest`. Why: keeps the
-static bundle lean, avoids Octokit's browser/ESM friction, and makes the whole client
-trivially mockable via an injected `fetchImpl` (17 unit tests, zero network). Cost: we
-hand-roll pagination/retries if ever needed (backlog).
-(2) **tweetnacl sealed box** (`tweetnacl` + `tweetnacl-sealedbox-js`) for the power hookup,
-per ARCHITECTURE §2 — encrypt `ANTHROPIC_API_KEY` in-browser against the repo public key
-and PUT it; plaintext is read from an uncontrolled input and never enters React state or
-storage. Architecture: a fixed contract (`github/types.ts`) let the client/crypto/deploy
-modules be built in parallel by separate agents; the pure planner (`deploy.ts`) is split
-from the I/O executor (`execute.ts`). Preflight approximates Workflows-write as equal to
-Contents-write (REST can't cheaply distinguish them); a failed deploy surfaces the real
-gap. Prompt-file *writing* is deferred to Prompt Studio (Phase 5) — deploy only warns on
-missing prompt refs. Alt considered: Octokit + libsodium-wrappers (rejected: heavier,
-wasm, harder to mock for a zero-backend static app).
+Implemented the Phase-3 MVP (connect → load/deploy → power). Two shape decisions: (1) **fetch, not Octokit.** The transport client (`app/src/github/client.ts`) is a thin typed wrapper over `fetch` against `api.github.com`, not `@octokit/rest`. Why: keeps the static bundle lean, avoids Octokit's browser/ESM friction, and makes the whole client trivially mockable via an injected `fetchImpl` (17 unit tests, zero network). Cost: we hand-roll pagination/retries if ever needed (backlog). (2) **tweetnacl sealed box** (`tweetnacl` + `tweetnacl-sealedbox-js`) for the power hookup, per ARCHITECTURE §2 — encrypt `ANTHROPIC_API_KEY` in-browser against the repo public key and PUT it; plaintext is read from an uncontrolled input and never enters React state or storage. Architecture: a fixed contract (`github/types.ts`) let the client/crypto/deploy modules be built in parallel by separate agents; the pure planner (`deploy.ts`) is split from the I/O executor (`execute.ts`). Preflight approximates Workflows-write as equal to Contents-write (REST can't cheaply distinguish them); a failed deploy surfaces the real gap. Prompt-file *writing* is deferred to Prompt Studio (Phase 5) — deploy only warns on missing prompt refs. Alt considered: Octokit + libsodium-wrappers (rejected: heavier, wasm, harder to mock for a zero-backend static app).
 
 ## 2026-07-03 — ADR-007: Repo root is `gitorio/`; scaffold flattened up one level
-The starter unpacked into `gitorio/gitfactory/`, leaving a duplicate `CLAUDE.md`,
-the session-0 blog post, and `gitfactory-starter.zip` stranded in the outer folder.
-Flattened `gitfactory/*` up so the git root is `gitorio/` with `app/`, `docs/`,
-`seeds/` as direct children. Why: the CI and Pages workflows hard-assume
-`working-directory: app` / `cache-dependency-path: app/package-lock.json`, the
-CLAUDE.md repo map lists everything at root, and "Gitorio" (Git + Factorio) *is* the
-product name. Removed the duplicate `CLAUDE.md` (byte-identical) and the starter zip;
-routed the `draft: true` blog post into `blog/drafts/`. Alt: `git init` inside the
-nested `gitfactory/` (rejected: leaves a stray parent folder and forces every CI path
-to carry a `gitfactory/` prefix). Then `git init` (branch `main`) — the scaffold had
-never been under version control.
+The starter unpacked into `gitorio/gitfactory/`, leaving a duplicate `CLAUDE.md`, the session-0 blog post, and `gitfactory-starter.zip` stranded in the outer folder. Flattened `gitfactory/*` up so the git root is `gitorio/` with `app/`, `docs/`, `seeds/` as direct children. Why: the CI and Pages workflows hard-assume `working-directory: app` / `cache-dependency-path: app/package-lock.json`, the CLAUDE.md repo map lists everything at root, and "Gitorio" (Git + Factorio) *is* the product name. Removed the duplicate `CLAUDE.md` (byte-identical) and the starter zip; routed the `draft: true` blog post into `blog/drafts/`. Alt: `git init` inside the nested `gitfactory/` (rejected: leaves a stray parent folder and forces every CI path to carry a `gitfactory/` prefix). Then `git init` (branch `main`) — the scaffold had never been under version control.
