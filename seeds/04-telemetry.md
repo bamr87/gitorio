@@ -14,6 +14,4 @@
 4. Dashboard panel: runs/day, success rate, p50 duration per assembly line (7-day
    window, computed client-side).
 
-**Acceptance:** ROADMAP Phase 4 boxes; with the scratch repo from seed 03, an issue
-opened in another tab lights the line within one poll interval.
-**Out of scope:** webhooks/SSE, alerting (Phase 6 watchdog).
+**Acceptance:** ROADMAP Phase 4 boxes; with the scratch repo from seed 03, an issue opened in another tab lights the line within one poll interval. **Out of scope:** webhooks/SSE, alerting (Phase 6 watchdog).

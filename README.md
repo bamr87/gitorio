@@ -2,10 +2,7 @@
 
 **A Factorio-style factory builder for GitHub automation.** *(working title)*
 
-Drag machines onto a canvas. Connect them with belts. Hit **Deploy** — and your
-blueprint compiles into real GitHub Actions workflows where **Claude Code agents**
-triage issues, review PRs, garden stale threads, and commit fixes on your actual
-repositories.
+Drag machines onto a canvas. Connect them with belts. Hit **Deploy** — and your blueprint compiles into real GitHub Actions workflows where **Claude Code agents** triage issues, review PRs, garden stale threads, and commit fixes on your actual repositories.
 
 ```
  [📥 Issue opened] ══▶ [⚙ Claude: triage] ══▶ [🏷 Apply labels]
@@ -14,9 +11,7 @@ repositories.
  [⏰ Nightly 03:00] ══▶ [⚙ Claude: gardener] ══▶ [📝 Stale-issue nudges]
 ```
 
-No servers. The frontend is a static site; **GitHub is the database, the event bus,
-and the compute layer**. Blueprints live in your repo, prompts live in your repo,
-telemetry is read back from the Actions API and rendered as factory floor status.
+No servers. The frontend is a static site; **GitHub is the database, the event bus, and the compute layer**. Blueprints live in your repo, prompts live in your repo, telemetry is read back from the Actions API and rendered as factory floor status.
 
 ## Why this shape
 
@@ -33,9 +28,7 @@ telemetry is read back from the Actions API and rendered as factory floor status
 cd app && npm install && npm run dev
 ```
 
-Open the canvas, drag machines from the palette, connect belts, press **Compile** to
-see the generated workflows. GitHub connectivity, telemetry, and the prompt studio
-land in later phases — see `docs/ROADMAP.md`.
+Open the canvas, drag machines from the palette, connect belts, press **Compile** to see the generated workflows. GitHub connectivity, telemetry, and the prompt studio land in later phases — see `docs/ROADMAP.md`.
 
 ### Run with Docker
 
@@ -49,8 +42,7 @@ docker compose --profile preview up --build  # production build via nginx → ht
 docker compose down                          # stop everything
 ```
 
-Your working tree is mounted into the `dev` container, so edits hot-reload
-(`VITE_USE_POLLING=true` keeps HMR reliable across the macOS ↔ container boundary).
+Your working tree is mounted into the `dev` container, so edits hot-reload (`VITE_USE_POLLING=true` keeps HMR reliable across the macOS ↔ container boundary).
 
 ### Debugging in VS Code
 
@@ -72,11 +64,8 @@ This repo is designed to be **built by Claude Code, session by session**:
    ```
 3. `.claude/commands/` — `/add-machine`, `/compile-check`, `/session-log`.
 
-Powering a deployed factory requires a Claude auth Actions secret on the target repo
-(the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude
-setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
+Powering a deployed factory requires a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
 
 ## Status
 
-Scaffold + canvas MVP + compiler v0, dogfooding itself in `.factory/`. Pre-alpha;
-the roadmap is the product spec.
+Scaffold + canvas MVP + compiler v0, dogfooding itself in `.factory/`. Pre-alpha; the roadmap is the product spec.

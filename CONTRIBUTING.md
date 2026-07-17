@@ -1,9 +1,6 @@
 # Contributing to GitFactory
 
-GitFactory is built **session by session with Claude Code**, driven by the ordered
-prompts in [`seeds/`](seeds/). Whether you're a human or an agent, the workflow is the
-same. Read [`CLAUDE.md`](CLAUDE.md) first — it's the project's memory and the golden
-rules are non-negotiable.
+GitFactory is built **session by session with Claude Code**, driven by the ordered prompts in [`seeds/`](seeds/). Whether you're a human or an agent, the workflow is the same. Read [`CLAUDE.md`](CLAUDE.md) first — it's the project's memory and the golden rules are non-negotiable.
 
 ## Prerequisites
 
@@ -43,13 +40,8 @@ These are the ones a PR gets bounced for — the full list is in `CLAUDE.md § G
 
 ## Adding a machine type
 
-Run [`/add-machine`](.claude/commands/add-machine.md) for the checklist. Definition of
-done: registry entry + config fields + compiler emitter + invariant test + one line in
-the `docs/ARCHITECTURE.md` machine catalog + it renders on the canvas.
+Run [`/add-machine`](.claude/commands/add-machine.md) for the checklist. Definition of done: registry entry + config fields + compiler emitter + invariant test + one line in the `docs/ARCHITECTURE.md` machine catalog + it renders on the canvas.
 
 ## Claude Code tooling
 
-Project commands live in [`.claude/commands/`](.claude/commands/): `/add-machine`,
-`/compile-check`, `/session-log`. Use `/compile-check` to validate the compiler against
-the schema, the reference output, and the upstream `claude-code-action` inputs before
-shipping compiler changes.
+Project commands live in [`.claude/commands/`](.claude/commands/): `/add-machine`, `/compile-check`, `/session-log`. Use `/compile-check` to validate the compiler against the schema, the reference output, and the upstream `claude-code-action` inputs before shipping compiler changes.

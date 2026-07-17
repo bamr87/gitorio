@@ -1,7 +1,6 @@
 # Roadmap
 
-Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and
-`npm test && npm run build` are green. Park anything else in § Backlog.
+Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and `npm test && npm run build` are green. Park anything else in § Backlog.
 
 ## Phase 0 — Bootstrap (seeds/00)
 - [ ] `npm install / dev / test / build` all work on a fresh clone
@@ -57,8 +56,7 @@ Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and
 - [x] Multi-repo factory switcher — shipped as the Settings/Fleet connection switcher (Fleet B below).
 
 ## Fleet / plug-and-play (apply GitFactory to any repo, multi-repo, cross-repo)
-Goal: point GitFactory at *various* repos, *multiple* at once, and see automation
-*between* repos — grounded in the real lifehacker.dev fleet (see ADR-011/012).
+Goal: point GitFactory at *various* repos, *multiple* at once, and see automation *between* repos — grounded in the real lifehacker.dev fleet (see ADR-011/012).
 - [x] **A — Observe mode.** Reverse-import any repo's `.github/workflows/*.yml` into a
       read-only fleet map: one node per workflow, `workflow_run` belts, cross-repo `--repo`
       belts to external-repo stations, live telemetry LEDs. Generalized run polling beyond
@@ -74,11 +72,7 @@ Goal: point GitFactory at *various* repos, *multiple* at once, and see automatio
   aren't visible in static YAML — mark "agent-driven"); log-zip viewing in the run drill-down.
 
 ## Phase 8 — Headless CMS + feedback loops (ADR-017)
-Goal: configure an autonomous, configurable, headless content management system with AI
-integrations and feedback loops — grounded in the real `lifehacker.dev` fleet (a research
-subagent reverse-engineered its 16 workflows, `claude-run` composite action, OODA dispatcher,
-and `loop-tuner` before any machine was designed). Runtime stays `claude-code-action@v1`;
-lifehacker's *patterns* are adopted as machines + app concepts.
+Goal: configure an autonomous, configurable, headless content management system with AI integrations and feedback loops — grounded in the real `lifehacker.dev` fleet (a research subagent reverse-engineered its 16 workflows, `claude-run` composite action, OODA dispatcher, and `loop-tuner` before any machine was designed). Runtime stays `claude-code-action@v1`; lifehacker's *patterns* are adopted as machines + app concepts.
 - [x] **`gate.enablement`** — default-OFF repo-variable kill switch (a `gate` job + `needs`/`if`);
       instant arm/disarm with no redeploy; a compromised agent can't re-arm itself.
 - [x] **`processor.feedback_controller`** — the loop-tuner: measures the factory's own telemetry,
@@ -112,25 +106,18 @@ lifehacker's *patterns* are adopted as machines + app concepts.
 - Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
   webhook worker + SSE live belts; multi-repo train stations.
 - **Deterministic label-gated merge line (ADR-015)**: a `pull_request:[labeled]` trigger
-  option + filter + terminal merge sink, so "merge anything a human/agent labelled
-  `dep:safe-to-merge`" compiles to YAML instead of living as prose the agent could
-  override. Terminal-sink guard relaxation already permits the bot-labeler case.
+option + filter + terminal merge sink, so "merge anything a human/agent labelled `dep:safe-to-merge`" compiles to YAML instead of living as prose the agent could override. Terminal-sink guard relaxation already permits the bot-labeler case.
 
 ### Parked by the 2026-07-03 foundation review
 Correctness (compiler):
 - ~~**[security] `issue_labeled` loop guard checks the wrong identity**~~ — ✅ FIXED
-  2026-07-04 (ADR-009): the guard now checks the event actor `github.event.sender.type`
-  (correct for `labeled` and `pull_request.synchronize`), not the entity author. Regression
-  tests added.
+2026-07-04 (ADR-009): the guard now checks the event actor `github.event.sender.type` (correct for `labeled` and `pull_request.synchronize`), not the entity author. Regression tests added.
 - ~~**`sink.commit_files` / `sink.open_pr` under-provisioned**~~ — ✅ FIXED 2026-07-05
-  (ADR-017): `toolsFor` now grants `open_pr` the git verbs (`git switch/checkout/add/commit/push`)
-  plus `gh pr create`, and `commit_files` gets `git add/commit/push` — so the branch/commit/push
-  obligation is actually executable. Surfaced while building the Headless-CMS content line.
+(ADR-017): `toolsFor` now grants `open_pr` the git verbs (`git switch/checkout/add/commit/push`) plus `gh pr create`, and `commit_files` gets `git add/commit/push` — so the branch/commit/push obligation is actually executable. Surfaced while building the Headless-CMS content line.
 
 Test coverage (golden rule #3):
 - **5 of 13 machine types have zero invariant tests** — `compile.test.ts` now also covers
-  `issue_labeled` + `pr_opened` (added with the ADR-009 guard fix). Still untested:
-  `trigger.manual, filter.condition, sink.create_issue, sink.open_pr, sink.commit_files`.
+`issue_labeled` + `pr_opened` (added with the ADR-009 guard fix). Still untested: `trigger.manual, filter.condition, sink.create_issue, sink.open_pr, sink.commit_files`.
 - **Drift-guard test**: assert `MACHINES.map(m => m.type)` deep-equals the schema `type`
   enum and the compiler's `TRIGGERS`/`SINKS` sets (single source of truth for machine types).
 
@@ -138,11 +125,9 @@ Lower priority:
 - Per-type `oneOf` config subschemas in `schema/blueprint.schema.json` (config is bare
   `object` today — registry field/required constraints go unenforced).
 - Committed regen script for `examples/compiled/*` + a golden anchor for a no-agent
-  (deterministic `gh`) line and a PR-triggered line; strip hand-written comments that
-  cause spurious regenerate-and-diff drift.
+(deterministic `gh`) line and a PR-triggered line; strip hand-written comments that cause spurious regenerate-and-diff drift.
 - UI polish (`app/src/App.tsx`): `download()` revokes the blob URL before download starts;
-  flash `say()` doesn't clear the prior timer. `Inspector.tsx`: numeric fields use
-  `Number('') === 0`, so a field can't be blanked. Add a React error boundary + store tests.
+flash `say()` doesn't clear the prior timer. `Inspector.tsx`: numeric fields use `Number('') === 0`, so a field can't be blanked. Add a React error boundary + store tests.
 
 Foundation follow-ups (not done this session):
 - Lint/format: ESLint flat config (`typescript-eslint` + `react-hooks`) + Prettier; add
