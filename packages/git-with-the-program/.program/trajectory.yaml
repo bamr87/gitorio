@@ -1,0 +1,14 @@
+# Directional intents with horizons. implies_obsolete lists paths whose only
+# support expires when the intent completes.
+- id: TRJ-001
+  intent: Reach v0 "sighted repo" — deterministic judges + live ledger + issue filing, no LLM in the loop
+  horizon: v0
+  implies_obsolete: []
+- id: TRJ-002
+  intent: Seat the first LLM judge behind the bar exam; retire any interim stub judges
+  horizon: v0.5
+  implies_obsolete: ["src/judge/stub/**"]
+- id: TRJ-003
+  intent: Self-host — this repo runs its own loop on every PR
+  horizon: v1
+  implies_obsolete: []

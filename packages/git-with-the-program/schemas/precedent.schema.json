@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gwtp/precedent.schema.json",
+  "title": "GWTP Precedent (case law)",
+  "type": "object",
+  "required": ["id", "pattern", "ruling", "evidence"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^PRE-[0-9]{3,}$" },
+    "pattern": { "type": "string", "description": "The pattern that was litigated" },
+    "ruling": { "enum": ["killed", "affirmed", "coincidence"], "description": "killed: pattern banned; affirmed: assertion upheld under contest, precision rises; coincidence: inferred regularity rejected at ratification — tombstone against re-proposal" },
+    "rationale": { "type": "string" },
+    "evidence": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Reverts, issues, PR threads. Doubles as the judges' bar-exam corpus." }
+  }
+}

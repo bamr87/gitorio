@@ -1,0 +1,5 @@
+schema_version: 0.1.0
+watermark:
+  last_walked: null        # no history yet — this program was authored, not distilled
+  last_epoch: e0
+judges: []                  # seated at SEED-03; seating requires a ratified PR + passing bar exam

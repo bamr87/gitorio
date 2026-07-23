@@ -1,0 +1,68 @@
+# GWTP's own invariants. All inferred from the design thread (2026-07) —
+# ratification is the human's first PR against this file. See spec 01 §4.
+
+- id: INV-001
+  statement: Nothing writes to .program/ except human-ratified PRs; machine actors are excluded from the path
+  class: boundary
+  scope: [".program/**"]
+  enforcement: deterministic
+  precision: 1.0
+  budget: 1.0            # a single breach of the constitution's write path fires immediately
+  half_life: 365d
+  status: inferred
+  provenance: [adr-0001, design-thread-2026-07]
+
+- id: INV-002
+  statement: Ledger writes are append-only content-addressed events; corrections supersede, never mutate or delete
+  class: behavior
+  scope: ["src/ledger/**"]
+  enforcement: hybrid
+  precision: 0.9
+  budget: 2.0
+  half_life: 180d
+  status: inferred
+  provenance: [adr-0002, docs/spec/02-ledger.md]
+
+- id: INV-003
+  statement: No code path passes author identity or accumulator state to any judge
+  class: boundary
+  scope: ["src/judge/**", "src/evidence/**"]
+  enforcement: hybrid
+  precision: 1.0
+  budget: 1.0            # blindness breaches invalidate the evidence model — zero tolerance
+  half_life: 365d
+  status: inferred
+  provenance: [adr-0003, docs/spec/03-judge.md]
+
+- id: INV-004
+  statement: Violation verdicts carry line-span citations and anchored ordinal severity only
+  class: interface
+  scope: ["src/judge/**", "prompts/**"]
+  enforcement: deterministic
+  precision: 0.8
+  budget: 3.0
+  half_life: 120d
+  status: inferred
+  provenance: [adr-0005, schemas/verdict.schema.json]
+
+- id: INV-005
+  statement: Engine core imports no forge-specific APIs; GitHub access lives in adapters/
+  class: dependency
+  scope: ["src/core/**"]
+  enforcement: deterministic
+  precision: 0.9
+  budget: 3.0
+  half_life: 120d
+  status: inferred
+  provenance: [docs/vision.md#non-goals, design-thread-2026-07]
+
+- id: INV-006
+  statement: All program and ledger artifacts validate against schemas/ in CI
+  class: convention
+  scope: [".program/**", "schemas/**"]
+  enforcement: deterministic
+  precision: 0.7
+  budget: 3.0
+  half_life: 90d
+  status: inferred
+  provenance: [seeds/SEED-01-scaffold.md]
