@@ -94,7 +94,7 @@ import {
   parseCommitSha,
   parseCommitterTime,
   parseRationaleRef,
-  parseRepoPath,
+  parseUnifiedDiff,
   scopedHunks,
   sealEvent,
   sealEvidence,
@@ -408,81 +408,14 @@ export function stageInv005BreachRepo(programSource = join(REPO_ROOT, '.program'
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 
 /**
- * A minimal unified-diff reader: `git show` output → `Hunk[]`.
- *
- * This is the ONE piece of the loop SEED-03 has not landed — spec 03 §3's assembler, which
- * produces "the diff hunks intersecting the assertion's scope, with an expanding context ring".
- * It is deliberately HERE and not under `src/**`: writing a permanent assembler inside a task
- * whose subject is SEED-02 would be landing SEED-03 by the back door. What it produces still goes
- * through `sealEvidence`, so the blindness chokepoint is real even though the assembler is a
- * stand-in — the judge cannot tell the difference, which is the point of the seal.
+ * The unified-diff reader (`git show` output → `Hunk[]`) now lives in `src/core/diff.ts` and is
+ * re-exported here so callers that reach for it through this demo (e.g. `tests/exit-test-v0.test.ts`)
+ * keep working. It is the ONE piece of the loop SEED-03 has not fully landed — spec 03 §3's
+ * assembler produces "the diff hunks intersecting the assertion's scope"; what this parser produces
+ * still goes through `sealEvidence`, so the blindness chokepoint is real, which is the point of the
+ * seal. SEED-04 promoted it out of this script so the CLI and the distillation backfill share one copy.
  */
-export function parseUnifiedDiff(diff: string): readonly Hunk[] {
-  const hunks: Hunk[] = [];
-  let path: RepoPath | null = null;
-  let open:
-    | { oldStart: number; oldLines: number; newStart: number; newLines: number; body: string[] }
-    | null = null;
-
-  const flush = (): void => {
-    if (open === null) return;
-    if (path !== null) {
-      hunks.push({
-        path,
-        oldStart: open.oldStart,
-        oldLines: open.oldLines,
-        newStart: open.newStart,
-        newLines: open.newLines,
-        text: open.body.join('\n'),
-      });
-    }
-    open = null;
-  };
-
-  for (const line of diff.split('\n')) {
-    if (line.startsWith('diff --git ')) {
-      flush();
-      path = null;
-      continue;
-    }
-    if (line.startsWith('+++ ')) {
-      flush();
-      const target = line.slice(4).trim();
-      if (target === '/dev/null') {
-        path = null;
-        continue;
-      }
-      const parsed = parseRepoPath(target.replace(/^b\//, ''));
-      path = parsed.ok ? parsed.value : null;
-      continue;
-    }
-    if (line.startsWith('--- ')) continue;
-    const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/.exec(line);
-    if (header !== null) {
-      flush();
-      open = {
-        oldStart: Number.parseInt(header[1] as string, 10),
-        oldLines: header[2] === undefined ? 1 : Number.parseInt(header[2], 10),
-        newStart: Number.parseInt(header[3] as string, 10),
-        newLines: header[4] === undefined ? 1 : Number.parseInt(header[4], 10),
-        body: [],
-      };
-      continue;
-    }
-    if (open === null) continue;
-    if (
-      line === '' ||
-      line.startsWith(' ') ||
-      line.startsWith('+') ||
-      line.startsWith('-') ||
-      line.startsWith('\\')
-    ) {
-      open.body.push(line);
-    }
-  }
-  flush();
-  return hunks;
-}
+export { parseUnifiedDiff };
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 // 3. The capturing delivery port

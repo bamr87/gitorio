@@ -27,7 +27,7 @@ describe('gwtp CLI skeleton', () => {
   it('prints usage listing every registered subcommand', async () => {
     const code = await main(['--help']);
     expect(code).toBe(0);
-    for (const name of ['validate', 'ledger', 'judge', 'program']) {
+    for (const name of ['validate', 'ledger', 'judge', 'program', 'distill']) {
       expect(stdout).toContain(name);
     }
   });
@@ -43,7 +43,10 @@ describe('gwtp CLI skeleton', () => {
   });
 
   it('exits nonzero on an unknown command', async () => {
-    expect(await main(['distill'])).toBe(2);
+    // A token that is NOT a registered command. (`distill` used to sit here as a stand-in for
+    // "unimplemented"; SEED-04 registered it, so this now uses a genuinely unknown name — the
+    // Q-38 lesson: a test must not encode a moment in the command table's life.)
+    expect(await main(['nonesuch'])).toBe(2);
     expect(stderr).toContain('unknown command');
   });
 

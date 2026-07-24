@@ -33,6 +33,9 @@ export * from './assertion.js';
 export * from './precedent.js';
 export * from './verdict.js';
 export * from './change.js';
+// The single unified-diff reader (spec 03 §3). Pure `string -> Hunk[]`; the CLI judge command and
+// the distillation backfill both parse `git show` output through it instead of re-implementing it.
+export * from './diff.js';
 export * from './event.js';
 // The provider-agnostic ModelClient PORT (spec 03 §1/§6, INV-005). Pure interfaces plus one
 // stop-reason const; imports nothing, declassifies nothing, reaches no sentencing module — safe
