@@ -36,6 +36,11 @@ const COMMANDS: Readonly<Record<string, CommandSpec>> = {
     seed: 'SEED-03',
     load: () => import('./commands/judge.js'),
   },
+  distill: {
+    summary: 'facts | epochs | candidates | ratify | backfill — the cold-start distillation walk',
+    seed: 'SEED-04',
+    load: () => import('./commands/distill.js'),
+  },
   program: {
     summary: 'Inspect the normative store: assertions, precedents, scope, manifest',
     seed: 'SEED-01',

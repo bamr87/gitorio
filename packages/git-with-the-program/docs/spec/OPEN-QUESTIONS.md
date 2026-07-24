@@ -1007,3 +1007,99 @@ to the *declassifiers* rather than to whole modules.
 **Pinned at:** `src/judge/deterministic/imports.ts` (module header);
 `tests/ledger/blindness-boundary.test.ts` → "holds TRANSITIVELY";
 `scripts/check-inv003.ts` → `SENTENCING_MODULES`, `SENTENCING_VALUES`.
+
+### Q-61 — distillation's `precision_seed` names three inputs and no function
+Spec 04 §5: "Evidence strength seeds `precision`… Inputs to the seed: violation-free span, number
+of independent corroborations, cross-epoch persistence." The three inputs are named; the FUNCTION
+that combines them into a `(0, 1]` prior is not. (This is the seeding twin of Q-47, which fixes how
+precision *rises* under affirmation; this fixes where a distilled prior *starts*.) The obvious
+candidates misbehave: a plain weighted sum walks off the top and needs clamping; an unbounded
+product lets a single strong signal manufacture near-certainty from a machine inference the spec
+itself calls "noisy by construction" (§4).
+
+**Shipped — saturating weighted evidence, confined to `[0.5, 0.95]`:**
+```
+spanScore    = clamp01(violationFreeSpanDays / 365)          # a violation-free year saturates
+corrScore    = clamp01(corroborations / 5)                   # five independent corroborations saturate
+persistScore = epochsObserved > 0 ? clamp01(epochsPersisted / epochsObserved) : 0
+weighted     = 0.4·spanScore + 0.3·corrScore + 0.3·persistScore     # ∈ [0, 1]
+precision_seed = round6(0.5 + (0.95 − 0.5)·weighted)                # ∈ [0.5, 0.95] ⊂ (0, 1]
+```
+Strictly non-decreasing in each input, saturating (unbounded evidence can never reach certainty —
+a human raises it at ratification, §5), always inside the schema's `(0, 1]` bound so a seed is
+never rejected for range, and hand-checkable (six decimals, matching Q-47). It reproduces the
+spec's own fixture: CAND-014's multi-year span, ~3 corroborations and persistence across 4 of 6
+epochs give `weighted ≈ 0.78 → seed ≈ 0.851 ≈` the hand-written `precision_seed: 0.85`.
+**Questions for ratification:** are 0.4/0.3/0.3 the right relative weights (should an exhaustive
+negative-space span dominate corroboration count more?), and are the 365-day / 5-corroboration
+saturation points and the 0.5 floor / 0.95 ceiling the intended calibration?
+**Pinned at:** `src/distill/precision.ts` → `seedPrecision`, `SEED_FLOOR`, `SEED_CEILING`,
+`WEIGHT_SPAN`, `WEIGHT_CORROBORATION`, `WEIGHT_PERSISTENCE`, `SPAN_SATURATION_DAYS`,
+`CORROBORATION_SATURATION`.
+
+## Found while building the SEED-04 fact miner (pass one)
+
+Raised while implementing `src/distill/miner.ts` / `src/distill/factbase.ts`. Each fixes bytes in
+the on-disk fact base (spec 04 §2 requires it "replayable"), so each is pinned rather than left to a
+call site to decide.
+
+### Q-62 — spec 04 §2 says "dependency manifest diffs" and names no grammar
+The pass-one fact base must produce a "dependency manifest diff over time", but the spec names no
+ecosystem and no parser. `package.json`, `Cargo.toml`, `go.mod`, `requirements.txt`, `Gemfile` and
+`pom.xml` are six different grammars, and a `DependencyDelta`'s `name`/`kind`/`from`/`to` shape is
+only recoverable for one of them without a per-ecosystem parser this session has no mandate to
+invent (and which would be a dependency INV-005 keeps out of the miner anyway — all six parsers are
+third-party).
+
+**Shipped (least-committal): only `npm` is parsed STRUCTURALLY** — `package.json`'s four dependency
+maps become typed deltas with `kind ∈ {runtime, dev, peer, optional}` and real
+`added`/`removed`/`version-changed` classification. Every other ecosystem is routed through a
+`generic` line-set differ: a trimmed, comment-stripped line that appears on one side and not the
+other becomes a delta with `kind: unknown` and `change ∈ {added, removed}` (a version bump reads as
+one `removed` + one `added`, since a line differ cannot pair them). The `ManifestMatcher` still
+records the true `ecosystem`, so a later per-grammar parser is a drop-in that changes bytes visibly.
+A manifest with no net line change emits NO event, so a whitespace-only touch does not manufacture a
+spurious change-point for the segmenter.
+**Question for ratification:** should the non-npm ecosystems get real parsers (TOML/mod/gemspec/xml),
+and if so does that pull those parsers into the engine — or should manifest mining stay a line-set
+diff for everything but npm and let pass two read the raw blob when it needs structure?
+**Pinned at:** `src/distill/miner.ts` → `manifestDeltas`, `npmDeltas`, `genericDeltas`;
+`src/distill/factbase.ts` → `Ecosystem`, `DEFAULT_FACT_BASE_CONFIG.manifestFiles`.
+
+### Q-63 — the co-change graph has no bound on per-commit fan-out
+Spec 04 §2 asks for a "file co-change graph" and says nothing about a mega-commit. A single commit
+that touches N files contributes N·(N−1)/2 undirected edges; a 5 000-file vendoring commit or an
+auto-formatting sweep would alone emit ~12.5M edges and dominate the whole graph with
+co-changes that carry no design signal — and it does so QUADRATICALLY, which is also where the
+exhaustive walk's time goes.
+
+**Shipped:** a commit above `COCHANGE_MAX_FILES` (200) still counts each file's INDIVIDUAL change
+total (so `aChanges`/`bChanges` and therefore `confidence` stay correct for pairs formed elsewhere)
+but contributes NO pairs of its own. A reviewable single constant, in the same spirit as
+`imports.ts` `FORGE_MODULE_PATTERNS` and `check-inv001` `MACHINE_ACTOR_PATTERNS`: widening what the
+miner treats as "too big to be a design signal" is an edit to one number a reviewer can see.
+**Question for ratification:** is 200 the right cutoff, should it be a `FactBaseConfig` knob rather
+than a constant, and should an over-cap commit be recorded somewhere (a "bulk-change" fact) rather
+than silently contributing no edges — its very size is arguably a change-point signal (spec 04 §1)?
+**Pinned at:** `src/distill/miner.ts` → `COCHANGE_MAX_FILES`, `buildCoChange`.
+
+### Q-64 — does a `type-only` import break a negative-space boundary proof?
+Spec 04 §2's marquee is "no third-party import *ever* crossing into `core/`", proven exhaustively as
+an absence. But `import type { X } from 'pkg'` is ERASED by `verbatimModuleSyntax` (the same fact
+Q-58 leans on to rank a type-only forge import as the softest `grazes` rung): at runtime nothing
+crossed, yet the *vocabulary* did. Whether a type-only external import refutes the boundary decides
+whether a proof reads `held: true` or `held: false` — a byte in the fact base and, downstream, a
+precision seed (spec 04 §5).
+
+**Shipped (least-committal): a `type-only` external import does NOT refute the boundary.** The
+negative-space prover counts only `value`/`dynamic`/`re-export` external (or forge) imports as
+breaches, consistent with Q-58's reading that a type-only import carries no runtime dependency. So
+the strongest-provable statute is "no *runtime* third-party dependency ever crossed", which is the
+one a deterministic pass can defend without arguing about erased syntax. The `ImportGraphSnapshot`
+still RECORDS every type-only edge (with `kind: 'type-only'`, `external: true`), so a stricter
+reading is recoverable from the fact base without a re-walk.
+**Question for ratification:** is the boundary about runtime dependency (type-only grazes, does not
+break) or about vocabulary coupling (type-only breaks)? If the latter, the prover's
+`imp.kind !== 'type-only'` guard is the one line to drop, and Q-58's severity ladder should be
+revisited in the same breath.
+**Pinned at:** `src/distill/miner.ts` → `proveNegativeSpaceForProbe` (the `type-only` guard).
