@@ -1,0 +1,5 @@
+# A filename that says nothing, so `gwtp validate` must infer the contract from the document
+# shape: `verdict` + `assertion` and no `event` field is a pre-ledger judge output (spec 03 §4).
+assertion: INV-002
+verdict: aligned
+confidence: 0.9

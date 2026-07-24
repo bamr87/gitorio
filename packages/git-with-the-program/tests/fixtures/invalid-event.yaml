@@ -1,0 +1,21 @@
+# A deliberately malformed ledger observation event. Each field below breaks a different part
+# of schemas/event.schema.json:
+#
+#   event    — not ^sha256:[a-f0-9]{64}$, so it cannot be the filename or the idempotency key
+#   subject  — empty, violating anyOf [commit | pr | path]
+#   verdict  — `drift` is a violation, so allOf/0 requires severity + precision_at + rationale;
+#              precision_at and rationale are both absent
+#   severity — 0.6 is not one of the four anchors 0.25 | 0.5 | 0.75 | 1.0 (ADR-0005)
+#   judge    — `oracle` is not a rung of the ladder (deterministic | model | panel | human)
+#   t        — `2026-07-21T14:03Z` is spec 02 §2's own spelling and omits seconds, so it fails
+#              ajv-formats' date-time. See docs/spec/OPEN-QUESTIONS.md Q-07.
+
+event: sha256:not-a-content-hash
+subject: {}
+assertion: INV-005
+verdict: drift
+severity: 0.6
+judge:
+  kind: oracle
+  id: invariant-judge
+t: 2026-07-21T14:03Z

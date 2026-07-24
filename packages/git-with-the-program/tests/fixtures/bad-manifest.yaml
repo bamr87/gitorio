@@ -1,0 +1,23 @@
+# Deliberately malformed manifest, against docs/spec/01-core-memory.md §7. No JSON Schema
+# binds this file (docs/spec/OPEN-QUESTIONS.md Q-08), so every finding below comes from the
+# [engine] structural pass in src/core/validate.ts:
+#
+#   schema_version — absent
+#   last_walked    — not a commit sha
+#   last_epoch     — `E0` is not ^e[0-9]+$
+#   judges/0/model — empty string
+#   judges/0/prompt— not ^sha256:[a-f0-9]{64}$; the prompt hash is half of judge identity
+#   judges/1       — duplicate seat id; seating is constitutional (spec 03 §6)
+#   epoch          — unknown top-level key, i.e. a silent typo
+
+watermark:
+  last_walked: not-a-sha
+  last_epoch: E0
+judges:
+  - id: invariant-judge
+    model: ""
+    prompt: sha256:abc
+  - id: invariant-judge
+    model: some-model-id
+    prompt: sha256:3efefce5b5888999e0fdf46fcd00be84c07dfadc0625af99c6ff0125eaeef9cb
+epoch: e0

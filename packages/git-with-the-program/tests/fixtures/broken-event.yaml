@@ -1,0 +1,5 @@
+# Not YAML at all. Exercises the [yaml] problem origin: a file that cannot be parsed is a
+# validation failure with a line and column, not a crash.
+event: sha256:9f1323d86586e342335bdc00a7d4c260bc4ffa3f5d916ef0cfd753891341004a
+subject: {commit: 9f2c1d
+assertion: INV-005
