@@ -119,6 +119,11 @@ function hostGit(args: readonly string[]): string {
 const PROGRAM_BEFORE = fingerprintProgramDir();
 const HOST_LOG_BEFORE = hostGit(['log', '--oneline']).trim();
 const HOST_STATUS_BEFORE = hostGit(['status', '--porcelain', '--', '.program']).trim();
+// The commit COUNT captured before the run, not a hard-coded number: the invariant is "the engine
+// added nothing to its own repo", which is a delta from the baseline. A literal count would break
+// the moment a commit lands OR under a shallow CI checkout (actions/checkout is depth-1, so
+// rev-list --count is 1, not the history's true length).
+const HOST_COUNT_BEFORE = hostGit(['rev-list', '--count', 'HEAD']).trim();
 
 // ---------------------------------------------------------------------------
 // The run
@@ -814,9 +819,12 @@ describe('git-with-the-program itself is untouched (INV-001, and simple hygiene)
     expect(hostGit(['status', '--porcelain', '--', '.program']).trim()).toBe('');
   });
 
-  it('has exactly the three baseline commits, and no ledger ref', () => {
+  it('gained no commits and no ledger ref — the engine never writes its own repo', () => {
+    // Both compared to a baseline captured BEFORE the pipeline ran, so this measures the engine's
+    // side effects on the host repo, not the repo's absolute size — it holds however many commits
+    // this branch has and under any checkout depth.
     expect(hostGit(['log', '--oneline']).trim()).toBe(HOST_LOG_BEFORE);
-    expect(hostGit(['rev-list', '--count', 'HEAD']).trim()).toBe('3');
+    expect(hostGit(['rev-list', '--count', 'HEAD']).trim()).toBe(HOST_COUNT_BEFORE);
     expect(hostGit(['show-ref']).includes('refs/program/')).toBe(false);
   });
 
