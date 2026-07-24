@@ -260,14 +260,17 @@ describe("this repo's own .program/ decodes against the contract layer", () => {
     expect(m.judges).toEqual([]);
   });
 
-  it('scope.yaml: five claims, and src/** is NOT yet claimed', () => {
+  it('scope.yaml: eight claims, including src/**, scripts/** and tests/** (ratified)', () => {
     const scope = unwrap(decodeScopeFile(readProgram('scope.yaml')));
     expect(scope.map((c) => c.path).sort()).toEqual([
       '.program/**',
       'docs/**',
       'prompts/**',
       'schemas/**',
+      'scripts/**',
       'seeds/**',
+      'src/**',
+      'tests/**',
     ]);
   });
 
@@ -330,12 +333,15 @@ describe('program queries over the shipped constitution', () => {
     ).toEqual(['INV-001', 'INV-006']);
   });
 
-  it('src/** is currently unclaimed — a stale-claim candidate until the amendment lands', () => {
+  it('src/** is claimed, so the engine source is no longer a stale-claim candidate', () => {
     const p = program();
     const tree = ['docs/vision.md', 'schemas/event.schema.json', 'src/core/index.ts'].map((x) =>
       unwrap(parseRepoPath(x)),
     );
-    expect(unclaimedPaths(p, tree)).toEqual(['src/core/index.ts']);
+    // After the scope amendment every path above is claimed; nothing is left unclaimed. An
+    // unclaimed path here would be the obsolescence sweep's cue to file a stale-claim against the
+    // engine's own source (spec 01 §6, spec 02 §7).
+    expect(unclaimedPaths(p, tree)).toEqual([]);
   });
 
   it("the charter is kept as raw prose, since it is what humans ratify", () => {
