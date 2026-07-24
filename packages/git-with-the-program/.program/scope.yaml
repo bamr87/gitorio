@@ -11,4 +11,9 @@ claims:
     since: e0
   - path: "prompts/**"
     since: e0
-# src/** claims land with SEED-01.
+  - path: "src/**"
+    since: e0
+  - path: "scripts/**"
+    since: e0
+  - path: "tests/**"
+    since: e0
