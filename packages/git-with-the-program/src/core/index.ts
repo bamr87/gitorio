@@ -34,6 +34,10 @@ export * from './precedent.js';
 export * from './verdict.js';
 export * from './change.js';
 export * from './event.js';
+// The provider-agnostic ModelClient PORT (spec 03 §1/§6, INV-005). Pure interfaces plus one
+// stop-reason const; imports nothing, declassifies nothing, reaches no sentencing module — safe
+// to re-export wholesale. src/judge imports the interface; only src/adapters/anthropic names the SDK.
+export * from './model.js';
 export * from './proposal.js';
 // The forge-agnostic delivery port (spec 02 §5, INV-005). Safe to re-export wholesale: nothing
 // in it declassifies — a DeliveryDocument is the UNTAINTED product of rendering, and

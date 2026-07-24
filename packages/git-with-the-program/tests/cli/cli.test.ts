@@ -51,14 +51,23 @@ describe('gwtp CLI skeleton', () => {
     expect(await main(['--wat'])).toBe(2);
   });
 
-  it.each([
-    ['judge', 'SEED-03'],
-    ['program', 'SEED-01'],
-  ])('`%s` is a registered stub that fails loudly and names its seed', async (cmd, seed) => {
-    const code = await main([cmd]);
-    expect(code).not.toBe(0);
-    expect(stderr).toContain('not implemented');
-    expect(stderr).toContain(seed);
+  it.each([['program', 'SEED-01']])(
+    '`%s` is a registered stub that fails loudly and names its seed',
+    async (cmd, seed) => {
+      const code = await main([cmd]);
+      expect(code).not.toBe(0);
+      expect(stderr).toContain('not implemented');
+      expect(stderr).toContain(seed);
+    },
+  );
+
+  // `judge` stopped being a stub with SEED-03: it runs the judgment ladder against a diff and
+  // bar-exams the case law. Its behaviour lives in tests/judge/** and tests/evidence/**; here, as
+  // with `validate` and `ledger`, only the wiring — that it is implemented and owns its flags.
+  it('`judge` is implemented and parses its own flags', async () => {
+    expect(await main(['judge', '--help'])).toBe(0);
+    expect(stdout).toContain('gwtp judge');
+    expect(stderr).not.toContain('not implemented');
   });
 
   // `validate` is no longer a stub; it is SEED-01 deliverable 2. Its behaviour lives in
