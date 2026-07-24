@@ -1,0 +1,21 @@
+# Deliberately malformed scope, against docs/spec/01-core-memory.md §6. Unschema'd (Q-08), so
+# every finding comes from the [engine] structural pass:
+#
+#   claims/1/path  — brace expansion is outside the supported glob subset (Q-12), so it would
+#                    silently never match and quietly forfeit the obsolescence baseline
+#   claims/1/since — not an epoch id
+#   claims/1/note  — unknown key
+#   claims/2       — no `path`
+#   claims/3       — duplicate claim of docs/**
+#   epochs         — unknown top-level key
+
+claims:
+  - path: "docs/**"
+    since: e0
+  - path: "src/{core,cli}/**"
+    since: epoch-zero
+    note: claimed provisionally
+  - since: e1
+  - path: "docs/**"
+    since: e2
+epochs: 4

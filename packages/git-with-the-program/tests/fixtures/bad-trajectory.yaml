@@ -1,0 +1,23 @@
+# Deliberately malformed trajectory, against docs/spec/01-core-memory.md §6. Unschema'd
+# (Q-08), so every finding comes from the [engine] structural pass:
+#
+#   0/id               — TRJ ids carry at least three digits
+#   1/intent           — absent; a directional intent with no intent claims nothing
+#   1/implies_obsolete — a scalar where a sequence of path globs belongs
+#   2/id               — duplicate of entry 1
+#   2/implies_obsolete — brace expansion, outside the supported glob subset (Q-12)
+#   2/deadline         — unknown key; `horizon` is the spec's field
+
+- id: TRJ-1
+  intent: Reach v0 sighted repo — deterministic judges, live ledger, issue filing
+  horizon: v0
+
+- id: TRJ-002
+  horizon: v0.5
+  implies_obsolete: "src/judge/stub/**"
+
+- id: TRJ-002
+  intent: Self-host — this repo runs its own loop on every PR
+  horizon: v1
+  implies_obsolete: ["src/{judge,evidence}/stub/**"]
+  deadline: 2026-12-01

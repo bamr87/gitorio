@@ -1,0 +1,27 @@
+{
+  // Implements: seeds/SEED-01-scaffold.md acceptance ("repo builds clean from fresh clone in
+  // one documented command") and ADR-0006 (TypeScript on Node).
+  //
+  // WHY THERE ARE TWO tsconfigs.
+  //
+  // tsconfig.json TYPECHECKS everything — src/, scripts/, tests/ — because a governance check
+  // and its tests must be held to the same `strict` as the engine. But `include` is what fixes
+  // an inferred `rootDir`, so typechecking everything from one config means `rootDir: "."`,
+  // which means `tsc` emits `dist/src/cli/index.js` while `package.json`'s `bin.gwtp` points
+  // at `dist/cli/index.js` — a declared binary that no build ever produces. It also shipped
+  // `dist/tests/` and `dist/scripts/` inside the package.
+  //
+  // So: this config EMITS (src only, rootDir src), and tsconfig.json CHECKS (everything,
+  // noEmit). `.github/workflows/ci.yml` runs the build and then executes `bin.gwtp` by the
+  // path package.json declares, so the two can never drift apart again in silence.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests", "scripts"]
+}

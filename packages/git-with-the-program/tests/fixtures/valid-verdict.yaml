@@ -1,0 +1,14 @@
+# A well-formed judge verdict: docs/spec/03-judge.md §4's output contract, for a violation.
+# Severity is the anchored ordinal (never the numeric); the citation carries a line span,
+# because a verdict that cannot point at lines does not exist (ADR-0005, INV-004).
+
+assertion: INV-005
+verdict: drift
+severity: breach
+confidence: 0.8
+evidence:
+  - src/core/http.ts:41-58
+  - src/core/http.ts:73
+precedent: null
+rationale: >
+  Imports a forge SDK inside src/core/, bypassing the adapter boundary INV-005 draws.

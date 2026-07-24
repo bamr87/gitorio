@@ -1,0 +1,29 @@
+# A well-formed assertion sequence: the positive control for tests/cli/validate.test.ts.
+# Shape is docs/spec/01-core-memory.md §3's own example, plus a CAND-* carrying the
+# distillation evidence block of spec 04 §5.
+
+- id: INV-007
+  statement: Core stays dependency-free; adapters own all third-party imports
+  class: boundary
+  scope: ["core/**"]
+  enforcement: judgment
+  precision: 0.9
+  budget: 3.0
+  half_life: 90d
+  status: ratified
+  provenance: ["pr#41", adr-0003, commit abc123]
+
+- id: CAND-014
+  statement: core/ imports stdlib only; adapters own third-party deps
+  class: dependency
+  scope: ["core/**"]
+  enforcement: deterministic
+  precision: 0.85
+  budget: 3.0
+  half_life: 26w
+  status: inferred
+  precision_seed: 0.85
+  provenance: ["import-graph e3..e6", "pr#88"]
+  evidence:
+    span: 2022-03 → present
+    corroborations: ["import-graph e3..e6", "pr#88", "revert 9f2c1d"]
