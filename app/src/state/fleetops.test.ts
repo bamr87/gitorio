@@ -2,7 +2,7 @@
 // (workflows → facts → audit; runs → metrics), and fleet-wide derived views.
 // The GithubClient is faked per-method (house idiom — see monitor.test.ts).
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FactoryRun, GithubClient } from '../github/types';
 import { createFleetOpsStore, FLEETOPS_KEY } from './fleetops';
 import { useGithubStore } from './github';
@@ -96,7 +96,19 @@ function connect(client: GithubClient) {
 }
 
 beforeEach(() => {
+  // deriveViews() windows runs against the real wall clock (`new Date()`), and
+  // computeWorkflowMetrics drops anything older than windowDays (default 14).
+  // The run() fixture is pinned to 2026-07-16, so on the real clock these runs
+  // aged out of the window on 2026-07-30 and every derived metric silently
+  // became []. Pin the clock next to the fixture so the window is deterministic.
+  // Only Date is faked — timers stay real, so the suite's awaits still resolve.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-07-16T12:00:00Z'));
   useGithubStore.setState({ client: null, repo: null, login: '' });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('roster', () => {
