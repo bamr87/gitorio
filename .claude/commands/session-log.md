@@ -1,3 +1,8 @@
+---
+description: End-of-session wrap-up — ADR-lite entry, CLAUDE.md current state, blog draft (golden rule #10)
+allowed-tools: Read, Edit, Write
+---
+
 Wrap up this session per CLAUDE.md golden rule #10:
 
 1. If any decision was made or reversed, append an ADR-lite entry to

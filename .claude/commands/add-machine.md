@@ -1,3 +1,9 @@
+---
+description: Add a new machine type end-to-end (registry + compiler emitter + invariant test + docs)
+allowed-tools: Read, Edit, Bash(npm test:*), Bash(npm run build:*)
+argument-hint: '<machine spec — id (category.name), behavior, config fields>'
+---
+
 Add a new machine type to GitFactory: $ARGUMENTS
 
 Follow the definition of done (CLAUDE.md golden rule #8), in this order:

@@ -1,3 +1,8 @@
+---
+description: Compiler health check — invariant tests, blueprint schema validation, example drift, claude-code-action input freshness
+allowed-tools: Read, Write, Bash(npm test:*), Bash(node:*), Bash(npx:*), Bash(diff:*), WebFetch
+---
+
 Run the compiler health check:
 
 1. `cd app && npm test` — all invariant tests green.
