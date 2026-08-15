@@ -665,6 +665,21 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           tools.add('Bash(gh pr list:*)');
           tools.add('Bash(gh pr view:*)');
           tools.add('Bash(gh pr diff:*)');
+          // A warden that gates a merge on CI reaches for `gh pr checks` first; without it
+          // that verb is denied and the run burns turns rediscovering `gh pr view --json
+          // statusCheckRollup`. Read-only.
+          tools.add('Bash(gh pr checks:*)');
+        }
+        // `intro` above orders EVERY non-feedback agent to read its promptRef. Grant the
+        // read tools to match, or the agent's first instruction is a guaranteed denial and
+        // it starves retrying it (Read → Glob → Grep → cat → …). Previously these arrived
+        // only via toolsFor(sink.open_pr / sink.commit_files), so every comment/label/merge
+        // line was told to read a file it had no permission to open. Read-only: widens no
+        // write surface.
+        if (promptRef) {
+          tools.add('Read');
+          tools.add('Glob');
+          tools.add('Grep');
         }
       }
       for (const sink of obligated) for (const t of toolsFor(sink.type, hasPr || surveyMode || hasWorkflowRun)) tools.add(t);

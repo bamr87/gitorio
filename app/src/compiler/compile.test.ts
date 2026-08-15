@@ -706,3 +706,126 @@ describe('open_pr / commit_files grant file-editing tools (agent must change fil
     expect(yaml).toContain('Bash(gh pr create:*)');
   });
 });
+
+describe('prompt/grant coherence: an agent ordered to read its promptRef can read it', () => {
+  // Live incident: Factory 3 (the dependency warden) starved at max-turns on every
+  // scheduled run — 12 of 26 turns were permission denials — because `intro` orders
+  // every non-feedback agent to "Read and follow the operating instructions in
+  // <promptRef>" while the grant carried only `Bash(gh …)` verbs. Read/Glob/Grep
+  // arrived solely via toolsFor(sink.open_pr / sink.commit_files), so any line whose
+  // sinks were comment/label/merge_pr was told to read a file it could not open.
+  const factory3: Blueprint = {
+    version: 1,
+    meta: { name: 'Gitorio Factory 3' },
+    nodes: [
+      node('m', 'trigger.manual'),
+      node('c', 'trigger.cron', { cron: '0 6 * * 1' }),
+      node('wa', 'agent.claude', {
+        promptRef: '.factory/prompts/dependency-warden.md',
+        model: 'claude-sonnet-4-6',
+        maxTurns: 25,
+      }),
+      node('ws1', 'sink.comment', { instruction: 'posts a merge-risk verdict on the open dependency PR' }),
+      node('ws2', 'sink.label', { labels: '' }),
+      node('ws3', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+    ],
+    edges: [
+      edge('e1', 'm', 'wa'),
+      edge('e2', 'c', 'wa'),
+      edge('e3', 'wa', 'ws1'),
+      edge('e4', 'wa', 'ws2'),
+      edge('e5', 'wa', 'ws3'),
+    ],
+  };
+
+  it('grants Read/Glob/Grep to a comment/label/merge_pr warden (the starvation regression)', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    expect(yaml).toContain('Read and follow the operating instructions in .factory/prompts/dependency-warden.md');
+    expect(yaml).toContain('Read');
+    expect(yaml).toContain('Glob');
+    expect(yaml).toContain('Grep');
+  });
+
+  it('emits the exact expected grant, in Set-insertion order (cron → survey → read → sinks)', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    expect(yaml).toContain(
+      '--allowedTools "Bash(gh issue list:*),Bash(gh search issues:*),' +
+        'Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),' +
+        'Read,Glob,Grep,' +
+        'Bash(gh issue comment:*),Bash(gh pr comment:*),' +
+        'Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh pr edit:*),' +
+        'Bash(gh pr merge:*)"',
+    );
+  });
+
+  it('grants gh pr checks under survey mode, so a CI-gated merge need not rediscover it', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    expect(yaml).toContain('Bash(gh pr checks:*)');
+  });
+
+  it('widens no write surface: the added grants are read-only', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    // The warden already had merge via its own sink; nothing new that writes appears.
+    expect(yaml).not.toContain('Bash(gh pr create:*)');
+    expect(yaml).not.toContain('Bash(git push:*)');
+    expect(yaml).not.toContain('Edit,Write');
+  });
+
+  // The invariant, asserted directly, so prompt and grant cannot drift apart again:
+  // if the emitted prompt orders a read, the emitted grant contains Read.
+  const shapes: Array<[string, Blueprint]> = [
+    ['comment/label/merge_pr warden (survey)', factory3],
+    [
+      'cron → comment only (the nightly gardener shape)',
+      {
+        version: 1,
+        meta: { name: 'Nightly Gardener' },
+        nodes: [
+          node('t', 'trigger.cron', { cron: '0 3 * * *' }),
+          node('a', 'agent.claude', { promptRef: '.factory/prompts/nightly-gardener.md' }),
+          node('s', 'sink.comment', { instruction: 'posts stale nudges' }),
+        ],
+        edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+      },
+    ],
+    ['issue_opened → label + comment (the triage shape)', triageLine],
+    [
+      'workflow_run → merge_pr',
+      {
+        version: 1,
+        meta: { name: 'Judged Automerge' },
+        nodes: [
+          node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
+          node('a', 'agent.claude', { promptRef: 'p.md' }),
+          node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+        ],
+        edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+      },
+    ],
+    [
+      'cron → open_pr (already had the file tools via toolsFor)',
+      {
+        version: 1,
+        meta: { name: 'Docs Gardener' },
+        nodes: [
+          node('t', 'trigger.cron', { cron: '0 8 * * *' }),
+          node('a', 'agent.claude', { promptRef: '.factory/prompts/docs-gardener.md' }),
+          node('s', 'sink.open_pr', {}),
+        ],
+        edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+      },
+    ],
+  ];
+
+  for (const [name, bp] of shapes) {
+    it(`invariant — ${name}: prompt orders a read ⇒ grant contains Read/Glob/Grep`, () => {
+      const { yaml } = compile(bp).workflows[0];
+      if (!yaml.includes('Read and follow the operating instructions')) return;
+      const grant = /--allowedTools "([^"]*)"/.exec(yaml)?.[1] ?? '';
+      const granted = grant.split(',');
+      expect(granted).toContain('Read');
+      expect(granted).toContain('Glob');
+      expect(granted).toContain('Grep');
+    });
+  }
+});
