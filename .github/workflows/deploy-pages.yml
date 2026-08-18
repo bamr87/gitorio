@@ -1,6 +1,12 @@
 name: Deploy to GitHub Pages
+# Gate: a push to main no longer deploys directly — Pages deploys only after the
+# "CI" workflow completes successfully on main (workflow_run + conclusion check
+# on the build job). workflow_dispatch remains a manual path and is not blocked
+# by the CI-success condition.
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -15,12 +21,19 @@ concurrency:
 
 jobs:
   build:
+    # Deploy only when CI succeeded; manual dispatch runs are never blocked.
+    # (deploy inherits the gate via `needs: build` — a skipped build skips deploy.)
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: app
     steps:
       - uses: actions/checkout@v7
+        with:
+          # workflow_run checks out main's current head by default; pin to the
+          # exact SHA CI validated. Empty on dispatch → falls back to github.sha.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc

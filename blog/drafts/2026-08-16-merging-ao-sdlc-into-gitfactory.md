@@ -1,0 +1,22 @@
+---
+title: "Merging a Development Loop, Not Just Files: AO-SDLC Comes to GitFactory"
+description: "How law-ai's mechanically-enforced spec-driven lifecycle was merged into gitorio's session framework — translated into house conventions, hardened by an adversarial review that confirmed 16 defects, including two the original repo still has."
+date: 2026-08-16
+categories: [it-journey, ai-engineering]
+tags: [claude-code, sdlc, spec-driven, backlog, hooks, ci, multi-agent, code-review]
+draft: true
+---
+
+GitFactory had outgrown its build plan. The repo was bootstrapped by eight ordered "seeds" — one Claude Code session per seed — but by seed 07 the real work (Fleet Ops, the headless CMS, the frontend refactor) was entering through ROADMAP sections and ADRs, and the backlog had become three tiers of un-IDed prose. Meanwhile a sibling repo, law-ai, had evolved something better: an AO-SDLC — an agent-orchestrated lifecycle where work enters an append-only `BACKLOG.md`, graduates into `specs/NNN-slug/` packages via `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement`, and every cycle is *mechanically forced* to leave the backlog richer than it found it.
+
+This session merged that framework into gitorio (ADR-022). The interesting part wasn't copying files — it was deciding what "merge" means when two repos have different conventions. The answer we landed on: translate, don't transplant. Validators went to `tools/` (gitorio's script home), not `scripts/`. The golden rules stayed the constitution — no separate `constitution.md`; the loop became golden rule #11. Commands are self-contained with frontmatter per house style — no `prompts/` layer, because gitorio already has `.factory/prompts/` and they mean something entirely different there. And the flow went both ways: law-ai's weekly evolve workflow got gitorio's default-OFF `*_ENABLED` kill-switch convention bolted on (`EVOLVE_AUDIT_ENABLED`), which is what "merge the feature sets of both repos" actually looks like in practice.
+
+The load-bearing core is three mechanical invariants that travel together: a spec validator that refuses a `tasks.md` without `## Follow-ups Discovered`, a backlog lint that diffs against git history so committed entries can never be deleted (only moved to `## Done`), and a `PostToolUse` hook that blocks the agent mid-session the moment an edit breaks either gate. CI catches; the hook teaches.
+
+The gnarly problem: the port looked done, all gates green — and then a five-lens adversarial review (25 agents: cross-references, gate mechanics, Actions correctness, house conventions, port fidelity, every finding independently refuted or confirmed) found 16 real defects. Two were the framework quietly lying about itself. The template-placeholder check made the documented `/specify` flow *impossible* — a fresh spec's untouched `plan.md`/`tasks.md` still contain `{Feature Name}`, so the blocking hook would have rejected the very first spec anyone wrote. And the append-only backlog check was vacuous in CI: it diffs the worktree against `HEAD`, but in a CI checkout the worktree *is* HEAD, so a committed deletion sailed through. Both bugs exist in the law-ai original too, along with a third — the audit's dedup key truncates titles at the first `.`, which lands inside every file extension, so the weekly audit re-appends the same items with fresh IDs forever. Porting a framework is the best code review it will ever get.
+
+One bonus find: while verifying `npm test` as a gate, a fleet-store test turned out to have been red on main since July 30 — its fixtures pin absolute July dates, and the store computes metrics over a real-clock 14-day window. The fixtures aged out. Clock pinned (`vi.useFakeTimers({ toFake: ['Date'] })`), CI un-reddened, and the pattern sweep filed as the new backlog's first organic entry.
+
+## Working-with-AI tip
+
+When you port an enforcement mechanism, don't review the *port* — attack the *mechanism*. The review lens that paid for itself here wasn't "does the copied code match the original" but "spawn an agent, hand it the documented workflow, and see if the gates physically allow it." That's how a blocker invisible in both repos for months surfaced in minutes: the reviewer didn't read the validator, it *ran the lifecycle against it*. Adversarial verification of each finding matters just as much in reverse — a quarter of the raw findings were refuted by independent skeptics before any fix was written, which is the difference between a hardening pass and a churn pass.

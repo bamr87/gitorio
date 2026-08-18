@@ -18,5 +18,24 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: npm ci
+      - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  # AO-SDLC gates (golden rule #11, ADR-022): spec drift + backlog format/append-only.
+  # In CI the checked-out worktree IS HEAD, so the append-only diff must run
+  # against the parent: BACKLOG_LINT_BASE=HEAD^1 (previous commit on push; the
+  # base-branch tip on a PR merge commit). fetch-depth: 2 makes HEAD^1 available.
+  spec-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+      - run: python3 tools/spec_validator.py
+      - run: python3 tools/backlog_lint.py
+        env:
+          BACKLOG_LINT_BASE: HEAD^1

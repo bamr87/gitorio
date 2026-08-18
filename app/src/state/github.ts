@@ -145,7 +145,6 @@ export const useGithubStore = create<GithubState>((set, get) => ({
       const envPat = import.meta.env.VITE_GH_PAT;
       const envRepo = import.meta.env.VITE_GH_REPO;
       if (envPat && envRepo) {
-        // eslint-disable-next-line no-console
         console.warn('[gitfactory] dev auto-connect from VITE_GH_PAT (.env) — never ship a build with this set.');
         void get().connect(envPat, envRepo);
       }

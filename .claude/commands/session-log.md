@@ -7,7 +7,7 @@ Wrap up this session per CLAUDE.md golden rule #10:
 
 1. If any decision was made or reversed, append an ADR-lite entry to
    `docs/DECISIONS.md` (date, decision, why, alternatives).
-2. Update CLAUDE.md § Current state and tick completed ROADMAP boxes.
+2. Update CLAUDE.md § Current state, tick completed ROADMAP boxes, and reconcile `BACKLOG.md` (shipped `BL-*` items move to `## Done` with a one-line outcome — never deleted; golden rule #11).
 3. Draft a blog post to `blog/drafts/YYYY-MM-DD-<slug>.md` for the it-journey repo:
    - Frontmatter: `title`, `description`, `date`, `categories: [it-journey]`,
      relevant `tags`, and `draft: true`.
