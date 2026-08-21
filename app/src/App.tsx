@@ -29,10 +29,12 @@ import {
 
 function download(filename: string, text: string) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.href = url;
   a.download = filename;
   a.click();
-  URL.revokeObjectURL(a.href);
+  // Revoke on the next tick — revoking synchronously can cancel the download in some browsers.
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
@@ -63,6 +65,7 @@ export default function App() {
   const view = useUiStore((s) => s.view);
   const setView = useUiStore((s) => s.setView);
   const fileRef = useRef<HTMLInputElement>(null);
+  const flashTimer = useRef<number | undefined>(undefined);
   const [flash, setFlash] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | 'connect' | 'deploy' | 'templates'>(null);
   const [showTelemetry, setShowTelemetry] = useState(false);
@@ -108,9 +111,12 @@ export default function App() {
   };
 
   const say = (msg: string) => {
+    // Reset the prior timer so a rapid second message still gets its full 2.5s on screen.
+    window.clearTimeout(flashTimer.current);
     setFlash(msg);
-    window.setTimeout(() => setFlash(null), 2500);
+    flashTimer.current = window.setTimeout(() => setFlash(null), 2500);
   };
+  useEffect(() => () => window.clearTimeout(flashTimer.current), []);
 
   const importFile = async (file: File) => {
     try {

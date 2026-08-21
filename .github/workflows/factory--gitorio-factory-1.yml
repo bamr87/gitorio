@@ -17,7 +17,7 @@ jobs:
       issues: write
       id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: ⚙ agent.claude (a1)
         uses: anthropics/claude-code-action@v1
         with:
@@ -35,4 +35,4 @@ jobs:
           claude_args: |-
             --model claude-sonnet-4-6
             --max-turns 8
-            --allowedTools "Bash(gh issue view:*),Bash(gh search issues:*),Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh issue comment:*)"
+            --allowedTools "Bash(gh issue view:*),Bash(gh search issues:*),Read,Glob,Grep,Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh issue comment:*)"

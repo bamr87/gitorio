@@ -1,6 +1,6 @@
 # Contributing to GitFactory
 
-GitFactory is built **session by session with Claude Code**, driven by the ordered prompts in [`seeds/`](seeds/). Whether you're a human or an agent, the workflow is the same. Read [`CLAUDE.md`](CLAUDE.md) first — it's the project's memory and the golden rules are non-negotiable.
+GitFactory is built **session by session with Claude Code**, driven by the spec-driven AO-SDLC loop: work enters [`BACKLOG.md`](BACKLOG.md), graduates into [`specs/`](specs/) packages, and ships one verified task at a time (see [`docs/AO-SDLC.md`](docs/AO-SDLC.md); the bootstrap era's [`seeds/`](seeds/) are history). Whether you're a human or an agent, the workflow is the same. Read [`CLAUDE.md`](CLAUDE.md) first — it's the project's memory and the golden rules are non-negotiable.
 
 ## Prerequisites
 
@@ -22,10 +22,10 @@ Always run `npm test && npm run build` before opening a PR.
 
 ## How a session works
 
-1. Pick the next seed in [`seeds/`](seeds/) — they're ordered; [`seeds/README.md`](seeds/README.md) explains the cadence.
-2. Read the seed's *Context* files and the matching phase in [`docs/ROADMAP.md`](docs/ROADMAP.md).
-3. Work to the seed's **acceptance criteria** — nothing more. Park discoveries in `docs/ROADMAP.md § Backlog`.
-4. Run the checks above.
+1. Pick work: `python3 tools/pick_backlog_item.py` chooses the top open item in [`BACKLOG.md`](BACKLOG.md) (or bring your own — file it as a `BL-*` entry first).
+2. Run the AO-SDLC chain: `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` one task at a time (or `/evolve` for a whole autonomous cycle).
+3. Work to the spec's **acceptance criteria** — nothing more. Park discoveries in the spec's `## Follow-ups Discovered` and mirror them into `BACKLOG.md` (golden rule #11).
+4. Run the checks above, plus `python3 tools/spec_validator.py && python3 tools/backlog_lint.py`.
 5. End with `/session-log` (drafts a post to `blog/drafts/` and appends to [`docs/DECISIONS.md`](docs/DECISIONS.md)).
 
 ## The rules that bite
@@ -44,4 +44,4 @@ Run [`/add-machine`](.claude/commands/add-machine.md) for the checklist. Definit
 
 ## Claude Code tooling
 
-Project commands live in [`.claude/commands/`](.claude/commands/): `/add-machine`, `/compile-check`, `/session-log`. Use `/compile-check` to validate the compiler against the schema, the reference output, and the upstream `claude-code-action` inputs before shipping compiler changes.
+Project commands live in [`.claude/commands/`](.claude/commands/): the AO-SDLC chain (`/specify`, `/clarify`, `/plan`, `/tasks`, `/implement`, `/evolve`) plus `/add-machine`, `/compile-check`, and `/session-log`. Read-only review agents live in [`.claude/agents/`](.claude/agents/) (`golden-rules-reviewer`, `backlog-triager`), and [`.claude/settings.json`](.claude/settings.json) registers hooks that block edits which break the spec/backlog gates. Use `/compile-check` to validate the compiler against the schema, the reference output, and the upstream `claude-code-action` inputs before shipping compiler changes.

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { machineDef, type FieldDef } from '../machines/registry';
 import { useFactoryStore, type MachineNodeType } from '../state/store';
 import { useBlueprintDiagnostics } from '../state/diagnostics';
@@ -12,6 +12,37 @@ const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller']);
 
 const DIAG_MARK: Record<Diagnostic['level'], string> = { error: '✗', warning: '⚠', info: 'ℹ' };
 const LED_LABEL: Record<LedState, string> = { on: 'last run: success', warn: 'running', bad: 'last run: failed', idle: 'no recent run' };
+
+function NumberInput({
+  id,
+  value,
+  placeholder,
+  onChange,
+}: {
+  id: string;
+  value: unknown;
+  placeholder?: string;
+  onChange: (v: unknown) => void;
+}) {
+  // Keep the raw string while editing so the field can be blanked (Number('') === 0 would
+  // otherwise snap it back to 0). Blank commits undefined → the compiler's default applies.
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <input
+      id={id}
+      type="number"
+      value={draft ?? String(value ?? '')}
+      placeholder={placeholder}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setDraft(raw);
+        if (raw === '') onChange(undefined);
+        else if (Number.isFinite(Number(raw))) onChange(Number(raw));
+      }}
+      onBlur={() => setDraft(null)}
+    />
+  );
+}
 
 function Field({
   field,
@@ -38,14 +69,10 @@ function Field({
             </option>
           ))}
         </select>
+      ) : field.kind === 'number' ? (
+        <NumberInput id={id} value={value} placeholder={field.placeholder} onChange={onChange} />
       ) : (
-        <input
-          id={id}
-          type={field.kind === 'number' ? 'number' : 'text'}
-          value={String(value ?? '')}
-          placeholder={field.placeholder}
-          onChange={(e) => onChange(field.kind === 'number' ? Number(e.target.value) : e.target.value)}
-        />
+        <input id={id} type="text" value={String(value ?? '')} placeholder={field.placeholder} onChange={(e) => onChange(e.target.value)} />
       )}
       {field.help && <span className="field__help">{field.help}</span>}
     </label>

@@ -70,15 +70,16 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
 **Triggers** (copper) — map to `on:` blocks
 - `trigger.issue_opened` → `issues: [opened]`
 - `trigger.issue_labeled` → `issues: [labeled]` + label guard
-- `trigger.pr_opened` → `pull_request: [opened]` (opt-in `synchronize`)
+- `trigger.pr_opened` → `pull_request: [opened]` (opt-in `synchronize`); `fireOn: labeled` mode → `pull_request: [labeled]` with an exact-label job guard — the label-gated automerge keystone (ADR-027), warning-free only when a label is set
 - `trigger.comment` → `issue_comment: [created]` + phrase guard + **mandatory bot guard**
 - `trigger.cron` → `schedule: [{cron}]`
 - `trigger.manual` → `workflow_dispatch`
 - `trigger.workflow_run` → `workflow_run: {workflows:[name], types:[completed]}` + conclusion
 guard. Runs in the **trusted default-branch context** (write token + secrets, no bot-guard), so it can act on Dependabot/fork PRs after their checks run; entity is `github.event.workflow_run.pull_requests[0].number` (ADR-014).
+- `trigger.repository_dispatch` → `repository_dispatch: {types:[eventType]}` — the receiving end of an inter-repo belt (ADR-029). Entity-less (survey-mode grants for agent lines); `client_payload.number` joins the NUMBER/concurrency fallback chains as the entity pointer, while payload free text never enters prompts (ADR-005); empty event type warns.
 
 **Processors** (steel)
-- `agent.claude` — the star. Config: `promptRef`, `model`, `maxTurns`. Compiles to a
+- `agent.claude` — the star. Config: `promptRef`, `model`, `maxTurns`, `checks` (one repo check command per line — each compiles to exactly its own `Bash(<cmd>:*)` grant + a VERIFY obligation, ADR-025; quoting/substitution in a check is a compile error). Compiles to a
   `claude-code-action@v1` step (see §5).
 - `filter.condition` — a raw Actions expression contributed to the job-level `if:`
   (AND-joined with guards).
@@ -99,6 +100,7 @@ with a built-in contract: measure the factory's own telemetry → verify the las
 A **terminal** sink: it emits no new comment/issue/PR event, so a line whose only action is merge carries no bot loop-guard — the one way to auto-merge Dependabot's own (bot) PRs. Scope it with a Filter or Dependabot-metadata; the compiler warns on an unscoped `pull_request` merge.
 - `sink.cross_repo_issue` — files an issue in ANOTHER repo via a scoped token secret (default
 `FLEET_TOKEN`); the `GITHUB_TOKEN` can't cross repos. Kept out of `WRITING_SINKS` — writing to another repo can't retrigger this line (Fleet C, ADR-016).
+- `sink.repository_dispatch` — POSTs a `repository_dispatch` to ANOTHER repo (`gh api repos/<target>/dispatches`, scoped token secret, `client_payload.number` entity pointer) — the sending end of the inter-repo belt, pairing with `trigger.repository_dispatch` (ADR-030). Agent grant is the exact target endpoint; deterministic emission exists; the compiler REFUSES self-dispatch loops (same repo + an event type the line listens for) and warns on other same-repo dispatches.
 
 Adding a machine type = registry entry + emitter + invariant test + catalog line here (`/add-machine` walks the checklist).
 
@@ -106,7 +108,9 @@ Adding a machine type = registry entry + emitter + invariant test + catalog line
 
 `compile(blueprint) → { workflows: [{filename, yaml, diagnostics}], diagnostics }` — a **pure function**, tested by invariants.
 
-**Partitioning.** Each connected component containing ≥1 trigger becomes one workflow: `factory--<kebab(component name)>.yml`. All triggers in the component merge into one `on:` block. Components with no trigger yield a diagnostic, not a workflow.
+**Partitioning.** Each connected component containing ≥1 trigger becomes one workflow: `factory--<kebab(component name)>.yml`. All triggers in the component merge into one `on:` block. Components with no trigger yield a diagnostic, not a workflow. With `meta.lineNaming: 'auto'` (ADR-028), multi-line blueprints name each line by its agent's promptRef basename (else first trigger + first sink types, deduped with numeric suffixes) instead of `<meta.name> <index>`; the naming lives in the shared `assemblyLines()` helper, so compiled filenames and telemetry LED mapping cannot diverge.
+
+**SHA-pinned actions mode (ADR-026).** `meta.pinActions: true` (or the `pinActions` compile option) emits every `uses:` ref pinned to a verified commit SHA with the original tag as a trailing comment (`actions/checkout@11d5960… # v4`). The compiler stays pure: pins come from the curated `PINNED_ACTIONS` table, verified against upstream tag refs (golden rule #4); an invariant test enforces that every emittable ref has a pin.
 
 **Two execution modes.**
 

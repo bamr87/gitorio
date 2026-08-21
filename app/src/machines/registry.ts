@@ -58,15 +58,33 @@ export const MACHINES: MachineDef[] = [
     blurb: 'Fires when a pull request is opened (optionally on new pushes too).',
     fields: [
       {
+        key: 'fireOn',
+        label: 'Fire on',
+        kind: 'select',
+        options: ['opened', 'labeled'],
+        help: '"labeled" fires when a label is added — the deterministic merge-line keystone (ADR-027): pair with the label field below and a terminal merge sink.',
+      },
+      {
         key: 'alsoOnSync',
         label: 'Also on new pushes',
         kind: 'select',
         options: ['no', 'yes'],
       },
+      {
+        key: 'label',
+        label: 'Only this label',
+        kind: 'text',
+        placeholder: 'dep:safe-to-merge',
+        help: 'With "labeled": the line runs only when exactly this label is added (a job-level guard on github.event.label.name).',
+      },
     ],
-    defaults: { alsoOnSync: 'no' },
+    defaults: { fireOn: 'opened', alsoOnSync: 'no', label: '' },
     describe: (c) =>
-      c.alsoOnSync === 'yes' ? 'on: pull_request [opened, synchronize]' : 'on: pull_request [opened]',
+      c.fireOn === 'labeled'
+        ? `on: pull_request [labeled${c.label ? `: ${c.label}` : ''}]`
+        : c.alsoOnSync === 'yes'
+          ? 'on: pull_request [opened, synchronize]'
+          : 'on: pull_request [opened]',
   },
   {
     type: 'trigger.comment',
@@ -128,6 +146,25 @@ export const MACHINES: MachineDef[] = [
 
   // ── Processors (steel) ───────────────────────────────────────────────
   {
+    type: 'trigger.repository_dispatch',
+    category: 'trigger',
+    label: 'Cross-repo signal',
+    icon: '📡',
+    blurb:
+      'Fires when another repo (or any system holding a repo-scoped token) POSTs a repository_dispatch event of this type — the receiving end of an inter-repo belt (Fleet C). Senders are write-privileged principals; the payload body never enters prompts, only client_payload.number as an entity pointer.',
+    fields: [
+      {
+        key: 'eventType',
+        label: 'Event type',
+        kind: 'text',
+        placeholder: 'factory-signal',
+        help: 'Scopes the trigger to exactly this dispatch type (repository_dispatch: types). Empty = every type (warns).',
+      },
+    ],
+    defaults: { eventType: 'factory-signal' },
+    describe: (c) => `on: repository_dispatch [${str(c.eventType, 'any type!')}]`,
+  },
+  {
     type: 'agent.claude',
     category: 'processor',
     label: 'Claude agent',
@@ -148,6 +185,13 @@ export const MACHINES: MachineDef[] = [
         options: ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'],
       },
       { key: 'maxTurns', label: 'Max turns', kind: 'number', placeholder: '8' },
+      {
+        key: 'checks',
+        label: 'Verification checks',
+        kind: 'textarea',
+        placeholder: 'python3 tools/spec_validator.py\npython3 tools/backlog_lint.py',
+        help: 'One repo-declared check command per line. Each compiles to exactly that Bash(<command>:*) grant plus a VERIFY obligation — the narrow alternative to deferring every gate to PR CI.',
+      },
     ],
     defaults: { promptRef: '.factory/prompts/triage.md', model: 'claude-sonnet-4-6', maxTurns: 8 },
     describe: (c) => `${str(c.model, 'claude-sonnet-4-6')} · ${str(c.promptRef, 'no prompt!')}`,
@@ -331,6 +375,21 @@ export const MACHINES: MachineDef[] = [
     ],
     defaults: { branchHint: '' },
     describe: (c) => `PR from ${str(c.branchHint, 'factory/*')}`,
+  },
+  {
+    type: 'sink.repository_dispatch',
+    category: 'sink',
+    label: 'Cross-repo signal (send)',
+    icon: '📤',
+    blurb:
+      'POSTs a repository_dispatch event to ANOTHER repo — the sending end of an inter-repo belt, pairing with the 📡 Cross-repo signal trigger. Uses a repo secret holding a PAT scoped to the target (default FLEET_TOKEN). Sends the entity number as client_payload.number; the compiler refuses self-dispatch loops.',
+    fields: [
+      { key: 'targetRepo', label: 'Target repo', kind: 'text', placeholder: 'owner/name' },
+      { key: 'eventType', label: 'Event type', kind: 'text', placeholder: 'factory-signal' },
+      { key: 'tokenSecret', label: 'Token secret name', kind: 'text', placeholder: 'FLEET_TOKEN' },
+    ],
+    defaults: { targetRepo: '', eventType: 'factory-signal', tokenSecret: 'FLEET_TOKEN' },
+    describe: (c) => `signal → ${str(c.targetRepo, 'owner/name')} [${str(c.eventType, 'factory-signal')}]`,
   },
   {
     type: 'sink.cross_repo_issue',

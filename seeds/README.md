@@ -1,8 +1,7 @@
-# Seeds — the build plan as session prompts
+# Seeds — the bootstrap-era build plan (historical)
 
-Each seed is one Claude Code session (occasionally two). Run them in order:
+**This directory is closed.** Seeds 00–07 were the ordered session prompts that bootstrapped GitFactory from empty scaffold through the GitHub App phase; their outcomes are recorded in `docs/ROADMAP.md` and `CLAUDE.md § Current state`. They are kept as history — do not add new seeds.
 
-    claude
-    > Read CLAUDE.md, then execute seeds/00-bootstrap.md.
+New work enters through the AO-SDLC loop instead (ADR-022, golden rule #11): file a `BL-*` item in `BACKLOG.md`, then run `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` (or `/evolve` for the whole cycle). See `docs/AO-SDLC.md`.
 
-Cadence per session: read the seed's Context files → work to the Acceptance criteria and nothing more → `npm test && npm run build` → `/session-log`. Discoveries that don't fit the seed go to ROADMAP § Backlog, not into scope.
+For the record, the old cadence was: read the seed's Context files → work to the Acceptance criteria and nothing more → `npm test && npm run build` → `/session-log`. That discipline carried straight over — the spec package just replaced the seed file.

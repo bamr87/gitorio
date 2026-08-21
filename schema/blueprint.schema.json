@@ -18,7 +18,9 @@
           "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$",
           "description": "owner/name of the target repository"
         },
-        "description": { "type": "string", "maxLength": 2000 }
+        "description": { "type": "string", "maxLength": 2000 },
+        "pinActions": { "type": "boolean", "description": "SHA-pinned actions mode: emit uses: refs pinned to verified commit SHAs (ADR-026)" },
+        "lineNaming": { "type": "string", "enum": ["auto", "indexed"], "description": "Per-line naming for multi-line blueprints: 'auto' derives names from each line's agent promptRef or trigger+sink (ADR-028); default is '<name> <index>'" }
       }
     },
     "nodes": {
@@ -40,6 +42,7 @@
               "trigger.cron",
               "trigger.manual",
               "trigger.workflow_run",
+              "trigger.repository_dispatch",
               "agent.claude",
               "filter.condition",
               "processor.dependabot_meta",
@@ -53,7 +56,8 @@
               "sink.open_pr",
               "sink.commit_files",
               "sink.merge_pr",
-              "sink.cross_repo_issue"
+              "sink.cross_repo_issue",
+              "sink.repository_dispatch"
             ]
           },
           "position": {
@@ -63,7 +67,102 @@
             "properties": { "x": { "type": "number" }, "y": { "type": "number" } }
           },
           "config": { "type": "object" }
-        }
+        },
+        "$comment": "Per-machine-type config subschemas. Property names/JSON types mirror app/src/machines/registry.ts fields (kind number → number, text/textarea/select → string); drift-guarded by app/src/machines/schema.test.ts. No keys are required (configs may omit fields and fall back to registry defaults), but unknown keys are rejected.",
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "trigger.issue_opened" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": {} } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "trigger.issue_labeled" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "label": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "trigger.pr_opened" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "fireOn": { "type": "string" }, "alsoOnSync": { "type": "string" }, "label": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "trigger.comment" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "phrase": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "trigger.cron" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "cron": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "trigger.manual" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "mode": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "trigger.workflow_run" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "workflow": { "type": "string" }, "conclusion": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.repository_dispatch" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "targetRepo": { "type": "string" }, "eventType": { "type": "string" }, "tokenSecret": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "trigger.repository_dispatch" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "eventType": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "agent.claude" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "promptRef": { "type": "string" }, "model": { "type": "string" }, "maxTurns": { "type": "number" }, "checks": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "filter.condition" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "expression": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "processor.dependabot_meta" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "allow": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "processor.feedback_controller" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "promptRef": { "type": "string" }, "model": { "type": "string" }, "ledgerPath": { "type": "string" }, "windowDays": { "type": "number" }, "maxTurns": { "type": "number" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "gate.approval" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "environment": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "gate.enablement" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "variable": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "rate.limiter" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "maxPerDay": { "type": "number" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.comment" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "instruction": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.label" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "labels": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.create_issue" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "titleHint": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.open_pr" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "branchHint": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.commit_files" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "pathScope": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.merge_pr" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "method": { "type": "string" }, "when": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "sink.cross_repo_issue" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "targetRepo": { "type": "string" }, "tokenSecret": { "type": "string" }, "titleHint": { "type": "string" } } } } }
+          }
+        ]
       }
     },
     "edges": {
