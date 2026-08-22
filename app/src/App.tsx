@@ -8,6 +8,7 @@ import { BuildToolbar } from './panels/BuildToolbar';
 import { Inspector } from './panels/Inspector';
 import { CompileDrawer } from './panels/CompileDrawer';
 import { ConnectDialog } from './panels/ConnectDialog';
+import { DemoBanner } from './panels/DemoBanner';
 import { DeployModal } from './panels/DeployModal';
 import { TelemetryPanel } from './panels/TelemetryPanel';
 import { PromptStudio } from './panels/PromptStudio';
@@ -20,6 +21,7 @@ import { useFactoryStore } from './state/store';
 import { useGithubStore } from './state/github';
 import { useTelemetryStore } from './state/telemetry';
 import { useUiStore, type AppView } from './state/ui';
+import { demoRequested, enterDemoMode, isDemoActive } from './demo/seed';
 import { repoSlug } from './github/types';
 import {
   decodeBlueprintString,
@@ -53,6 +55,7 @@ export default function App() {
   const loadBlueprint = useFactoryStore((s) => s.loadBlueprint);
   const undo = useFactoryStore((s) => s.undo);
   const redo = useFactoryStore((s) => s.redo);
+  const client = useGithubStore((s) => s.client);
   const login = useGithubStore((s) => s.login);
   const repo = useGithubStore((s) => s.repo);
   const power = useGithubStore((s) => s.power);
@@ -69,9 +72,17 @@ export default function App() {
   const [flash, setFlash] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | 'connect' | 'deploy' | 'templates'>(null);
   const [showTelemetry, setShowTelemetry] = useState(false);
+  // isDemoActive() is module state, not store state, so key it off the store's client —
+  // entering or leaving the demo always swaps that, which is what re-renders this.
+  const demo = !!client && isDemoActive();
 
-  // Reconnect from a sessionStorage PAT if this tab already has one.
+  // Reconnect from a sessionStorage PAT if this tab already has one — unless the URL
+  // asked for the demo, in which case the demo client takes the seat instead (FR-5).
   useEffect(() => {
+    if (demoRequested(window.location.search, window.location.hash)) {
+      void enterDemoMode();
+      return;
+    }
     restore();
   }, [restore]);
 
@@ -184,6 +195,8 @@ export default function App() {
           }}
         />
       </header>
+
+      {demo && <DemoBanner />}
 
       {view === 'build' && drift.length > 0 && (
         <div className="banner banner--drift">

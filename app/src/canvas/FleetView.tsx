@@ -2,6 +2,7 @@ import './fleetview.css';
 import { useState } from 'react';
 import { FleetCanvas } from './FleetCanvas';
 import { ConnectDialog } from '../panels/ConnectDialog';
+import { DemoInvite } from '../panels/DemoBanner';
 import { FleetOpsPanel } from '../panels/FleetOpsPanel';
 import { useFleetStore } from '../state/fleet';
 import { useGithubStore } from '../state/github';
@@ -35,6 +36,7 @@ export function FleetView() {
           Connect a token to command your workflow fleet.{' '}
           <button type="button" className="btn btn--small" onClick={() => setConnectOpen(true)}>Connect</button>
         </p>
+        <DemoInvite />
         {connectOpen && <ConnectDialog onClose={() => setConnectOpen(false)} />}
       </div>
     );

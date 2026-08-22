@@ -6,6 +6,7 @@ import { ledForRun, latestBySlug, statsByLine } from '../github/telemetry';
 import { nextRuns, firesPerDay } from '../utils/cron';
 import { useFactoryStore } from '../state/store';
 import { useGithubStore } from '../state/github';
+import { DemoInvite } from './DemoBanner';
 import { useSettingsStore } from '../state/settings';
 import { useMonitorStore } from '../state/monitor';
 import { repoSlug, type FactoryRun, type RunConclusion } from '../github/types';
@@ -138,6 +139,7 @@ export function MonitorPanel() {
     return (
       <div className="tabpane monitor">
         <p className="tabpane__empty">Connect a repo (top bar) to monitor its factory runs.</p>
+        <DemoInvite />
       </div>
     );
   }
