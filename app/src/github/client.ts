@@ -484,7 +484,7 @@ function buildClient(
       return body.html_url;
     },
 
-    async listVariables(repo: RepoRef): Promise<RepoVariable[]> {
+    async listVariables(repo: RepoRef): Promise<RepoVariable[] | null> {
       try {
         const body = await request<{ variables?: { name: string; value: string }[] }>(
           'GET',
@@ -493,8 +493,10 @@ function buildClient(
         const raw = Array.isArray(body?.variables) ? body.variables : [];
         return raw.map((v) => ({ name: v.name, value: v.value }));
       } catch (err) {
-        // No Actions, no permission, or no variables — report an empty set, don't throw.
-        if (err instanceof GithubError && (err.status === 403 || err.status === 404)) return [];
+        // Unreadable (no permission / no Actions) is NOT the same as "no variables":
+        // returning [] here would make an armed kill switch indistinguishable from a
+        // disarmed one. Report null and let callers decide.
+        if (err instanceof GithubError && (err.status === 403 || err.status === 404)) return null;
         throw err;
       }
     },

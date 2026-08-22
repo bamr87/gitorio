@@ -703,26 +703,37 @@ function AuditBoard({ snapshots }: { snapshots: RepoSnapshot[] }) {
 
 // ── Schedule ─────────────────────────────────────────────────────────────────
 
+/**
+ * Kill-switch readout. `unknown` is deliberately distinct from `disarmed`: the
+ * variables API can be unreadable (no permission / no Actions), and drawing a
+ * running loop as stopped is the dangerous way for a cockpit to be wrong.
+ */
+type ArmedState = 'none' | 'armed' | 'disarmed' | 'unknown';
+
 interface CronRow {
   repo: string;
   facts: WorkflowFacts;
   cron: string;
   hours: number[];
-  armed: boolean | null;
+  armed: ArmedState;
 }
 
 function ScheduleBoard({ snapshots }: { snapshots: RepoSnapshot[] }) {
   const rows: CronRow[] = [];
   const dormant: { repo: string; path: string; name: string; cron: string }[] = [];
   for (const snap of snapshots) {
-    const varsByName = new Map(snap.variables.map((v) => [v.name, v.value]));
+    const varsByName = new Map((snap.variables ?? []).map((v) => [v.name, v.value]));
     for (const f of snap.facts) {
       for (const cron of f.crons) {
         const spec = parseCron(cron);
-        const armed =
+        const armed: ArmedState =
           f.killSwitches.length === 0
-            ? null
-            : f.killSwitches.some((k) => varsByName.get(k) === 'true');
+            ? 'none'
+            : snap.variables === null
+              ? 'unknown'
+              : f.killSwitches.some((k) => varsByName.get(k) === 'true')
+                ? 'armed'
+                : 'disarmed';
         rows.push({ repo: snap.slug, facts: f, cron, hours: spec ? [...spec.hour] : [], armed });
       }
       for (const cron of f.dormantCrons) {
@@ -764,10 +775,14 @@ function ScheduleBoard({ snapshots }: { snapshots: RepoSnapshot[] }) {
               <td><code>{r.cron}</code></td>
               <td>{r.facts.ai.present ? '🤖' : ''}</td>
               <td>
-                {r.armed === null ? (
+                {r.armed === 'none' ? (
                   <span className="dim">none</span>
-                ) : r.armed ? (
+                ) : r.armed === 'armed' ? (
                   <span className="armed">⚡ armed</span>
+                ) : r.armed === 'unknown' ? (
+                  <span className="unknown" title="Actions variables could not be read — this switch may be armed.">
+                    ? unknown
+                  </span>
                 ) : (
                   <span className="dim">○ disarmed</span>
                 )}

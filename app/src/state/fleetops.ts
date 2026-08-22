@@ -45,8 +45,11 @@ export interface RepoSnapshot {
   audit: RepoAudit | null;
   /** Registered workflows from the Actions API (carries the enabled/disabled state). */
   workflowStates: RepoWorkflow[];
-  /** Repo Actions variables — the kill-switch armed/disarmed readout. */
-  variables: RepoVariable[];
+  /**
+   * Repo Actions variables — the kill-switch armed/disarmed readout. `null` means they
+   * could not be read, which must render as "unknown", never as "disarmed".
+   */
+  variables: RepoVariable[] | null;
   runs: FactoryRun[];
   /** Lazy per-run job cache for the workflow drill-down — 'loading' while in flight. */
   jobsByRun: Record<number, RunJob[] | 'loading'>;
@@ -128,7 +131,7 @@ function emptySnapshot(slug: string): RepoSnapshot {
     facts: [],
     audit: null,
     workflowStates: [],
-    variables: [],
+    variables: null,
     runs: [],
     jobsByRun: {},
     etag: null,
@@ -143,7 +146,11 @@ interface DerivedViews {
   byType: ({ type: DashType; sharePct: number } & MetricsRollup)[];
 }
 
-function deriveViews(snapshots: Record<string, RepoSnapshot>, windowDays: number): DerivedViews {
+function deriveViews(
+  snapshots: Record<string, RepoSnapshot>,
+  windowDays: number,
+  nowIso: string,
+): DerivedViews {
   const runsUnion: FactoryRun[] = [];
   const labels = new Map<string, { name: string; dashType: DashType }>();
   for (const snap of Object.values(snapshots)) {
@@ -159,7 +166,7 @@ function deriveViews(snapshots: Record<string, RepoSnapshot>, windowDays: number
     return { fleetMetrics: [], totals: null, byType: [] };
   }
   const metrics = computeWorkflowMetrics(runsUnion, labels, {
-    nowIso: new Date().toISOString(),
+    nowIso,
     windowDays,
   });
   const flagged = assignFlags(metrics);
@@ -222,7 +229,13 @@ export interface FleetOpsState extends DerivedViews {
   loadRunJobs: (slug: string, runId: number) => Promise<void>;
 }
 
-export function createFleetOpsStore(storage: StorageLike | null) {
+export function createFleetOpsStore(
+  storage: StorageLike | null,
+  // Injectable clock. Every other engine here takes its `now` (see metrics.ts
+  // `opts.nowIso`); this is the one place that used to read the wall clock, which
+  // is why a dated-fixture test rotted out of the metrics window and went red.
+  now: () => string = () => new Date().toISOString(),
+) {
   const persist = (state: Pick<FleetOpsState, 'roster' | 'hubSlug' | 'windowDays'>) => {
     try {
       storage?.setItem(
@@ -283,7 +296,7 @@ export function createFleetOpsStore(storage: StorageLike | null) {
       const roster = get().roster.filter((e) => e.slug.toLowerCase() !== slug.toLowerCase());
       const snapshots = { ...get().snapshots };
       delete snapshots[slug];
-      set({ roster, snapshots, ...deriveViews(snapshots, get().windowDays) });
+      set({ roster, snapshots, ...deriveViews(snapshots, get().windowDays, now()) });
       persist({ ...get(), roster });
     },
 
@@ -322,7 +335,7 @@ export function createFleetOpsStore(storage: StorageLike | null) {
 
     setWindowDays: (days) => {
       const windowDays = Math.min(90, Math.max(1, Math.round(days)));
-      set({ windowDays, ...deriveViews(get().snapshots, windowDays) });
+      set({ windowDays, ...deriveViews(get().snapshots, windowDays, now()) });
       persist({ ...get(), windowDays });
     },
 
@@ -370,7 +383,7 @@ export function createFleetOpsStore(storage: StorageLike | null) {
         set({
           snapshots,
           rateRemaining: poll.rateRemaining ?? get().rateRemaining,
-          ...deriveViews(snapshots, get().windowDays),
+          ...deriveViews(snapshots, get().windowDays, now()),
         });
       } catch (e) {
         const snapshots = {

@@ -493,7 +493,7 @@ describe('listRunJobs / dispatchWorkflow / cancelRun (Monitor controls)', () => 
 });
 
 describe('repo variables (enablement-gate kill switches)', () => {
-  it('lists variables, returning [] on 403/404 instead of throwing', async () => {
+  it('lists variables, returning null (not []) on 403/404 instead of throwing', async () => {
     const { client } = await connect((url) => {
       if (url.includes('/actions/variables')) {
         return new Response(
@@ -506,8 +506,13 @@ describe('repo variables (enablement-gate kill switches)', () => {
     const vars = await client.listVariables(REPO);
     expect(vars).toEqual([{ name: 'CONTENT_FACTORY_ENABLED', value: 'true' }]);
 
+    // Unreadable must be distinguishable from "no variables": [] would make an armed
+    // kill switch look disarmed to every caller. null says "we do not know".
     const { client: c2 } = await connect(() => new Response('nope', { status: 403 }));
-    expect(await c2.listVariables(REPO)).toEqual([]);
+    expect(await c2.listVariables(REPO)).toBeNull();
+
+    const { client: c3 } = await connect(() => new Response('nope', { status: 404 }));
+    expect(await c3.listVariables(REPO)).toBeNull();
   });
 
   it('setVariable PATCHes an existing variable', async () => {

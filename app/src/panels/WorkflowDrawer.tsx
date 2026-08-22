@@ -146,7 +146,7 @@ export function WorkflowDrawer({ slug, facts, snapshot, metrics, onClose }: Work
     [snapshot.runs, facts.path],
   );
   const varsByName = useMemo(
-    () => new Map(snapshot.variables.map((v) => [v.name, v.value])),
+    () => new Map((snapshot.variables ?? []).map((v) => [v.name, v.value])),
     [snapshot.variables],
   );
   const wfState = useMemo(

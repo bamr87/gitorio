@@ -246,6 +246,44 @@ describe('FleetOpsPanel', () => {
     expect(screen.getByText(/armed/)).toBeTruthy();
   });
 
+  // Regression: `variables: null` means the Actions variables API could not be read
+  // (403/404), which is NOT the same as the switch being off. Rendering "disarmed"
+  // there draws a running loop as stopped — the dangerous direction for a cockpit to
+  // be wrong. Caught live: wtd's Fleet Loop was armed and filing issues while the
+  // Schedule board reported it disarmed.
+  const scheduleRow = async (variables: RepoSnapshot['variables']) => {
+    useFleetOpsStore.setState({
+      snapshots: {
+        'o/alpha': mkSnapshot({
+          facts: [
+            mkFacts({
+              path: '.github/workflows/factory.yml',
+              name: 'Factory',
+              crons: ['0 8 * * *'],
+              killSwitches: ['CONTENT_FACTORY_ENABLED'],
+            }),
+          ],
+          variables,
+        }),
+      },
+    });
+    const user = userEvent.setup();
+    render(<FleetOpsPanel onDrill={noDrill} />);
+    await user.click(screen.getByRole('button', { name: /Schedule/ }));
+  };
+
+  it('reports an unreadable kill switch as unknown, never as disarmed', async () => {
+    await scheduleRow(null);
+    expect(screen.getByText(/unknown/)).toBeTruthy();
+    expect(screen.queryByText(/disarmed/)).toBeNull();
+  });
+
+  it('still reports a genuinely absent switch value as disarmed', async () => {
+    await scheduleRow([]);
+    expect(screen.getByText(/disarmed/)).toBeTruthy();
+    expect(screen.queryByText(/unknown/)).toBeNull();
+  });
+
   it('shows the empty-roster onboarding when nothing is configured', () => {
     useFleetOpsStore.setState({ roster: [], snapshots: {}, fleetMetrics: [], totals: null, byType: [] });
     render(<FleetOpsPanel onDrill={noDrill} />);
