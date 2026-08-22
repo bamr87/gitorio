@@ -8,6 +8,7 @@ import './content.css';
 import { useEffect } from 'react';
 import { useContentStore } from '../state/content';
 import { useGithubStore } from '../state/github';
+import { DemoInvite } from './DemoBanner';
 import { slugId, starvedKinds, type BacklogPriority, type BacklogStatus } from '../content/model';
 
 const MODELS = ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'];
@@ -34,6 +35,7 @@ export function ContentPanel() {
           Connect a repo (top bar) to manage its content factory — <code>.factory/config.yml</code>,{' '}
           <code>.factory/backlog.yml</code>, and the enablement kill switches.
         </p>
+        <DemoInvite />
       </div>
     );
   }

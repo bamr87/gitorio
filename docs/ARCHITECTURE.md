@@ -231,6 +231,21 @@ Observe mode (§ROADMAP Fleet A) maps one repo's workflows as a read-only graph.
 
 **Workflow management** (`panels/WorkflowDrawer.tsx`) — a slide-over for one workflow showing every capability (triggers/crons; the AI engine incl. `agentic-engine`, model, turn + **dollar** caps, agents; armed/disarmed kill switches; guards; permissions; token chain; wait-bound + dynamic-matrix badges), its windowed metrics, and this workflow's audit findings — with the **maintain** actions: Run now (`dispatchWorkflow`), Re-run last failure (`rerunRun`), Cancel (`cancelRun`), **Arm/Disarm** each `*_ENABLED` gate (`setVariable` — idles a line without a redeploy, the fleet convention; distinct from Enable/Disable the file via `setWorkflowEnabled`). Every mutation is gated behind an explicit confirm naming repo + workflow + consequence; an `actionBusy` map disables in-flight buttons. Filing an audit issue (`createIssue`) remains the Audit board's write.
 
+## 7d. The demo environment — one substitution, not a mode (ADR-032)
+
+Five of the seven tabs render a "connect a repo" empty state until a fine-grained PAT is pasted in, which makes the Pages deployment — the shop window — mostly dead on arrival. The **demo environment** (`app/src/demo/`) fixes that without a second code path.
+
+The whole mechanism is that every panel already reads a `GithubClient` out of the store. `createDemoClient()` (`demo/client.ts`) implements that interface — all 22 methods plus `login` — over committed fixtures, and `enterDemoMode()` (`demo/seed.ts`) puts *that* object in `state/github.ts`, stamps the demo blueprint onto the canvas, and seeds the Fleet Ops roster. No panel learns anything new; no `if (demo)` branch exists anywhere in the UI. The consequence that matters: `compile()`, `fleet/facts`, `fleet/metrics` and `fleet/audit` all run **for real** over the fixture data, so what a visitor sees is what the code does. A demo that reimplemented any of them would be worse than none.
+
+- **No network, no credential** (`NFR-SEC-1`): the demo client contains no `fetch` and no token. A test booby-traps `globalThis.fetch` to throw and then calls every method; a browser pass aborts every `api.github.com` request and counts the attempts (0).
+- **Writes go to an in-memory overlay** every read consults first, so Deploy, prompt edits and kill-switch toggles visibly persist — for the lifetime of the tab and no further. The banner names the count.
+- **Mutually exclusive with a live session** (`NFR-SEC-2`): entering calls `disconnect()`, which also wipes the sessionStorage PAT, so a reload cannot reconnect the real session underneath the demo.
+- **Nothing is hard-dated.** Run history is generated backwards from an injected clock — the `fleetops.test.ts` time bomb (fixtures that aged out of a 14-day metrics window and turned CI red for three weeks) is the reason this is a rule rather than a preference.
+- **The data is deliberately imperfect.** `acme/storefront` grades C (an ungated nightly with blanket `Bash` and top-level write permissions), `acme/infra` B, `acme/design-system` A. A fleet where everything passes leaves the Audit and Rankings boards empty and teaches nothing.
+- **Compiler output is generated at construction time** by the real compiler, so the `factory--*.yml` a visitor reads in Fleet or Monitor is literally what `compile()` emits. A drift test holds the workflow catalogue (which drives run history) and the file tree (which drives facts/audit) in agreement.
+
+Entry is `?demo=1` (or `#demo`), plus an "explore the demo" button in each empty state. A persistent banner states that nothing is written to GitHub and offers a one-click exit; a seven-step keyboard-navigable tour walks the tabs. Cost: **+23.3 kB raw JS, +1.1 kB CSS** (budget was 200 kB).
+
 ## 8. Security model
 
 **Threats, in order of embarrassment:**

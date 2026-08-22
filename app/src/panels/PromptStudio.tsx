@@ -2,6 +2,7 @@ import './promptstudio.css';
 import { useEffect, useMemo, useState } from 'react';
 import { usePromptsStore } from '../state/prompts';
 import { useGithubStore } from '../state/github';
+import { DemoInvite } from './DemoBanner';
 import { useFactoryStore } from '../state/store';
 import { splitPrompt, joinPrompt } from '../prompts/frontmatter';
 import { lintPrompt, lintPasses } from '../prompts/lint';
@@ -57,6 +58,7 @@ export function PromptStudio() {
     return (
       <div className="tabpane promptstudio">
         <p className="tabpane__empty">Connect a repo (top bar) to browse and edit its <code>.factory/prompts/</code>.</p>
+        <DemoInvite />
       </div>
     );
   }

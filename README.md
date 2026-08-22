@@ -22,6 +22,10 @@ No servers. The frontend is a static site; **GitHub is the database, the event b
 - **Agents as machines** — each Claude agent has a prompt contract, scoped tool
   grants, loop guards, and telemetry, because an unbounded agent is just a fire.
 
+## Try it without a token
+
+Open the app with **`?demo=1`** and the whole tool comes alive on a fictional three-repo fleet — canvas, prompts, telemetry, and the Fleet Ops cockpit — with no personal access token and no network calls. It is not a mock: the demo swaps in a fixture-backed client behind the same seam a real connection uses, so the compiler and the facts/metrics/audit engines run for real over the fixture data. Nothing is written to GitHub; edits live in the tab until you close it.
+
 ## Quickstart (development)
 
 ```bash

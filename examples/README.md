@@ -1,6 +1,3 @@
 # Examples — reference compiler output
 
-Each `*.blueprint.json` here is a minimal source blueprint, and `compiled/` holds the exact output of `app/src/compiler/compile.ts` for it — the golden anchors the compiler converges to.
-The compiled files are generated, never hand-edited (golden rule #2): regenerate after compiler changes with `cd app && npx vite-node scripts/regen-examples.ts`.
-The regen script refuses to write on error-level diagnostics and fully owns `compiled/` — stale files are removed, so the regenerated output is canonical.
-Coverage: `issue-triage` is an agent line (issue opened → Claude agent → label + comment obligations); `pr-intake` is a PR-triggered no-agent line that compiles to deterministic `gh` steps.
+Each `*.blueprint.json` here is a minimal source blueprint, and `compiled/` holds the exact output of `app/src/compiler/compile.ts` for it — the golden anchors the compiler converges to. The compiled files are generated, never hand-edited (golden rule #2): regenerate after compiler changes with `cd app && npx vite-node scripts/regen-examples.ts`. The regen script refuses to write on error-level diagnostics and fully owns `compiled/` — stale files are removed, so the regenerated output is canonical. Coverage: `issue-triage` is an agent line (issue opened → Claude agent → label + comment obligations); `pr-intake` is a PR-triggered no-agent line that compiles to deterministic `gh` steps.
