@@ -706,3 +706,134 @@ describe('open_pr / commit_files grant file-editing tools (agent must change fil
     expect(yaml).toContain('Bash(gh pr create:*)');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The perfection loop (ADR-022) — adapted from it-journey's quest-perfection.
+//
+// These four machines exist to make an autonomous improvement loop CONVERGE rather
+// than churn, and every invariant below is one of the reasons it converges. They are
+// asserted here because each is a property of the emitted YAML, not of a prompt: if
+// the compiler stops emitting them, the loop silently becomes self-certifying.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the perfection loop', () => {
+  const loop = (extra: Record<string, unknown> = {}) =>
+    compile({
+      version: 1,
+      meta: { name: 'Perfection Loop' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 6 * * *' }),
+        node('k', 'gate.enablement', { variable: 'PERFECTION_ENABLED' }),
+        node('l', 'processor.ledger', {
+          ledgerPath: '.factory/ledger.json',
+          selectCmd: 'python3 scripts/ledger.py select --json',
+          updateCmd: 'python3 scripts/ledger.py update --evidence evidence/',
+        }),
+        node('b', 'gate.budget', { maxOpenPrs: 6, maxItemsPerRun: 3, prLabel: 'automated' }),
+        node('e', 'processor.evidence', {
+          measureCmd: 'python3 scripts/measure.py --out evidence/',
+          evidencePath: 'evidence/',
+          artifactName: 'perfection-evidence',
+        }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/walker.md', model: 'claude-opus-5' }),
+        node('v', 'gate.verified_fix', {
+          verifyCmd: 'python3 scripts/verify.py --fail-under-baseline',
+          onFail: 'revert',
+          ...extra,
+        }),
+        node('s', 'sink.open_pr', { branchHint: 'factory/fix-*' }),
+      ],
+      edges: [
+        edge('e1', 't', 'k'),
+        edge('e2', 'k', 'l'),
+        edge('e3', 'l', 'b'),
+        edge('e4', 'b', 'e'),
+        edge('e5', 'e', 'a'),
+        edge('e6', 'a', 'v'),
+        edge('e7', 'v', 's'),
+      ],
+    }).workflows[0];
+
+  it('compiles without diagnostics — all four machines have emitters', () => {
+    expect(errs(loop())).toHaveLength(0);
+  });
+
+  it('the ledger, not a model, chooses the work: select runs in a plan job before the line', () => {
+    const yaml = loop().yaml;
+    expect(yaml).toContain('plan:');
+    expect(yaml).toContain('python3 scripts/ledger.py select --json');
+    // the line waits on the plan and only runs when the plan actually found work
+    expect(yaml).toContain("needs.plan.outputs.count != '0'");
+    // and the plan job carries no model — selection is deterministic
+    const planBlock = yaml.slice(yaml.indexOf('plan:'), yaml.indexOf('line:'));
+    expect(planBlock).not.toContain('claude-code-action');
+  });
+
+  it('budget backpressure pauses planning when the review queue is full', () => {
+    const yaml = loop().yaml;
+    expect(yaml).toContain('MAX_OPEN: "6"');
+    expect(yaml).toContain('gh pr list --state open --label "automated"');
+    // the select step is skipped entirely while paused
+    expect(yaml).toContain("steps.budget.outputs.paused != 'true'");
+  });
+
+  it('evidence is sealed BEFORE the agent, so the agent cannot manufacture its own grade', () => {
+    const yaml = loop().yaml;
+    const seal = yaml.indexOf('python3 scripts/measure.py');
+    const agent = yaml.indexOf('claude-code-action');
+    expect(seal).toBeGreaterThan(-1);
+    expect(agent).toBeGreaterThan(-1);
+    expect(seal).toBeLessThan(agent);
+  });
+
+  it('verification is independent, and an unverified edit is reverted', () => {
+    const yaml = loop().yaml;
+    expect(yaml).toContain('python3 scripts/verify.py --fail-under-baseline');
+    expect(yaml).toContain('git checkout -- .');
+  });
+
+  it('keep-and-flag suppresses the revert but still runs the check', () => {
+    const yaml = loop({ onFail: 'keep-and-flag' }).yaml;
+    expect(yaml).toContain('python3 scripts/verify.py --fail-under-baseline');
+    expect(yaml).not.toContain('git checkout -- .');
+  });
+
+  it('the done flag is recomputed deterministically in a report job, never by the agent', () => {
+    const yaml = loop().yaml;
+    expect(yaml).toContain('report:');
+    expect(yaml).toContain('python3 scripts/ledger.py update --evidence evidence/');
+    const reportBlock = yaml.slice(yaml.indexOf('report:'));
+    expect(reportBlock).not.toContain('claude-code-action');
+  });
+
+  it('the ledger rides the report PR only — add-paths keeps it out of a content PR', () => {
+    expect(loop().yaml).toContain('add-paths: .factory/ledger.json');
+  });
+
+  it('sealed evidence is uploaded as the durable handoff for a later fix run', () => {
+    const yaml = loop().yaml;
+    expect(yaml).toContain('actions/upload-artifact@v4');
+    expect(yaml).toContain('name: perfection-evidence');
+  });
+});
+
+describe('the perfection loop — rotating window', () => {
+  it('the line fans out over the slices the ledger chose, one at a time', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Rotating' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 6 * * *' }),
+        node('l', 'processor.ledger', {}),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/w.md' }),
+        node('s', 'sink.open_pr', { branchHint: 'factory/w-*' }),
+      ],
+      edges: [edge('e1', 't', 'l'), edge('e2', 'l', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('matrix: ${{ fromJson(needs.plan.outputs.matrix) }}');
+    // serialised on purpose: a whole backlog in one run exhausts the token rate limit
+    expect(wf.yaml).toContain('max-parallel: 1');
+    // one slice failing must not abandon the rest of the window
+    expect(wf.yaml).toContain('fail-fast: false');
+  });
+});

@@ -26,6 +26,10 @@ export interface MachineDef {
 const str = (v: unknown, fallback = ''): string =>
   typeof v === 'string' && v.length > 0 ? v : fallback;
 
+/** Positive-integer config read, for the caps the loop machines describe. */
+const num = (v: unknown, fallback: number): number =>
+  Number(v) > 0 ? Math.floor(Number(v)) : fallback;
+
 export const MACHINES: MachineDef[] = [
   // ── Triggers (copper) ────────────────────────────────────────────────
   {
@@ -145,12 +149,12 @@ export const MACHINES: MachineDef[] = [
         key: 'model',
         label: 'Model',
         kind: 'select',
-        options: ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'],
+        options: ['claude-opus-5', 'claude-sonnet-5', 'claude-opus-4-8', 'claude-haiku-4-5'],
       },
       { key: 'maxTurns', label: 'Max turns', kind: 'number', placeholder: '8' },
     ],
-    defaults: { promptRef: '.factory/prompts/triage.md', model: 'claude-sonnet-4-6', maxTurns: 8 },
-    describe: (c) => `${str(c.model, 'claude-sonnet-4-6')} · ${str(c.promptRef, 'no prompt!')}`,
+    defaults: { promptRef: '.factory/prompts/triage.md', model: 'claude-opus-5', maxTurns: 8 },
+    describe: (c) => `${str(c.model, 'claude-opus-5')} · ${str(c.promptRef, 'no prompt!')}`,
   },
   {
     type: 'filter.condition',
@@ -232,6 +236,138 @@ export const MACHINES: MachineDef[] = [
     describe: (c) => `enabled if vars.${str(c.variable, 'X_ENABLED')} == 'true'`,
   },
   {
+    type: 'processor.ledger',
+    category: 'processor',
+    label: 'Ledger',
+    icon: '📒',
+    blurb:
+      'The perfection loop’s source of truth, and the reason it converges. A committed ledger records what has been measured and what is certified done. Before the run, a DETERMINISTIC step picks the highest-priority not-yet-perfect slice — no model chooses the work. After the run, a DETERMINISTIC step folds the sealed evidence back in and recomputes “done”. An agent can never write that field.',
+    fields: [
+      {
+        key: 'ledgerPath',
+        label: 'Ledger file',
+        kind: 'text',
+        placeholder: '.factory/ledger.json',
+        help: 'Committed to the repo — the loop’s memory across runs. Rides the report PR only, never a content PR.',
+      },
+      {
+        key: 'selectCmd',
+        label: 'Select command',
+        kind: 'text',
+        placeholder: 'python3 scripts/ledger.py select --json',
+        help: 'Deterministic, and the only thing that chooses work. Must print a GitHub Actions matrix object to stdout — e.g. {"slice":["a","b"]} — which the line then fans out over one slice at a time.',
+      },
+      {
+        key: 'updateCmd',
+        label: 'Update command',
+        kind: 'text',
+        placeholder: 'python3 scripts/ledger.py update --evidence evidence/',
+        help: 'Deterministic. Folds sealed evidence into the ledger and recomputes the done flag.',
+      },
+      {
+        key: 'reportBranch',
+        label: 'Report branch prefix',
+        kind: 'text',
+        placeholder: 'factory/ledger',
+      },
+    ],
+    defaults: {
+      ledgerPath: '.factory/ledger.json',
+      selectCmd: 'python3 scripts/ledger.py select --json',
+      updateCmd: 'python3 scripts/ledger.py update --evidence evidence/',
+      reportBranch: 'factory/ledger',
+    },
+    describe: (c) => `ledger ${str(c.ledgerPath, '.factory/ledger.json')} · deterministic select + update`,
+  },
+  {
+    type: 'gate.budget',
+    category: 'processor',
+    label: 'Budget gate',
+    icon: '🧮',
+    blurb:
+      'Backpressure clamped to HUMAN REVIEW SPEED, not machine capacity. Stops planning new work once too many PRs already await review, caps how much one run may take on, and skips anything recently certified. Without this an autonomous loop out-runs its one reviewer and buries them.',
+    fields: [
+      { key: 'maxOpenPrs', label: 'Max open PRs awaiting review', kind: 'number', placeholder: '6' },
+      { key: 'maxItemsPerRun', label: 'Max items per run', kind: 'number', placeholder: '3' },
+      { key: 'skipWithinDays', label: 'Skip items certified within (days)', kind: 'number', placeholder: '7' },
+      {
+        key: 'prLabel',
+        label: 'Label to count',
+        kind: 'text',
+        placeholder: 'automated',
+        help: 'Which open PRs count against the review-queue cap.',
+      },
+    ],
+    defaults: { maxOpenPrs: 6, maxItemsPerRun: 3, skipWithinDays: 7, prLabel: 'automated' },
+    describe: (c) =>
+      `≤${num(c.maxItemsPerRun, 3)}/run · pause at ${num(c.maxOpenPrs, 6)} open · skip ${num(c.skipWithinDays, 7)}d`,
+  },
+  {
+    type: 'processor.evidence',
+    category: 'processor',
+    label: 'Evidence seal',
+    icon: '🔏',
+    blurb:
+      'Measures BEFORE the agent runs, then seals the result. The agent reads the evidence and writes the report — it can never produce the evidence it is graded on. Also solves a real constraint: Claude Code scrubs auth from its Bash subprocesses, so a measurement engine launched inside an agent cannot authenticate. Run it as a plain workflow step instead.',
+    fields: [
+      {
+        key: 'measureCmd',
+        label: 'Measure command',
+        kind: 'text',
+        placeholder: 'python3 scripts/measure.py --out evidence/',
+        help: 'A deterministic workflow step. Its output is the only evidence the agent and the ledger may use.',
+      },
+      { key: 'evidencePath', label: 'Evidence path', kind: 'text', placeholder: 'evidence/' },
+      {
+        key: 'artifactName',
+        label: 'Artifact name',
+        kind: 'text',
+        placeholder: 'perfection-evidence',
+        help: 'The durable handoff — a later fix run reuses this by run id instead of re-paying to measure.',
+      },
+    ],
+    defaults: {
+      measureCmd: 'python3 scripts/measure.py --out evidence/',
+      evidencePath: 'evidence/',
+      artifactName: 'perfection-evidence',
+    },
+    describe: (c) => `seal → ${str(c.evidencePath, 'evidence/')} before the agent`,
+  },
+  {
+    type: 'gate.verified_fix',
+    category: 'processor',
+    label: 'Verified fix gate',
+    icon: '⚖️',
+    blurb:
+      'Anti-self-grading. After the agent edits, an INDEPENDENT deterministic check decides whether the edit survives — the model’s own claim that it helped is never the signal. If the check does not improve, the working tree is reverted and nothing is proposed. This is what keeps an autonomous repair loop from congratulating itself into a mess.',
+    fields: [
+      {
+        key: 'verifyCmd',
+        label: 'Verify command',
+        kind: 'text',
+        placeholder: 'python3 scripts/verify.py --fail-under-baseline',
+        help: 'Must exit non-zero when the edit did not improve. Never let the agent supply this verdict.',
+      },
+      {
+        key: 'onFail',
+        label: 'When verification fails',
+        kind: 'select',
+        options: ['revert', 'keep-and-flag'],
+        help: '“revert” restores the tree so nothing unproven is ever proposed. “keep-and-flag” proposes it but marks the PR for human judgement.',
+      },
+      {
+        key: 'maxRounds',
+        label: 'Circuit breaker — max fix rounds per item',
+        kind: 'number',
+        placeholder: '3',
+        help: 'An item repaired this many times without being certified stops being a candidate.',
+      },
+    ],
+    defaults: { verifyCmd: 'python3 scripts/verify.py --fail-under-baseline', onFail: 'revert', maxRounds: 3 },
+    describe: (c) =>
+      `verify → ${str(c.onFail, 'revert')} · breaker ${num(c.maxRounds, 3)} rounds`,
+  },
+  {
     type: 'processor.feedback_controller',
     category: 'processor',
     label: 'Feedback controller',
@@ -250,7 +386,7 @@ export const MACHINES: MachineDef[] = [
         key: 'model',
         label: 'Model',
         kind: 'select',
-        options: ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
+        options: ['claude-opus-5', 'claude-sonnet-5', 'claude-opus-4-8', 'claude-haiku-4-5'],
       },
       {
         key: 'ledgerPath',
@@ -264,12 +400,12 @@ export const MACHINES: MachineDef[] = [
     ],
     defaults: {
       promptRef: '.factory/prompts/loop-tuner.md',
-      model: 'claude-opus-4-8',
+      model: 'claude-opus-5',
       ledgerPath: '.factory/metrics/improvements.yml',
       windowDays: 7,
       maxTurns: 30,
     },
-    describe: (c) => `loop-tuner · ${str(c.model, 'claude-opus-4-8')} · ${Number(c.windowDays) > 0 ? Number(c.windowDays) : 7}d window`,
+    describe: (c) => `loop-tuner · ${str(c.model, 'claude-opus-5')} · ${Number(c.windowDays) > 0 ? Number(c.windowDays) : 7}d window`,
   },
 
   // ── Sinks (signal green) ─────────────────────────────────────────────

@@ -44,8 +44,29 @@ const DEPENDABOT_META = 'processor.dependabot_meta';
 const GATE = 'gate.approval';
 const ENABLEMENT = 'gate.enablement';
 const RATE = 'rate.limiter';
+// ── The perfection loop (ADR-022, adapted from it-journey's quest-perfection) ──
+// Four machines that together make an autonomous improvement loop CONVERGE instead of
+// churn. The discipline they encode: a committed ledger (not a model) chooses the work;
+// budget caps sized to human review speed decide how much; evidence is sealed BEFORE the
+// agent so it can never grade itself; and an independent deterministic check decides
+// whether an edit survives. Every one of those is a deterministic step around the agent,
+// which is exactly why the loop can be left running.
+const LEDGER = 'processor.ledger';
+const BUDGET = 'gate.budget';
+const EVIDENCE = 'processor.evidence';
+const VERIFY = 'gate.verified_fix';
 /** Non-trigger, non-sink processors the compiler recognises (each has its own emitter). */
-const PROCESSORS = new Set(['filter.condition', DEPENDABOT_META, GATE, ENABLEMENT, RATE]);
+const PROCESSORS = new Set([
+  'filter.condition',
+  DEPENDABOT_META,
+  GATE,
+  ENABLEMENT,
+  RATE,
+  LEDGER,
+  BUDGET,
+  EVIDENCE,
+  VERIFY,
+]);
 const TRIGGERS = new Set([
   'trigger.issue_opened',
   'trigger.issue_labeled',
@@ -282,6 +303,10 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const gate = comp.find((n) => n.type === GATE);
     const enablement = comp.find((n) => n.type === ENABLEMENT);
     const limiter = comp.find((n) => n.type === RATE);
+    const ledger = comp.find((n) => n.type === LEDGER);
+    const budget = comp.find((n) => n.type === BUDGET);
+    const evidence = comp.find((n) => n.type === EVIDENCE);
+    const verify = comp.find((n) => n.type === VERIFY);
     const unknown = comp.filter(
       (n) => !TRIGGERS.has(n.type) && !SINKS.has(n.type) && !AGENTS.has(n.type) && !PROCESSORS.has(n.type),
     );
@@ -575,7 +600,17 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           'if [ "$COUNT" -ge "$LIMIT" ]; then echo "rate limit ($LIMIT/day) reached — stopping"; exit 1; fi',
       });
     }
-    if (agent) steps.push({ uses: 'actions/checkout@v4' });
+    if (agent || evidence || ledger) steps.push({ uses: 'actions/checkout@v4' });
+    if (evidence) {
+      // BEFORE the agent, deliberately. Two reasons, both load-bearing:
+      // (1) the agent must not be able to manufacture the evidence it is judged on, and
+      // (2) Claude Code scrubs auth env vars from its Bash-tool subprocesses, so a
+      //     measurement engine launched inside an agent could never authenticate.
+      steps.push({
+        name: `🔏 evidence.seal (${evidence.id})`,
+        run: s(evidence.config.measureCmd, 'python3 scripts/measure.py --out evidence/'),
+      });
+    }
     if (dependabotMeta) {
       // Exposes steps.dependabot-metadata.outputs.update-type / dependency-names / etc.
       steps.push({ id: 'dependabot-metadata', uses: 'dependabot/fetch-metadata@v2' });
@@ -782,6 +817,36 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       return;
     }
 
+    if (verify) {
+      // Anti-self-grading: an INDEPENDENT command decides whether the agent's edits
+      // survive. The model's own claim that it helped is never the signal.
+      const revert = s(verify.config.onFail, 'revert') !== 'keep-and-flag';
+      steps.push({
+        name: `⚖️ verified_fix (${verify.id})`,
+        run:
+          `if ${s(verify.config.verifyCmd, 'python3 scripts/verify.py --fail-under-baseline')}; then\n` +
+          '  echo "verified — the edit improved the deterministic signal, keeping it"\n' +
+          'else\n' +
+          (revert
+            ? '  echo "NOT verified — reverting; nothing unproven is proposed"\n  git checkout -- .\n'
+            : '  echo "NOT verified — kept, but flagged for human judgement"\n') +
+          'fi',
+      });
+    }
+    if (evidence) {
+      // The durable handoff. A later fix run reuses this artifact by run id instead of
+      // re-paying to measure — measurement is the expensive half of the loop.
+      steps.push({
+        name: '📦 upload sealed evidence',
+        uses: 'actions/upload-artifact@v4',
+        with: {
+          name: s(evidence.config.artifactName, 'perfection-evidence'),
+          path: s(evidence.config.evidencePath, 'evidence/'),
+          'if-no-files-found': 'warn',
+        },
+      });
+    }
+
     const job: Record<string, unknown> = {
       'runs-on': 'ubuntu-latest',
       // Enablement gate: the line runs only when the default-OFF `gate` job says go.
@@ -824,7 +889,122 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         steps: [{ id: 'check', env: gateEnvVars, run: gateRun }],
       };
     }
+    if (ledger) {
+      // PLAN — deterministic. The ledger, not a model, chooses the work. Budget caps
+      // clamp throughput to what one human can actually review; without them an
+      // autonomous loop out-runs its reviewer and the queue becomes the bottleneck.
+      const planSteps: Record<string, unknown>[] = [{ uses: 'actions/checkout@v4' }];
+      if (budget) {
+        const maxOpen = Number(budget.config.maxOpenPrs) > 0 ? Math.floor(Number(budget.config.maxOpenPrs)) : 6;
+        planSteps.push({
+          name: `🧮 budget.gate (${budget.id})`,
+          env: { GH_TOKEN: '${{ github.token }}', MAX_OPEN: String(maxOpen) },
+          run:
+            `OPEN=$(gh pr list --state open --label "${s(budget.config.prLabel, 'automated')}" --json number --jq 'length')\n` +
+            'if [ "$OPEN" -ge "$MAX_OPEN" ]; then\n' +
+            '  echo "$OPEN PRs already awaiting review (cap $MAX_OPEN) — planning no new work this run."\n' +
+            '  echo "paused=true" >> "$GITHUB_OUTPUT"\n' +
+            'else\n' +
+            '  echo "paused=false" >> "$GITHUB_OUTPUT"\n' +
+            'fi',
+          id: 'budget',
+        });
+      }
+      planSteps.push({
+        name: `📒 ledger.select (${ledger.id})`,
+        id: 'select',
+        ...(budget ? { if: "steps.budget.outputs.paused != 'true'" } : {}),
+        env: {
+          MAX_ITEMS: String(
+            budget && Number(budget.config.maxItemsPerRun) > 0
+              ? Math.floor(Number(budget.config.maxItemsPerRun))
+              : 3,
+          ),
+          SKIP_WITHIN_DAYS: String(
+            budget && Number(budget.config.skipWithinDays) > 0
+              ? Math.floor(Number(budget.config.skipWithinDays))
+              : 7,
+          ),
+        },
+        run:
+          `MATRIX=$(${s(ledger.config.selectCmd, 'python3 scripts/ledger.py select --json')})\n` +
+          'echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"\n' +
+          'echo "count=$(echo "$MATRIX" | jq \'[.. | arrays] | first | length // 0\')" >> "$GITHUB_OUTPUT"',
+      });
+      jobs.plan = {
+        'runs-on': 'ubuntu-latest',
+        ...(enableVar ? { needs: 'gate', if: "needs.gate.outputs.go == 'true'" } : {}),
+        permissions: { contents: 'read', 'pull-requests': 'read' },
+        outputs: {
+          matrix: '${{ steps.select.outputs.matrix }}',
+          count: '${{ steps.select.outputs.count || 0 }}',
+        },
+        steps: planSteps,
+      };
+      // The line now consumes the plan: it runs only when the plan found work, and it
+      // fans out over the slices the ledger chose. This is the ROTATING WINDOW — a run
+      // takes on a bounded slice of the backlog and the ledger accumulates coverage over
+      // following runs, because walking a whole backlog in one run exhausts the token's
+      // rate limit long before it finishes.
+      job.strategy = {
+        'fail-fast': false,
+        'max-parallel': 1,
+        matrix: '${{ fromJson(needs.plan.outputs.matrix) }}',
+      };
+      job.needs = enableVar ? ['gate', 'plan'] : ['plan'];
+      const planGuard = "needs.plan.outputs.count != '0'";
+      job.if = typeof job.if === 'string' && job.if.length
+        ? String(job.if).replace(/^\$\{\{ (.*) \}\}$/, (_m, inner) => `\${{ ${inner} && ${planGuard} }}`)
+        : `\${{ ${planGuard} }}`;
+    }
     jobs.line = job;
+    if (ledger) {
+      // REPORT — deterministic. Folds the sealed evidence back into the ledger and
+      // recomputes "done". This is the field an agent may never write: if a model can
+      // certify its own work as finished, the loop stops converging and starts flattering
+      // itself. One consolidated PR per run, so ledger deltas can't conflict with
+      // each other, and the ledger rides HERE — never on a content PR.
+      jobs.report = {
+        'runs-on': 'ubuntu-latest',
+        needs: enableVar ? ['gate', 'plan', 'line'] : ['plan', 'line'],
+        if: "!cancelled() && needs.plan.outputs.count != '0'",
+        permissions: { contents: 'write', 'pull-requests': 'write' },
+        steps: [
+          { uses: 'actions/checkout@v4' },
+          ...(evidence
+            ? [
+                {
+                  name: 'download sealed evidence',
+                  uses: 'actions/download-artifact@v4',
+                  with: {
+                    name: s(evidence.config.artifactName, 'perfection-evidence'),
+                    path: s(evidence.config.evidencePath, 'evidence/'),
+                  },
+                  'continue-on-error': true,
+                },
+              ]
+            : []),
+          {
+            name: `📒 ledger.update (${ledger.id})`,
+            run: s(ledger.config.updateCmd, 'python3 scripts/ledger.py update --evidence evidence/'),
+          },
+          {
+            name: 'open the ledger PR',
+            uses: 'peter-evans/create-pull-request@v7',
+            with: {
+              branch: `${s(ledger.config.reportBranch, 'factory/ledger')}/\${{ github.run_id }}`,
+              'commit-message': `chore(factory): ledger update from run \${{ github.run_id }}`,
+              title: `chore(factory): ledger update from run \${{ github.run_id }}`,
+              body:
+                'Deterministic ledger update — the done flag is recomputed from sealed evidence, never written by an agent.\n\n' +
+                `Run: \${{ github.server_url }}/\${{ github.repository }}/actions/runs/\${{ github.run_id }}`,
+              labels: 'automated',
+              'add-paths': s(ledger.config.ledgerPath, '.factory/ledger.json'),
+            },
+          },
+        ],
+      };
+    }
 
     const wf = {
       name: `Factory: ${name}`,
