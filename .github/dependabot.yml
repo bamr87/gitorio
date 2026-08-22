@@ -1,21 +1,33 @@
+# Dependabot configuration
+#
+# Keeps GitHub Actions references current. When an action is pinned to a full
+# commit SHA with a trailing version comment, e.g.
+#
+#   uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+#
+# Dependabot bumps the SHA and rewrites the trailing comment to match the new
+# release, so pinning stays a review checkpoint instead of drifting silently.
+#
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
-updates:
-  # Frontend npm dependencies (the app lives in /app).
-  - package-ecosystem: npm
-    directory: /app
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    groups:
-      # Batch low-risk updates so review stays cheap.
-      minor-and-patch:
-        update-types:
-          - minor
-          - patch
 
-  # The workflows GitFactory itself ships (CI + Pages).
-  - package-ecosystem: github-actions
-    directory: /
+updates:
+  # For the github-actions ecosystem, "/" is the correct directory value:
+  # Dependabot resolves it to .github/workflows/ and scans every workflow there.
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
     open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    # Batch routine bumps into a single reviewable PR per week rather than one
+    # PR per action. Remove this block if you prefer per-action PRs.
+    groups:
+      github-actions:
+        patterns:
+          - "*"
