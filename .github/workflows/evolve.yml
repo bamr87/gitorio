@@ -1,0 +1,115 @@
+# AO-SDLC weekly discovery (golden rule #11, ADR-022) — the headless half of
+# /evolve, ported from law-ai and put behind gitorio's own default-OFF
+# kill-switch convention (ADR-017): the scheduled run is inert until the repo
+# variable EVOLVE_AUDIT_ENABLED is set to 'true'; manual dispatch always runs
+# (plan-first duality — an explicit human click is its own authorization).
+#
+# - Audits the repo for follow-ups, appends them to BACKLOG.md.
+# - Opens a PR with the new BL-* entries so a human (or /evolve) can pick the
+#   next cycle. Stable branch: weekly re-runs update the SAME PR.
+# - Files one idempotent tracking issue labelled 'evolve'.
+name: Evolve (weekly autopilot)
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: evolve-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || vars.EVOLVE_AUDIT_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Run discovery audit
+        id: audit
+        run: |
+          # Default runner shell is `bash -e` WITHOUT pipefail, so tee's exit 0
+          # would mask an audit crash into an eternally-green weekly run.
+          set -o pipefail
+          python3 tools/evolve_audit.py | tee audit.out
+          {
+            echo 'audit<<AUDIT_EOF'
+            cat audit.out
+            echo 'AUDIT_EOF'
+          } >> "$GITHUB_OUTPUT"
+          if git diff --quiet BACKLOG.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate gates still pass
+        if: steps.audit.outputs.changed == 'true'
+        run: |
+          python3 tools/spec_validator.py
+          python3 tools/backlog_lint.py
+
+      - name: Open PR with new BACKLOG entries
+        if: steps.audit.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          # Stable branch so weekly re-runs update the SAME PR instead of piling
+          # up duplicates. add-paths limits the commit to BACKLOG.md so the
+          # transient audit.out scratch file is never committed.
+          branch: evolve/weekly-backlog-audit
+          add-paths: |
+            BACKLOG.md
+          title: "chore(evolve): weekly BACKLOG audit"
+          commit-message: "chore(evolve): append discovered follow-ups"
+          body: |
+            Automated discovery run from `tools/evolve_audit.py`.
+
+            ```
+            ${{ steps.audit.outputs.audit }}
+            ```
+
+            **Next step:** run `/evolve` in Claude Code against the
+            highest-priority new item (`python3 tools/pick_backlog_item.py`
+            picks it), or triage manually.
+          labels: |
+            evolve
+            backlog
+
+      - name: File tracking issue for the next /evolve cycle
+        if: steps.audit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Labels must exist before they can be applied; --force is idempotent.
+          gh label create evolve --description "AO-SDLC weekly audit" --color 5319e7 --force || true
+          gh label create backlog --description "BACKLOG.md work register" --color 0e8a16 --force || true
+          # Idempotency: skip filing a new tracking issue if an 'evolve' issue
+          # is already open.
+          if [ "$(gh issue list --label evolve --state open --json number --jq 'length')" -gt 0 ]; then
+            echo "An open 'evolve' issue already exists — skipping issue creation."
+            exit 0
+          fi
+          gh issue create \
+            --title "evolve: run /evolve on top BACKLOG item" \
+            --label evolve \
+            --body "$(cat <<'EOF'
+          The weekly audit appended new BACKLOG entries.
+
+          To advance the repo, follow .claude/commands/evolve.md:
+          1. Pick the top item: python3 tools/pick_backlog_item.py
+          2. Run /specify -> /clarify -> /plan -> /tasks -> /implement.
+          3. Mirror new follow-ups back into BACKLOG.md (golden rule #11).
+          EOF
+          )"

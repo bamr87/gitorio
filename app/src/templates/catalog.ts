@@ -241,4 +241,52 @@ export const TEMPLATES: FactoryTemplate[] = [
       ],
     },
   },
+  {
+    id: 'label-gated-automerge',
+    name: 'Label-Gated Automerge',
+    icon: '🏷️',
+    blurb:
+      'The ADR-015 lesson as structure: when a human (or a vetting agent like the Dependency Warden) adds the gate label, a deterministic line merges the PR — no agent judgment in the merge path, auto-merge waits for required checks. Merge policy compiles to YAML instead of living as prose.',
+    blueprint: {
+      version: 1,
+      meta: {
+        name: 'Label-Gated Automerge',
+        description: 'Adding the gate label merges the PR deterministically (auto-merge honors required checks).',
+      },
+      nodes: [
+        T('lt', 'trigger.pr_opened', 40, 140, { fireOn: 'labeled', label: 'dep:safe-to-merge' }),
+        T('lm', 'sink.merge_pr', 360, 140, { method: 'squash', when: 'auto' }),
+      ],
+      edges: [E('e1', 'lt', 'lm')],
+    },
+  },
+  {
+    id: 'ao-sdlc-autopilot',
+    name: 'AO-SDLC Autopilot',
+    icon: '♻️',
+    blurb:
+      'Weekly + on-demand: a Claude agent advances a spec-driven repo by one AO-SDLC cycle — pick the top BACKLOG item, run the specify→implement chain, and end in ONE reviewable PR (it never merges). Default-OFF behind a kill switch; a manual run plans only unless you tick “apply”. Pair with a BACKLOG.md + specs/ layout like gitorio’s or law-ai’s.',
+    blueprint: {
+      version: 1,
+      meta: {
+        name: 'AO-SDLC Autopilot',
+        description: 'Weekly: advance the repo by one spec-driven cycle, as a reviewable PR.',
+      },
+      nodes: [
+        T('ec', 'trigger.cron', 40, 90, { cron: '0 15 * * 1' }),
+        T('em', 'trigger.manual', 40, 210, { mode: 'plan-first' }),
+        T('eg', 'gate.enablement', 250, 150, { variable: 'AO_SDLC_AUTOPILOT_ENABLED' }),
+        T('erl', 'rate.limiter', 440, 150, { maxPerDay: 1 }),
+        T('ea', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/evolve-pilot.md', model: 'claude-opus-4-8', maxTurns: 40 }),
+        T('epr', 'sink.open_pr', 870, 150, { branchHint: 'factory/evolve-*' }),
+      ],
+      edges: [
+        E('e1', 'ec', 'eg'),
+        E('e2', 'em', 'eg'),
+        E('e3', 'eg', 'erl'),
+        E('e4', 'erl', 'ea'),
+        E('e5', 'ea', 'epr'),
+      ],
+    },
+  },
 ];

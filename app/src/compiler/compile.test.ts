@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { compile } from './compile';
+import { assemblyLines, compile, PINNED_ACTIONS } from './compile';
 import type { Blueprint } from '../blueprint/types';
 
 const node = (id: string, type: string, config: Record<string, unknown> = {}) => ({
@@ -707,8 +707,620 @@ describe('open_pr / commit_files grant file-editing tools (agent must change fil
   });
 });
 
+describe('prompt/grant coherence: an agent ordered to read its promptRef can read it', () => {
+  // Live incident: Factory 3 (the dependency warden) starved at max-turns on every
+  // scheduled run — 12 of 26 turns were permission denials — because `intro` orders
+  // every non-feedback agent to "Read and follow the operating instructions in
+  // <promptRef>" while the grant carried only `Bash(gh …)` verbs. Read/Glob/Grep
+  // arrived solely via toolsFor(sink.open_pr / sink.commit_files), so any line whose
+  // sinks were comment/label/merge_pr was told to read a file it could not open.
+  const factory3: Blueprint = {
+    version: 1,
+    meta: { name: 'Gitorio Factory 3' },
+    nodes: [
+      node('m', 'trigger.manual'),
+      node('c', 'trigger.cron', { cron: '0 6 * * 1' }),
+      node('wa', 'agent.claude', {
+        promptRef: '.factory/prompts/dependency-warden.md',
+        model: 'claude-sonnet-4-6',
+        maxTurns: 25,
+      }),
+      node('ws1', 'sink.comment', { instruction: 'posts a merge-risk verdict on the open dependency PR' }),
+      node('ws2', 'sink.label', { labels: '' }),
+      node('ws3', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+    ],
+    edges: [
+      edge('e1', 'm', 'wa'),
+      edge('e2', 'c', 'wa'),
+      edge('e3', 'wa', 'ws1'),
+      edge('e4', 'wa', 'ws2'),
+      edge('e5', 'wa', 'ws3'),
+    ],
+  };
+
+  it('grants Read/Glob/Grep to a comment/label/merge_pr warden (the starvation regression)', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    expect(yaml).toContain('Read and follow the operating instructions in .factory/prompts/dependency-warden.md');
+    expect(yaml).toContain('Read');
+    expect(yaml).toContain('Glob');
+    expect(yaml).toContain('Grep');
+  });
+
+  it('emits the exact expected grant, in Set-insertion order (cron → survey → read → sinks)', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    expect(yaml).toContain(
+      '--allowedTools "Bash(gh issue list:*),Bash(gh search issues:*),' +
+        'Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),' +
+        'Read,Glob,Grep,' +
+        'Bash(gh issue comment:*),Bash(gh pr comment:*),' +
+        'Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh pr edit:*),' +
+        'Bash(gh pr merge:*)"',
+    );
+  });
+
+  it('grants gh pr checks under survey mode, so a CI-gated merge need not rediscover it', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    expect(yaml).toContain('Bash(gh pr checks:*)');
+  });
+
+  it('widens no write surface: the added grants are read-only', () => {
+    const { yaml } = compile(factory3).workflows[0];
+    // The warden already had merge via its own sink; nothing new that writes appears.
+    expect(yaml).not.toContain('Bash(gh pr create:*)');
+    expect(yaml).not.toContain('Bash(git push:*)');
+    expect(yaml).not.toContain('Edit,Write');
+  });
+
+  // The invariant, asserted directly, so prompt and grant cannot drift apart again:
+  // if the emitted prompt orders a read, the emitted grant contains Read.
+  const shapes: Array<[string, Blueprint]> = [
+    ['comment/label/merge_pr warden (survey)', factory3],
+    [
+      'cron → comment only (the nightly gardener shape)',
+      {
+        version: 1,
+        meta: { name: 'Nightly Gardener' },
+        nodes: [
+          node('t', 'trigger.cron', { cron: '0 3 * * *' }),
+          node('a', 'agent.claude', { promptRef: '.factory/prompts/nightly-gardener.md' }),
+          node('s', 'sink.comment', { instruction: 'posts stale nudges' }),
+        ],
+        edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+      },
+    ],
+    ['issue_opened → label + comment (the triage shape)', triageLine],
+    [
+      'workflow_run → merge_pr',
+      {
+        version: 1,
+        meta: { name: 'Judged Automerge' },
+        nodes: [
+          node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
+          node('a', 'agent.claude', { promptRef: 'p.md' }),
+          node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+        ],
+        edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+      },
+    ],
+    [
+      'cron → open_pr (already had the file tools via toolsFor)',
+      {
+        version: 1,
+        meta: { name: 'Docs Gardener' },
+        nodes: [
+          node('t', 'trigger.cron', { cron: '0 8 * * *' }),
+          node('a', 'agent.claude', { promptRef: '.factory/prompts/docs-gardener.md' }),
+          node('s', 'sink.open_pr', {}),
+        ],
+        edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+      },
+    ],
+  ];
+
+  for (const [name, bp] of shapes) {
+    it(`invariant — ${name}: prompt orders a read ⇒ grant contains Read/Glob/Grep`, () => {
+      const { yaml } = compile(bp).workflows[0];
+      if (!yaml.includes('Read and follow the operating instructions')) return;
+      const grant = /--allowedTools "([^"]*)"/.exec(yaml)?.[1] ?? '';
+      const granted = grant.split(',');
+      expect(granted).toContain('Read');
+      expect(granted).toContain('Glob');
+      expect(granted).toContain('Grep');
+    });
+  }
+});
+
+describe('filter.condition — gates the line on an Actions expression (job-level if)', () => {
+  it('AND-joins the expression into the job if:, after the bot loop-guard', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Filtered Triage' },
+      nodes: [
+        node('t', 'trigger.issue_opened'),
+        node('f', 'filter.condition', { expression: "!contains(github.event.issue.labels.*.name, 'wontfix')" }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.comment', { instruction: 'triages' }),
+      ],
+      edges: [edge('e1', 't', 'f'), edge('e2', 'f', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(errs(wf)).toHaveLength(0);
+    // bot guard first, filter expression AND-joined after it — one job-level if:
+    expect(wf.yaml).toContain(
+      "github.event.sender.type != 'Bot' && !contains(github.event.issue.labels.*.name, 'wontfix')",
+    );
+  });
+
+  it('gates a cron line on the bare expression (no bot guard to join with)', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Owner Only Sweep' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 5 * * *' }),
+        node('f', 'filter.condition', { expression: "github.repository_owner == 'bamr87'" }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.create_issue', { titleHint: 'sweep' }),
+      ],
+      edges: [edge('e1', 't', 'f'), edge('e2', 'f', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(wf.yaml).toContain("github.repository_owner == 'bamr87'");
+    expect(wf.yaml).not.toContain("sender.type != 'Bot'");
+  });
+
+  it('warns on an empty expression (passes everything) and emits no filter guard', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Hollow Filter' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 5 * * *' }),
+        node('f', 'filter.condition', { expression: '' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('s', 'sink.create_issue', {}),
+      ],
+      edges: [edge('e1', 't', 'f'), edge('e2', 'f', 'a'), edge('e3', 'a', 's')],
+    }).workflows[0];
+    expect(wf.diagnostics.some((d) => d.level === 'warning' && /Empty filter/.test(d.message))).toBe(true);
+    expect(wf.yaml).not.toContain('if: ${{');
+  });
+
+  it('an author-scoping filter counts as scoping a merge line (no unscoped-merge warning)', () => {
+    const wf = compile({
+      version: 1,
+      meta: { name: 'Scoped Merge' },
+      nodes: [
+        node('t', 'trigger.pr_opened'),
+        node('f', 'filter.condition', { expression: "github.event.pull_request.user.login == 'dependabot[bot]'" }),
+        node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+      ],
+      edges: [edge('e1', 't', 'f'), edge('e2', 'f', 's')],
+    }).workflows[0];
+    expect(wf.diagnostics.some((d) => /act on every PR/.test(d.message))).toBe(false);
+    expect(wf.yaml).toContain("github.event.pull_request.user.login == 'dependabot[bot]'");
+  });
+});
+
+describe('sink.commit_files — direct commits (agent-obligated, contents: write)', () => {
+  const bp = (pathScope: string): Blueprint => ({
+    version: 1,
+    meta: { name: 'Docs Committer' },
+    nodes: [
+      node('t', 'trigger.cron', { cron: '0 4 * * *' }),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/docs-committer.md' }),
+      node('s', 'sink.commit_files', { pathScope }),
+    ],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+  });
+  const wf = compile(bp('docs/**')).workflows[0];
+
+  it('emits the obligation with the path scope + conventional-commit contract', () => {
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('[sink.commit_files s]');
+    expect(wf.yaml).toContain('(only within `docs/**`)');
+    expect(wf.yaml).toContain('conventional commit message');
+  });
+
+  it('omits the path clause when pathScope is empty (whole repo)', () => {
+    const open = compile(bp('')).workflows[0];
+    expect(open.yaml).toContain('[sink.commit_files s] Commit the file changes directly');
+    expect(open.yaml).not.toContain('only within');
+  });
+
+  it('grants the file tools + git add/commit/push (ADR-018: the agent must edit files first)', () => {
+    expect(wf.yaml).toMatch(/Read,Glob,Grep,Edit,Write/);
+    expect(wf.yaml).toContain('Bash(git add:*)');
+    expect(wf.yaml).toContain('Bash(git commit:*)');
+    expect(wf.yaml).toContain('Bash(git push:*)');
+  });
+
+  it('commits directly — no PR or branch verbs, no pull-requests permission', () => {
+    expect(wf.yaml).not.toContain('Bash(gh pr create:*)');
+    expect(wf.yaml).not.toContain('Bash(git switch:*)');
+    expect(wf.yaml).not.toContain('pull-requests: write');
+  });
+
+  it('computes contents: write (and keeps the agent id-token)', () => {
+    expect(wf.yaml).toContain('contents: write');
+    expect(wf.yaml).toContain('id-token: write');
+  });
+
+  it('errors without an agent upstream (no deterministic emission in v0)', () => {
+    const det = compile({
+      version: 1,
+      meta: { name: 'Blind Committer' },
+      nodes: [node('t', 'trigger.issue_opened'), node('s', 'sink.commit_files', {})],
+      edges: [edge('e1', 't', 's')],
+    }).workflows[0];
+    expect(det.diagnostics.some((d) => d.level === 'error' && /requires a Claude agent upstream/.test(d.message))).toBe(true);
+  });
+});
+
+describe('agent.claude checks — repo-declared verification commands (ADR-025)', () => {
+  const withChecks = (checks: string): Blueprint => ({
+    version: 1,
+    meta: { name: 'Check Line' },
+    nodes: [
+      node('c', 'trigger.cron', { cron: '0 6 * * 1' }),
+      node('a', 'agent.claude', {
+        promptRef: '.factory/prompts/pilot.md',
+        checks,
+      }),
+      node('pr', 'sink.open_pr', { branchHint: 'factory/x-*' }),
+    ],
+    edges: [edge('e1', 'c', 'a'), edge('e2', 'a', 'pr')],
+  });
+
+  it('each check line becomes exactly its own narrow Bash grant', () => {
+    const { yaml } = compile(withChecks('python3 scripts/spec_validator.py\npython3 scripts/backlog_lint.py')).workflows[0];
+    expect(yaml).toContain('Bash(python3 scripts/spec_validator.py:*)');
+    expect(yaml).toContain('Bash(python3 scripts/backlog_lint.py:*)');
+  });
+
+  it('emits a VERIFY prompt note listing the checks (prompt/grant coherence)', () => {
+    const { yaml } = compile(withChecks('python3 scripts/spec_validator.py')).workflows[0];
+    expect(yaml).toContain('VERIFY (run each of these repo checks');
+    expect(yaml).toContain('- python3 scripts/spec_validator.py');
+  });
+
+  it('no checks → no VERIFY note and no check grants', () => {
+    const { yaml } = compile(withChecks('')).workflows[0];
+    expect(yaml).not.toContain('VERIFY (run each');
+    expect(yaml).not.toContain('spec_validator');
+  });
+
+  it('blank/whitespace lines are dropped, not granted', () => {
+    const { yaml } = compile(withChecks('\n  \npython3 scripts/backlog_lint.py\n')).workflows[0];
+    expect(yaml).toContain('Bash(python3 scripts/backlog_lint.py:*)');
+    expect(yaml).not.toContain('Bash(:*)');
+  });
+
+  it('quoting or substitution in a check is a compile error, never an emitted grant', () => {
+    for (const bad of ['echo "hi"', 'run `id`', 'x $(y)']) {
+      const res = compile(withChecks(bad));
+      const errs = res.workflows.flatMap((w) => w.diagnostics).filter((d) => d.level === 'error');
+      expect(errs.some((e) => e.message.includes('Verification check'))).toBe(true);
+    }
+  });
+});
+
+describe('SHA-pinned actions mode (ADR-026): meta.pinActions pins every emitted uses: ref', () => {
+  const line = (pin?: boolean): Blueprint => ({
+    version: 1,
+    meta: { name: 'Pin Line', ...(pin === undefined ? {} : { pinActions: pin }) },
+    nodes: [
+      node('t', 'trigger.issue_opened'),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/triage.md' }),
+      node('cm', 'sink.comment', { instruction: 'summarize' }),
+    ],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'cm')],
+  });
+
+  it('pinned: agent + checkout refs become verified SHAs with the tag as a trailing comment', () => {
+    const { yaml } = compile(line(true)).workflows[0];
+    expect(yaml).toContain('anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb # v1');
+    expect(yaml).toContain('actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4');
+    expect(yaml).not.toContain('claude-code-action@v1');
+  });
+
+  it('default (unset): floating tags, byte-identical to pre-feature output', () => {
+    const { yaml } = compile(line()).workflows[0];
+    expect(yaml).toContain('uses: anthropics/claude-code-action@v1');
+    expect(yaml).toContain('uses: actions/checkout@v4');
+    expect(yaml).not.toContain('459ad358');
+  });
+
+  it('opts.pinActions overrides an unset meta flag', () => {
+    const { yaml } = compile(line(), { pinActions: true }).workflows[0];
+    expect(yaml).toContain('@459ad358ae43fea66bfefd0a1f8d840b4b9791fb # v1');
+  });
+
+  it('dependabot fetch-metadata is pinned too', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Dep Pin', pinActions: true },
+      nodes: [
+        node('t', 'trigger.pr_opened'),
+        node('dm', 'processor.dependabot_meta', { allowed: 'patch' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/warden.md' }),
+        node('m', 'sink.merge_pr', { method: 'squash' }),
+      ],
+      edges: [edge('e1', 't', 'dm'), edge('e2', 'dm', 'a'), edge('e3', 'a', 'm')],
+    };
+    const { yaml } = compile(bp).workflows[0];
+    expect(yaml).toContain('dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2');
+  });
+
+  it('pin-table completeness: every uses: ref the compiler emits has a pin (drift guard)', async () => {
+    const src = await import('node:fs').then((fs) =>
+      fs.readFileSync(new URL('./compile.ts', import.meta.url), 'utf-8'),
+    );
+    const emitted = [...src.matchAll(/pinRef\('([^']+)'/g)].map((m) => m[1]);
+    expect(emitted.length).toBeGreaterThanOrEqual(3);
+    for (const ref of emitted) expect(PINNED_ACTIONS[ref], `missing pin for ${ref}`).toBeTruthy();
+    // And no uses: literal escapes the pinRef wrapper:
+    expect(src).not.toMatch(/uses: '(?:actions|dependabot|anthropics)\//);
+  });
+});
+
+describe('label-gated merge line (ADR-027): pull_request[labeled] + terminal merge, policy as structure', () => {
+  const labeled = (label: string): Blueprint => ({
+    version: 1,
+    meta: { name: 'Automerge Line' },
+    nodes: [
+      node('t', 'trigger.pr_opened', { fireOn: 'labeled', label }),
+      node('m', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+    ],
+    edges: [edge('e1', 't', 'm')],
+  });
+
+  it('labeled mode emits types: [labeled] with the exact-label job guard', () => {
+    const { yaml } = compile(labeled('dep:safe-to-merge')).workflows[0];
+    expect(yaml).toContain('labeled');
+    expect(yaml).not.toContain('- opened');
+    expect(yaml).toContain("github.event.label.name == 'dep:safe-to-merge'");
+  });
+
+  it('compiles deterministically: a gh pr merge step, no agent, contents+pull-requests write', () => {
+    const { yaml } = compile(labeled('dep:safe-to-merge')).workflows[0];
+    expect(yaml).toContain('gh pr merge "$NUMBER" --squash --auto');
+    expect(yaml).not.toContain('claude-code-action');
+    expect(yaml).toContain('contents: write');
+    expect(yaml).toContain('pull-requests: write');
+  });
+
+  it('terminal merge line carries NO bot guard — the vetting agent may be the labeler (ADR-014 relaxation)', () => {
+    const { yaml } = compile(labeled('dep:safe-to-merge')).workflows[0];
+    expect(yaml).not.toContain("sender.type != 'Bot'");
+  });
+
+  it('the label scope suppresses the unscoped-merge warning; an unlabeled labeled-mode trigger warns', () => {
+    const scoped = compile(labeled('dep:safe-to-merge')).workflows[0];
+    expect(scoped.diagnostics.filter((d) => d.level === 'warning' && /every PR/.test(d.message))).toEqual([]);
+    const unscoped = compile(labeled('')).workflows[0];
+    expect(unscoped.diagnostics.some((d) => d.level === 'warning' && /EVERY label add/.test(d.message))).toBe(true);
+  });
+
+  it('default fireOn stays opened — existing blueprints unchanged', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Plain PR Line' },
+      nodes: [
+        node('t', 'trigger.pr_opened', {}),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/x.md' }),
+        node('cm', 'sink.comment', { instruction: 'review' }),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'cm')],
+    };
+    const { yaml } = compile(bp).workflows[0];
+    expect(yaml).toContain('opened');
+    expect(yaml).not.toContain('labeled');
+  });
+});
+
+describe('per-line names (ADR-028): meta.lineNaming auto names lines by what they are', () => {
+  const twoLines = (lineNaming?: 'auto' | 'indexed'): Blueprint => ({
+    version: 1,
+    meta: { name: 'Gitorio Factory', ...(lineNaming ? { lineNaming } : {}) },
+    nodes: [
+      node('t1', 'trigger.cron', { cron: '0 8 * * *' }),
+      node('a1', 'agent.claude', { promptRef: '.factory/prompts/docs-gardener.md' }),
+      node('p1', 'sink.open_pr', {}),
+      node('t2', 'trigger.pr_opened', { fireOn: 'labeled', label: 'dep:safe-to-merge' }),
+      node('m2', 'sink.merge_pr', { method: 'squash' }),
+    ],
+    edges: [edge('e1', 't1', 'a1'), edge('e2', 'a1', 'p1'), edge('e3', 't2', 'm2')],
+  });
+
+  it('auto: agent lines take the promptRef basename; deterministic lines take trigger+sink', () => {
+    const { workflows } = compile(twoLines('auto'));
+    const files = workflows.map((w) => w.filename).sort();
+    expect(files).toEqual(['factory--docs-gardener.yml', 'factory--pr-opened-merge-pr.yml']);
+  });
+
+  it('default stays <meta.name> <index> — existing deployments unrenamed', () => {
+    const { workflows } = compile(twoLines());
+    expect(workflows.map((w) => w.filename).sort()).toEqual([
+      'factory--gitorio-factory-1.yml',
+      'factory--gitorio-factory-2.yml',
+    ]);
+  });
+
+  it('assemblyLines() derives identical names — telemetry can never diverge from filenames', () => {
+    const bp = twoLines('auto');
+    const fromCompile = compile(bp).workflows.map((w) => w.filename).sort();
+    const fromLines = assemblyLines(bp).map((l) => l.filename).sort();
+    expect(fromLines).toEqual(fromCompile);
+  });
+
+  it('duplicate derived names get deterministic numeric suffixes', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Twins', lineNaming: 'auto' },
+      nodes: [
+        node('t1', 'trigger.cron', { cron: '0 1 * * *' }),
+        node('a1', 'agent.claude', { promptRef: '.factory/prompts/gardener.md' }),
+        node('c1', 'sink.comment', { instruction: 'a' }),
+        node('t2', 'trigger.cron', { cron: '0 2 * * *' }),
+        node('a2', 'agent.claude', { promptRef: '.factory/prompts/gardener.md' }),
+        node('c2', 'sink.comment', { instruction: 'b' }),
+      ],
+      edges: [edge('e1', 't1', 'a1'), edge('e2', 'a1', 'c1'), edge('e3', 't2', 'a2'), edge('e4', 'a2', 'c2')],
+    };
+    expect(compile(bp).workflows.map((w) => w.filename).sort()).toEqual([
+      'factory--gardener-2.yml',
+      'factory--gardener.yml',
+    ]);
+  });
+
+  it('single-line blueprints always keep meta.name, even in auto mode', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Docs Gardener', lineNaming: 'auto' },
+      nodes: [
+        node('t', 'trigger.cron', { cron: '0 8 * * *' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/other-name.md' }),
+        node('p', 'sink.open_pr', {}),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'p')],
+    };
+    expect(compile(bp).workflows[0].filename).toBe('factory--docs-gardener.yml');
+  });
+});
+
+describe('trigger.repository_dispatch (ADR-029): the receiving end of an inter-repo belt', () => {
+  const dispatchLine = (eventType: string): Blueprint => ({
+    version: 1,
+    meta: { name: 'Signal Receiver' },
+    nodes: [
+      node('t', 'trigger.repository_dispatch', { eventType }),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/receiver.md' }),
+      node('cm', 'sink.comment', { instruction: 'reports what the signal asked for' }),
+    ],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'cm')],
+  });
+
+  it('emits repository_dispatch scoped to the event type', () => {
+    const { yaml } = compile(dispatchLine('factory-signal')).workflows[0];
+    expect(yaml).toContain('repository_dispatch:');
+    expect(yaml).toContain('- factory-signal');
+  });
+
+  it('empty event type warns (fires for every dispatch) and emits no types filter', () => {
+    const wf = compile(dispatchLine('')).workflows[0];
+    expect(wf.diagnostics.some((d) => d.level === 'warning' && /EVERY dispatch type/.test(d.message))).toBe(true);
+    expect(wf.yaml).not.toContain('- factory-signal');
+  });
+
+  it('an entity-less dispatch agent line runs in survey mode with discovery grants', () => {
+    const { yaml } = compile(dispatchLine('factory-signal')).workflows[0];
+    expect(yaml).toContain('Bash(gh pr list:*)');
+    expect(yaml).toContain('Bash(gh issue list:*)');
+  });
+
+  it('numbers-not-bodies: the payload POINTER is context, its free text is not', () => {
+    const { yaml } = compile(dispatchLine('factory-signal')).workflows[0];
+    expect(yaml).toContain('DISPATCH_TYPE: ${{ github.event.action }}');
+    expect(yaml).toContain('PAYLOAD_NUMBER: ${{ github.event.client_payload.number }}');
+    expect(yaml).not.toContain('toJSON(github.event.client_payload)');
+  });
+
+  it('deterministic sinks read the payload number via the NUMBER fallback chain', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Signal Labeler' },
+      nodes: [
+        node('t', 'trigger.repository_dispatch', { eventType: 'label-request' }),
+        node('lb', 'sink.label', { labels: 'from-belt' }),
+      ],
+      edges: [edge('e1', 't', 'lb')],
+    };
+    const { yaml } = compile(bp).workflows[0];
+    expect(yaml).toContain('github.event.client_payload.number');
+    expect(yaml).toContain('gh issue edit');
+  });
+});
+
+describe('sink.repository_dispatch (ADR-030): the sending end of an inter-repo belt', () => {
+  const agentBelt: Blueprint = {
+    version: 1,
+    meta: { name: 'Belt Sender', repo: 'o/self' },
+    nodes: [
+      node('t', 'trigger.issue_opened'),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/router.md' }),
+      node('d', 'sink.repository_dispatch', { targetRepo: 'o/other', eventType: 'factory-signal', tokenSecret: 'FLEET_TOKEN' }),
+    ],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'd')],
+  };
+
+  it('agent-obligated: obligation names the exact endpoint + token, grant is that endpoint only', () => {
+    const { yaml } = compile(agentBelt).workflows[0];
+    expect(yaml).toContain('[sink.repository_dispatch d]');
+    expect(yaml).toContain('gh api repos/o/other/dispatches');
+    expect(yaml).toContain('Bash(gh api repos/o/other/dispatches:*)');
+    expect(yaml).not.toContain('"Bash(gh api:*)');
+    expect(yaml).toContain('FLEET_TOKEN: ${{ secrets.FLEET_TOKEN }}');
+  });
+
+  it('deterministic: trigger→dispatch with no agent emits the PAT-authenticated gh api step', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Relay' },
+      nodes: [
+        node('t', 'trigger.issue_labeled', { label: 'escalate' }),
+        node('d', 'sink.repository_dispatch', { targetRepo: 'o/hub', eventType: 'escalation' }),
+      ],
+      edges: [edge('e1', 't', 'd')],
+    };
+    const { yaml } = compile(bp).workflows[0];
+    expect(yaml).toContain('gh api "repos/$TARGET/dispatches" -f "event_type=$EVENT_TYPE" -F "client_payload[number]=$NUMBER"');
+    expect(yaml).toContain('GH_TOKEN: ${{ secrets.FLEET_TOKEN }}');
+    expect(yaml).toContain('TARGET: o/hub');
+    expect(yaml).not.toContain('claude-code-action');
+  });
+
+  it('missing target repo is a compile error', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'No Target' },
+      nodes: [node('t', 'trigger.manual'), node('d', 'sink.repository_dispatch', {})],
+      edges: [edge('e1', 't', 'd')],
+    };
+    const errs = compile(bp).workflows[0].diagnostics.filter((d) => d.level === 'error');
+    expect(errs.some((e) => /target repo as owner\/name/.test(e.message))).toBe(true);
+  });
+
+  it('self-dispatch loop (same repo + same event type as the line listens for) is REFUSED', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Ouroboros', repo: 'o/self' },
+      nodes: [
+        node('t', 'trigger.repository_dispatch', { eventType: 'ping' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('d', 'sink.repository_dispatch', { targetRepo: 'o/self', eventType: 'ping' }),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'd')],
+    };
+    const errs = compile(bp).workflows[0].diagnostics.filter((d) => d.level === 'error');
+    expect(errs.some((e) => /Self-dispatch loop/.test(e.message))).toBe(true);
+  });
+
+  it('same-repo dispatch with a DIFFERENT event type warns instead of erroring', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Chained Stages', repo: 'o/self' },
+      nodes: [
+        node('t', 'trigger.repository_dispatch', { eventType: 'stage-1' }),
+        node('a', 'agent.claude', { promptRef: 'p.md' }),
+        node('d', 'sink.repository_dispatch', { targetRepo: 'o/self', eventType: 'stage-2' }),
+      ],
+      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'd')],
+    };
+    const wf = compile(bp).workflows[0];
+    expect(wf.diagnostics.filter((d) => d.level === 'error')).toHaveLength(0);
+    expect(wf.diagnostics.some((d) => d.level === 'warning' && /targets this same repo/.test(d.message))).toBe(true);
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
-// The perfection loop (ADR-022) — adapted from it-journey's quest-perfection.
+// The perfection loop (ADR-031) — adapted from it-journey's quest-perfection.
 //
 // These four machines exist to make an autonomous improvement loop CONVERGE rather
 // than churn, and every invariant below is one of the reasons it converges. They are

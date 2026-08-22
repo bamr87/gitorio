@@ -33,6 +33,45 @@ export interface CompileOptions {
    * factory kept separate from the repo's main blueprint) so drift detection points at the right file.
    */
   blueprintPath?: string;
+  /** Override: SHA-pin emitted `uses:` refs regardless of the blueprint's `meta.pinActions`. */
+  pinActions?: boolean;
+}
+
+/**
+ * SHA-pinned actions mode (ADR-026): the pin table for every `uses:` ref this
+ * compiler can emit. The compiler is pure (golden rule #3), so pins are a
+ * curated static table, not an API lookup. SHAs verified against the upstream
+ * tag refs on 2026-08-18 (golden rule #4) — re-verify with:
+ *   gh api repos/<owner>/<repo>/git/ref/tags/<tag>   (deref annotated tags via /git/tags/<sha>)
+ * The pinned-actions invariant test fails if an emitted ref is missing here.
+ */
+export const PINNED_ACTIONS: Record<string, string> = {
+  'actions/checkout@v4': '11d5960a326750d5838078e36cf38b85af677262',
+  'dependabot/fetch-metadata@v2': '21025c705c08248db411dc16f3619e6b5f9ea21a',
+  'anthropics/claude-code-action@v1': '459ad358ae43fea66bfefd0a1f8d840b4b9791fb',
+  // The perfection loop's three (ADR-031). Resolved upstream with
+  // `git ls-remote https://github.com/<repo> refs/tags/<tag>` — the same method that
+  // reproduces the actions/checkout@v4 pin above exactly.
+  'actions/upload-artifact@v4': 'ea165f8d65b6e75b540449e92b4886f43607fa02',
+  'actions/download-artifact@v4': 'd3f86a106a0bac45b974a628896c90dbdf5c8093',
+  'peter-evans/create-pull-request@v7': '22a9089034f40e5a961c8808d113e2c98fb63676',
+};
+
+/** Map a tag ref to its pinned form (`owner/action@<sha>`), or return it unchanged. */
+function pinRef(ref: string, pin: boolean): string {
+  if (!pin) return ref;
+  const sha = PINNED_ACTIONS[ref];
+  return sha ? ref.replace(/@[^@]+$/, `@${sha}`) : ref;
+}
+
+/** After stringify: annotate each pinned SHA with its original tag as a YAML comment. */
+function annotatePins(yaml: string): string {
+  let out = yaml;
+  for (const [ref, sha] of Object.entries(PINNED_ACTIONS)) {
+    const tag = ref.slice(ref.lastIndexOf('@') + 1);
+    out = out.replace(new RegExp(`@${sha}$`, 'gm'), `@${sha} # ${tag}`);
+  }
+  return out;
 }
 
 const AGENT = 'agent.claude';
@@ -75,6 +114,7 @@ const TRIGGERS = new Set([
   'trigger.cron',
   'trigger.manual',
   'trigger.workflow_run',
+  'trigger.repository_dispatch',
 ]);
 const SINKS = new Set([
   'sink.comment',
@@ -84,9 +124,12 @@ const SINKS = new Set([
   'sink.commit_files',
   'sink.merge_pr',
   'sink.cross_repo_issue',
+  'sink.repository_dispatch',
 ]);
 // Writing sinks emit a new comment/issue/PR event IN THIS REPO that could retrigger the
 // line. sink.cross_repo_issue writes to ANOTHER repo, so it can't feed this line — kept out.
+// sink.repository_dispatch normally targets another repo too; the SELF-dispatch loop case
+// (target == this repo + same event type) is refused explicitly in the validation below.
 const WRITING_SINKS = new Set(['sink.comment', 'sink.create_issue', 'sink.label']);
 // Terminal sinks close/merge the entity — they emit no new comment/issue/PR event, so a
 // line whose only action is terminal can never retrigger itself and needs no bot loop-guard.
@@ -162,6 +205,41 @@ function lineName(bp: Blueprint, count: number, idx: number): string {
   return count === 1 ? bp.meta.name : `${bp.meta.name} ${idx + 1}`;
 }
 
+/**
+ * Per-line names (ADR-028): with `meta.lineNaming: 'auto'`, a multi-line
+ * blueprint names each line after what it IS — the agent's promptRef basename
+ * (`.factory/prompts/docs-gardener.md` → "docs-gardener"), else its first
+ * trigger + first sink types — instead of `<meta.name> <index>`. Duplicate
+ * derived names get a deterministic ` 2`/` 3` suffix by component order.
+ * Single-line blueprints always keep `meta.name`. Used by compile() AND
+ * assemblyLines() so filenames and telemetry mapping can never diverge.
+ */
+function lineNames(bp: Blueprint, comps: BlueprintNode[][]): string[] {
+  if (comps.length === 1) return [bp.meta.name];
+  if (bp.meta.lineNaming !== 'auto') {
+    return comps.map((_, idx) => lineName(bp, comps.length, idx));
+  }
+  const derived = comps.map((comp) => {
+    const agent = comp.find((n) => n.type === 'agent.claude' || n.type === 'processor.feedback_controller');
+    const promptRef = agent ? s(agent.config.promptRef) : '';
+    if (promptRef) {
+      const base = promptRef.split('/').pop()!.replace(/\.[a-z]+$/i, '');
+      if (base) return base;
+    }
+    const trigger = comp.find((n) => TRIGGERS.has(n.type));
+    const sink = comp.find((n) => SINKS.has(n.type));
+    const part = (t: string | undefined) => (t ? t.split('.').pop()!.replace(/_/g, '-') : '');
+    const composed = [part(trigger?.type), part(sink?.type)].filter(Boolean).join('-');
+    return composed || `${bp.meta.name} line`;
+  });
+  const seen = new Map<string, number>();
+  return derived.map((name) => {
+    const n = (seen.get(name) ?? 0) + 1;
+    seen.set(name, n);
+    return n === 1 ? name : `${name} ${n}`;
+  });
+}
+
 function triggeredComponents(bp: Blueprint): BlueprintNode[][] {
   return connectedComponents(bp).filter((comp) => comp.some((n) => TRIGGERS.has(n.type)));
 }
@@ -173,8 +251,9 @@ function triggeredComponents(bp: Blueprint): BlueprintNode[][] {
  */
 export function assemblyLines(bp: Blueprint): AssemblyLine[] {
   const comps = triggeredComponents(bp);
+  const names = lineNames(bp, comps);
   return comps.map((comp, idx) => {
-    const name = lineName(bp, comps.length, idx);
+    const name = names[idx];
     const slug = kebab(name);
     return { filename: `factory--${slug}.yml`, slug, name, nodeIds: comp.map((n) => n.id) };
   });
@@ -202,6 +281,12 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
       return `[sink.open_pr ${sink.id}] Commit your changes on a new branch${s(c.branchHint) ? ` (\`${s(c.branchHint)}\`)` : ' (factory/*)'} and open a pull request with a clear summary. Never push to the default branch.`;
     case 'sink.commit_files':
       return `[sink.commit_files ${sink.id}] Commit the file changes${s(c.pathScope) ? ` (only within \`${s(c.pathScope)}\`)` : ''} directly with a conventional commit message.`;
+    case 'sink.repository_dispatch': {
+      const target = s(c.targetRepo, 'OWNER/NAME');
+      const secret = s(c.tokenSecret, 'FLEET_TOKEN');
+      const evType = s(c.eventType, 'factory-signal');
+      return `[sink.repository_dispatch ${sink.id}] Send exactly ONE cross-repo signal to ${target}: \`GH_TOKEN=$${secret} gh api repos/${target}/dispatches -f event_type='${evType}' -F 'client_payload[number]=<entity number>'\` (include the number only when your work concerns a specific issue/PR). The default GITHUB_TOKEN cannot write to other repos — authenticate with the scoped token in \`$${secret}\`.`;
+    }
     case 'sink.cross_repo_issue': {
       const target = s(c.targetRepo, '<targetRepo missing>');
       const secret = s(c.tokenSecret, 'FLEET_TOKEN');
@@ -267,6 +352,9 @@ function toolsFor(sinkType: string, prContext: boolean): string[] {
       return ['Bash(gh pr merge:*)'];
     case 'sink.cross_repo_issue':
       return ['Bash(gh issue create:*)', 'Bash(gh issue list:*)'];
+    // sink.repository_dispatch grants nothing here: its grant must carry the exact
+    // target endpoint (Bash(gh api repos/<target>/dispatches:*)), which needs the
+    // node's config — added at the obligated-sink loop where the node is in scope.
     default:
       return [];
   }
@@ -278,6 +366,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
   const global: Diagnostic[] = [];
   const workflows: CompiledWorkflow[] = [];
   const hash = blueprintHash(bp);
+  const pinActions = bp.meta.pinActions === true || opts.pinActions === true;
 
   const comps = connectedComponents(bp).filter((comp) => {
     const hasTrigger = comp.some((n) => TRIGGERS.has(n.type));
@@ -290,9 +379,10 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     return hasTrigger;
   });
 
+  const names = lineNames(bp, comps);
   comps.forEach((comp, idx) => {
     const diags: Diagnostic[] = [];
-    const name = lineName(bp, comps.length, idx);
+    const name = names[idx];
     const slug = kebab(name);
     const filename = `factory--${slug}.yml`;
 
@@ -329,6 +419,8 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const watchedWorkflows: string[] = [];
     let hasIssueish = false;
     let hasPr = false;
+    let prLabelScoped = false;
+    let hasDispatch = false;
     let hasComment = false;
     let hasWorkflowRun = false;
     let planFirst = false; // a manual trigger asked for dry-run-by-default (apply on non-manual events)
@@ -347,8 +439,27 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           break;
         }
         case 'trigger.pr_opened':
-          prTypes.add('opened');
-          if (t.config.alsoOnSync === 'yes') prTypes.add('synchronize');
+          if (s(t.config.fireOn, 'opened') === 'labeled') {
+            // Label-gated mode (ADR-027): fires only on label adds; with a label
+            // configured, a job-level guard scopes the line to exactly that label —
+            // merge policy as structure, not prose (the ADR-015 lesson).
+            prTypes.add('labeled');
+            const prLabel = s(t.config.label);
+            if (prLabel) {
+              guards.push(`github.event.label.name == '${prLabel}'`);
+              prLabelScoped = true;
+            }
+            else
+              diags.push({
+                level: 'warning',
+                nodeId: t.id,
+                message:
+                  'PR trigger fires on EVERY label add — set "Only this label" to scope it (e.g. dep:safe-to-merge).',
+              });
+          } else {
+            prTypes.add('opened');
+            if (t.config.alsoOnSync === 'yes') prTypes.add('synchronize');
+          }
           hasPr = true;
           break;
         case 'trigger.comment': {
@@ -374,6 +485,26 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           else diags.push({ level: 'error', nodeId: t.id, message: 'On-workflow-result trigger has no watched workflow name.' });
           const concl = s(t.config.conclusion, 'success');
           if (concl && concl !== 'any') guards.push(`github.event.workflow_run.conclusion == '${concl}'`);
+          break;
+        }
+        case 'trigger.repository_dispatch': {
+          // Cross-repo signal (ADR-029, Fleet C): another repo's factory (or any
+          // system holding a repo-scoped token) POSTs /dispatches with this event
+          // type. Senders are already write-privileged principals; still, per
+          // ADR-005 the payload BODY never enters the prompt — only the event
+          // type and an optional `client_payload.number` entity pointer do.
+          const eventType = s(t.config.eventType);
+          if (eventType) on['repository_dispatch'] = { types: [eventType] };
+          else {
+            on['repository_dispatch'] = {};
+            diags.push({
+              level: 'warning',
+              nodeId: t.id,
+              message:
+                'Cross-repo signal fires for EVERY dispatch type — set an event type (e.g. factory-signal) to scope it.',
+            });
+          }
+          hasDispatch = true;
           break;
         }
       }
@@ -486,7 +617,8 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           'Merge PR with no agent needs a PR-bearing trigger (PR opened or On workflow result) — or put a Claude agent upstream to supply the PR.',
       });
     }
-    if (hasMerge && hasPr && !dependabotMeta && !filters.some((f) => /dependabot|user\.login|github\.actor/.test(s(f.config.expression)))) {
+    // A label-scoped `labeled` trigger IS the merge policy (ADR-027) — as scoped as a filter.
+    if (hasMerge && hasPr && !dependabotMeta && !prLabelScoped && !filters.some((f) => /dependabot|user\.login|github\.actor/.test(s(f.config.expression)))) {
       diags.push({
         level: 'warning',
         message:
@@ -525,13 +657,40 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         : 10
       : null;
 
-    // Cross-repo issue sinks: validate targets + collect the scoped-token secrets they need.
-    const crossRepoSinks = sinks.filter((n) => n.type === 'sink.cross_repo_issue');
+    // Cross-repo sinks (issue + dispatch): validate targets + collect the scoped-token
+    // secrets they need. A dispatch sink additionally gets the self-loop refusal:
+    // dispatching to THIS repo with an event type this line also subscribes to would
+    // retrigger itself forever (golden rule #6 — refuse, don't warn).
+    const crossRepoSinks = sinks.filter(
+      (n) => n.type === 'sink.cross_repo_issue' || n.type === 'sink.repository_dispatch',
+    );
     const crossRepoSecrets = new Set<string>();
     for (const cr of crossRepoSinks) {
       const target = s(cr.config.targetRepo);
       if (!/^[^/\s]+\/[^/\s]+$/.test(target)) {
-        diags.push({ level: 'error', nodeId: cr.id, message: 'Cross-repo issue needs a target repo as owner/name.' });
+        diags.push({
+          level: 'error',
+          nodeId: cr.id,
+          message: `${cr.type === 'sink.repository_dispatch' ? 'Cross-repo signal' : 'Cross-repo issue'} needs a target repo as owner/name.`,
+        });
+      }
+      if (cr.type === 'sink.repository_dispatch' && target && target === s(bp.meta.repo)) {
+        const sinkType = s(cr.config.eventType, 'factory-signal');
+        const dispatchTrigger = triggers.find((t) => t.type === 'trigger.repository_dispatch');
+        const trigType = dispatchTrigger ? s(dispatchTrigger.config.eventType) : null;
+        if (dispatchTrigger && (!trigType || trigType === sinkType)) {
+          diags.push({
+            level: 'error',
+            nodeId: cr.id,
+            message: `Self-dispatch loop: this line listens for repository_dispatch${trigType ? ` '${trigType}'` : ' (any type)'} and would send '${sinkType}' to its own repo — it would retrigger itself forever.`,
+          });
+        } else {
+          diags.push({
+            level: 'warning',
+            nodeId: cr.id,
+            message: 'Dispatch targets this same repo — make sure no other factory line subscribed to this event type loops back here.',
+          });
+        }
       }
       crossRepoSecrets.add(s(cr.config.tokenSecret, 'FLEET_TOKEN'));
     }
@@ -600,7 +759,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           'if [ "$COUNT" -ge "$LIMIT" ]; then echo "rate limit ($LIMIT/day) reached — stopping"; exit 1; fi',
       });
     }
-    if (agent || evidence || ledger) steps.push({ uses: 'actions/checkout@v4' });
+    if (agent || evidence || ledger) steps.push({ uses: pinRef('actions/checkout@v4', pinActions) });
     if (evidence) {
       // BEFORE the agent, deliberately. Two reasons, both load-bearing:
       // (1) the agent must not be able to manufacture the evidence it is judged on, and
@@ -613,7 +772,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     }
     if (dependabotMeta) {
       // Exposes steps.dependabot-metadata.outputs.update-type / dependency-names / etc.
-      steps.push({ id: 'dependabot-metadata', uses: 'dependabot/fetch-metadata@v2' });
+      steps.push({ id: 'dependabot-metadata', uses: pinRef('dependabot/fetch-metadata@v2', pinActions) });
     }
 
     if (agent) {
@@ -632,6 +791,12 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       } else {
         if (hasIssueish || hasComment) contextLines.push('ISSUE_NUMBER: ${{ github.event.issue.number }}');
         if (hasPr) contextLines.push('PR_NUMBER: ${{ github.event.pull_request.number }}');
+        if (hasDispatch) {
+          // Numbers-not-bodies (ADR-005): the payload's entity POINTER is context;
+          // its free-text fields never enter the prompt.
+          contextLines.push('DISPATCH_TYPE: ${{ github.event.action }}');
+          contextLines.push('PAYLOAD_NUMBER: ${{ github.event.client_payload.number }}');
+        }
         if (hasWorkflowRun) {
           contextLines.push('PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}');
           contextLines.push('CHECK_CONCLUSION: ${{ github.event.workflow_run.conclusion }}');
@@ -659,10 +824,32 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       const planNote = planFirst
         ? `\n\nPLAN/APPLY MODE — when APPLY is false this is a DRY RUN: do the full analysis, then, instead of performing the write obligations below, report the exact plan of what you WOULD do and stop. Perform the obligations only when APPLY is true.`
         : '';
+      // Verification checks (ADR-025): repo-declared commands, one per line. Each
+      // compiles to exactly `Bash(<command>:*)` — a narrow, blueprint-reviewed grant —
+      // plus a VERIFY note, so an agent line can run its repo's own gates instead of
+      // deferring everything to PR CI. A quote would break the --allowedTools string,
+      // so it is a compile error, not an escaping adventure.
+      const checks = s(agent.config.checks, '')
+        .split('\n')
+        .map((c) => c.trim())
+        .filter(Boolean);
+      for (const c of checks) {
+        if (c.includes('"') || c.includes('`') || c.includes('$(')) {
+          diags.push({
+            level: 'error',
+            nodeId: agent.id,
+            message: `Verification check contains quoting/substitution (\`"\`, backtick, or $() ) — declare a plain command: ${c}`,
+          });
+        }
+      }
+      const checksNote = checks.length
+        ? `\n\nVERIFY (run each of these repo checks before completing your write obligations; report their output — if one fails, fix forward or downgrade to a report):\n${checks.map((c) => `- ${c}`).join('\n')}`
+        : '';
       const prompt =
         contextLines.join('\n') +
         intro +
         planNote +
+        checksNote +
         (obligations.length
           ? `\n\nOBLIGATIONS (complete every item, nothing else):\n${obligations.join('\n')}`
           : '');
@@ -700,9 +887,33 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           tools.add('Bash(gh pr list:*)');
           tools.add('Bash(gh pr view:*)');
           tools.add('Bash(gh pr diff:*)');
+          // A warden that gates a merge on CI reaches for `gh pr checks` first; without it
+          // that verb is denied and the run burns turns rediscovering `gh pr view --json
+          // statusCheckRollup`. Read-only.
+          tools.add('Bash(gh pr checks:*)');
+        }
+        // `intro` above orders EVERY non-feedback agent to read its promptRef. Grant the
+        // read tools to match, or the agent's first instruction is a guaranteed denial and
+        // it starves retrying it (Read → Glob → Grep → cat → …). Previously these arrived
+        // only via toolsFor(sink.open_pr / sink.commit_files), so every comment/label/merge
+        // line was told to read a file it had no permission to open. Read-only: widens no
+        // write surface.
+        if (promptRef) {
+          tools.add('Read');
+          tools.add('Glob');
+          tools.add('Grep');
         }
       }
-      for (const sink of obligated) for (const t of toolsFor(sink.type, hasPr || surveyMode || hasWorkflowRun)) tools.add(t);
+      // The VERIFY note above orders the agent to run each declared check — grant
+      // exactly those commands, nothing wider (prompt/grant coherence, ADR-023/025).
+      for (const c of checks) tools.add(`Bash(${c}:*)`);
+      for (const sink of obligated) {
+        for (const t of toolsFor(sink.type, hasPr || surveyMode || hasWorkflowRun)) tools.add(t);
+        // Dispatch sinks get the exact target endpoint, nothing wider (rule #5).
+        if (sink.type === 'sink.repository_dispatch') {
+          tools.add(`Bash(gh api repos/${s(sink.config.targetRepo, 'OWNER/NAME')}/dispatches:*)`);
+        }
+      }
 
       const model = s(agent.config.model, isFeedback ? 'claude-opus-4-8' : 'claude-sonnet-4-6');
       const maxTurns = Number(agent.config.maxTurns) > 0 ? Number(agent.config.maxTurns) : isFeedback ? 30 : 8;
@@ -712,7 +923,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
 
       const agentStep: Record<string, unknown> = {
         name: `${isFeedback ? '🔁 feedback_controller' : '⚙ agent.claude'} (${agent.id})`,
-        uses: 'anthropics/claude-code-action@v1',
+        uses: pinRef('anthropics/claude-code-action@v1', pinActions),
         with: {
           // Power: default to the Claude Code OAuth token (`claude setup-token`), fall back
           // to ANTHROPIC_API_KEY. The expression passes the API key ONLY when the OAuth
@@ -725,7 +936,9 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       };
       // Expose each obligated cross-repo sink's scoped token to the agent's bash (the
       // obligation authenticates with $<secret>; the GITHUB_TOKEN can't write other repos).
-      const obligatedCross = obligated.filter((n) => n.type === 'sink.cross_repo_issue');
+      const obligatedCross = obligated.filter(
+        (n) => n.type === 'sink.cross_repo_issue' || n.type === 'sink.repository_dispatch',
+      );
       if (obligatedCross.length) {
         const stepEnv: Record<string, string> = {};
         for (const cr of obligatedCross) {
@@ -750,7 +963,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         GH_TOKEN: '${{ github.token }}',
         GH_REPO: '${{ github.repository }}',
         NUMBER:
-          '${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number }}',
+          '${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.client_payload.number }}',
       };
       if (sink.type === 'sink.merge_pr') {
         const method = s(sink.config.method, 'squash');
@@ -791,6 +1004,17 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
             run: `gh issue edit "$NUMBER" ${labels.map((l) => `--add-label "${l}"`).join(' ')}`,
           });
         }
+      } else if (sink.type === 'sink.repository_dispatch') {
+        const target = s(sink.config.targetRepo, 'OWNER/NAME');
+        const secret = s(sink.config.tokenSecret, 'FLEET_TOKEN');
+        const evType = s(sink.config.eventType, 'factory-signal');
+        steps.push({
+          name: `📤 sink.repository_dispatch (${sink.id})`,
+          ...detIf(null),
+          // Scoped PAT secret, NOT github.token — the GITHUB_TOKEN can't write other repos.
+          env: { ...env, GH_TOKEN: `\${{ secrets.${secret} }}`, TARGET: target, EVENT_TYPE: evType },
+          run: 'gh api "repos/$TARGET/dispatches" -f "event_type=$EVENT_TYPE" -F "client_payload[number]=$NUMBER"',
+        });
       } else if (sink.type === 'sink.cross_repo_issue') {
         const target = s(sink.config.targetRepo, 'OWNER/NAME');
         const secret = s(sink.config.tokenSecret, 'FLEET_TOKEN');
@@ -838,7 +1062,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       // re-paying to measure — measurement is the expensive half of the loop.
       steps.push({
         name: '📦 upload sealed evidence',
-        uses: 'actions/upload-artifact@v4',
+        uses: pinRef('actions/upload-artifact@v4', pinActions),
         with: {
           name: s(evidence.config.artifactName, 'perfection-evidence'),
           path: s(evidence.config.evidencePath, 'evidence/'),
@@ -893,7 +1117,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       // PLAN — deterministic. The ledger, not a model, chooses the work. Budget caps
       // clamp throughput to what one human can actually review; without them an
       // autonomous loop out-runs its reviewer and the queue becomes the bottleneck.
-      const planSteps: Record<string, unknown>[] = [{ uses: 'actions/checkout@v4' }];
+      const planSteps: Record<string, unknown>[] = [{ uses: pinRef('actions/checkout@v4', pinActions) }];
       if (budget) {
         const maxOpen = Number(budget.config.maxOpenPrs) > 0 ? Math.floor(Number(budget.config.maxOpenPrs)) : 6;
         planSteps.push({
@@ -970,12 +1194,12 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         if: "!cancelled() && needs.plan.outputs.count != '0'",
         permissions: { contents: 'write', 'pull-requests': 'write' },
         steps: [
-          { uses: 'actions/checkout@v4' },
+          { uses: pinRef('actions/checkout@v4', pinActions) },
           ...(evidence
             ? [
                 {
                   name: 'download sealed evidence',
-                  uses: 'actions/download-artifact@v4',
+                  uses: pinRef('actions/download-artifact@v4', pinActions),
                   with: {
                     name: s(evidence.config.artifactName, 'perfection-evidence'),
                     path: s(evidence.config.evidencePath, 'evidence/'),
@@ -990,7 +1214,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           },
           {
             name: 'open the ledger PR',
-            uses: 'peter-evans/create-pull-request@v7',
+            uses: pinRef('peter-evans/create-pull-request@v7', pinActions),
             with: {
               branch: `${s(ledger.config.reportBranch, 'factory/ledger')}/\${{ github.run_id }}`,
               'commit-message': `chore(factory): ledger update from run \${{ github.run_id }}`,
@@ -1010,7 +1234,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       name: `Factory: ${name}`,
       on,
       concurrency: {
-        group: `factory--${slug}-\${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.run_id }}`,
+        group: `factory--${slug}-\${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.client_payload.number || github.run_id }}`,
         'cancel-in-progress': false,
       },
       jobs,
@@ -1019,7 +1243,11 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     const header =
       `# ⚙ GENERATED BY GITFACTORY — edit the blueprint, not this file.\n` +
       `# blueprint: ${opts.blueprintPath ?? '.factory/blueprint.json'}  hash: ${hash}\n`;
-    const yaml = header + stringify(wf, { lineWidth: 0 });
+    const raw = header + stringify(wf, { lineWidth: 0 });
+    // Pinned refs get their original tag back as a trailing comment — added
+    // textually because a scalar containing " # " would be quoted by the YAML
+    // emitter, making the comment part of the (then-invalid) ref.
+    const yaml = pinActions ? annotatePins(raw) : raw;
     workflows.push({ filename, yaml, diagnostics: diags });
   });
 

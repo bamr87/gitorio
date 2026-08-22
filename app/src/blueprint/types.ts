@@ -5,6 +5,10 @@ export interface BlueprintMeta {
   name: string;
   repo?: string;
   description?: string;
+  /** SHA-pinned actions mode (ADR-026): emit `uses:` refs pinned to verified commit SHAs. */
+  pinActions?: boolean;
+  /** Per-line naming for multi-line blueprints (ADR-028): 'auto' names lines by agent promptRef / trigger+sink; default keeps `<name> <index>`. */
+  lineNaming?: 'auto' | 'indexed';
 }
 
 export interface BlueprintNode {

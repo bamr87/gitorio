@@ -36,3 +36,4 @@ Thumbs.db
 
 # Playwright MCP smoke-test artifacts
 .playwright-mcp/
+__pycache__/

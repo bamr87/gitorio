@@ -2,7 +2,7 @@
 // (workflows → facts → audit; runs → metrics), and fleet-wide derived views.
 // The GithubClient is faked per-method (house idiom — see monitor.test.ts).
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FactoryRun, GithubClient } from '../github/types';
 import { createFleetOpsStore, FLEETOPS_KEY } from './fleetops';
 import { useGithubStore } from './github';
@@ -103,6 +103,15 @@ function connect(client: GithubClient) {
 
 beforeEach(() => {
   useGithubStore.setState({ client: null, repo: null, login: '' });
+  // Pin Date only (timers stay real): the store derives metrics over a
+  // windowDays cutoff from the real clock, and the fixtures' absolute
+  // 2026-07-1x timestamps aged out of the 14-day window on 2026-07-30,
+  // turning CI red. Fake-date keeps the fixtures inside the window forever.
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-07-17T12:00:00Z') });
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('roster', () => {

@@ -1,6 +1,6 @@
 # Roadmap
 
-Phases mirror `seeds/`. A phase is done when its acceptance criteria pass and `npm test && npm run build` are green. Park anything else in § Backlog.
+Phases mirror `seeds/` (the bootstrap era, now closed). A phase is done when its acceptance criteria pass and `npm test && npm run build` are green. Park anything else in `BACKLOG.md` (AO-SDLC, ADR-022) — § Backlog below is frozen history.
 
 ## Phase 0 — Bootstrap (seeds/00)
 - [ ] `npm install / dev / test / build` all work on a fresh clone
@@ -134,6 +134,9 @@ Goal: configure an autonomous, configurable, headless content management system 
       shared knowledge store + brand linter — **parked** supporting machinery (see ADR-017 brief).
 
 ## Backlog
+
+> **Migrated 2026-08-16 (ADR-022):** the live backlog moved to `BACKLOG.md` at the repo root. Every still-open item below — including the Fleet-track FF-list and the Phase 6/7/8 parked boxes — was carried over as a `BL-20260816-NN` entry (undo/redo excluded: shipped in ADR-016). This section is frozen history, kept append-only for the audit trail; add new items to `BACKLOG.md`, never here.
+
 - Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
   webhook worker + SSE live belts; multi-repo train stations.
 - **Deterministic label-gated merge line (ADR-015)**: a `pull_request:[labeled]` trigger

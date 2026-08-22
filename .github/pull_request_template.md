@@ -9,6 +9,7 @@
 <!-- The compiler and security invariants are load-bearing — see CLAUDE.md § Golden rules. -->
 
 - [ ] `cd app && npm test && npm run build` pass locally
+- [ ] **Spec-driven (golden rule #11)**: non-trivial change links its `specs/NNN-slug/` + task ID, `## Follow-ups Discovered` is mirrored into `BACKLOG.md`, and `python3 tools/spec_validator.py` + `python3 tools/backlog_lint.py` pass (or: trivial change, no spec needed — say why)
 - [ ] The **blueprint stays the source of truth** — I did not hand-edit generated workflow YAML; I changed the compiler
 - [ ] **Least privilege**: any new sink emits only the `permissions:` and `--allowedTools` it actually needs
 - [ ] **Loop guards** intact — no workflow can retrigger itself unguarded

@@ -48,7 +48,7 @@ jobs:
         run: |-
           COUNT=$(gh run list --workflow "$GITHUB_WORKFLOW" --created "$(date -u +%Y-%m-%d)" --json databaseId --jq 'length')
           if [ "$COUNT" -ge "$LIMIT" ]; then echo "rate limit ($LIMIT/day) reached — stopping"; exit 1; fi
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
       - name: ⚙ agent.claude (da)
         uses: anthropics/claude-code-action@v1
         with:
@@ -67,4 +67,4 @@ jobs:
           claude_args: |-
             --model claude-opus-4-8
             --max-turns 24
-            --allowedTools "Bash(gh issue list:*),Bash(gh search issues:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Read,Glob,Grep,Edit,Write,Bash(git switch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*)"
+            --allowedTools "Bash(gh issue list:*),Bash(gh search issues:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Read,Glob,Grep,Edit,Write,Bash(git switch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(gh pr create:*)"

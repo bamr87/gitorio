@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "meta": {
+    "name": "PR Intake",
+    "description": "Reference no-agent line: new PR → deterministic gh steps (label + ack comment), PR-triggered."
+  },
+  "nodes": [
+    {
+      "id": "t1",
+      "type": "trigger.pr_opened",
+      "position": { "x": 40, "y": 140 },
+      "config": {}
+    },
+    {
+      "id": "s1",
+      "type": "sink.label",
+      "position": { "x": 340, "y": 60 },
+      "config": { "labels": "needs-review" }
+    },
+    {
+      "id": "s2",
+      "type": "sink.comment",
+      "position": { "x": 340, "y": 220 },
+      "config": { "instruction": "Thanks for the pull request — a maintainer will review it shortly." }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "from": { "node": "t1", "port": "out" }, "to": { "node": "s1", "port": "in" } },
+    { "id": "e2", "from": { "node": "t1", "port": "out" }, "to": { "node": "s2", "port": "in" } }
+  ]
+}
