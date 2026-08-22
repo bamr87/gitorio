@@ -36,6 +36,12 @@ const GITMODULES = `[submodule "alpha"]
 \tbranch = master
 `;
 
+// Fixed clock, anchored a few days after the dated fixtures below so they always
+// land inside the metrics window. Previously the store read the wall clock, so
+// this suite passed only until 14 days after 2026-07-16 and then went red on main.
+const NOW = '2026-07-20T00:00:00Z';
+const newStore = (storage = memoryStorage()) => createFleetOpsStore(storage, () => NOW);
+
 function run(over: Partial<FactoryRun> = {}): FactoryRun {
   return {
     path: '.github/workflows/ci.yml',
@@ -111,7 +117,7 @@ afterEach(() => {
 describe('roster', () => {
   it('addRepos parses, dedupes, and persists slugs', () => {
     const storage = memoryStorage();
-    const store = createFleetOpsStore(storage);
+    const store = newStore(storage);
     store.getState().addRepos('o/alpha\no/beta o/alpha');
     expect(store.getState().roster.map((e) => e.slug)).toEqual(['o/alpha', 'o/beta']);
     const persisted = JSON.parse(storage.dump().get(FLEETOPS_KEY) ?? '{}') as {
@@ -121,7 +127,7 @@ describe('roster', () => {
   });
 
   it('removeRepo drops the roster entry and its snapshot', async () => {
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient());
     store.getState().addRepos('o/alpha');
     await store.getState().scanRepo('o/alpha');
@@ -132,7 +138,7 @@ describe('roster', () => {
   });
 
   it('importFromHub reads .gitmodules and merges the discovered fleet', async () => {
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient());
     const ok = await store.getState().importFromHub('o/hub');
     expect(ok).toBe(true);
@@ -142,7 +148,7 @@ describe('roster', () => {
   });
 
   it('importFromHub without a connection reports an error', async () => {
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     const ok = await store.getState().importFromHub('o/hub');
     expect(ok).toBe(false);
     expect(store.getState().error).toMatch(/Connect/);
@@ -151,7 +157,7 @@ describe('roster', () => {
 
 describe('scanning', () => {
   it('scanRepo builds a ready snapshot with facts, audit, and workflow states', async () => {
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient());
     await store.getState().scanRepo('o/alpha');
     const snap = store.getState().snapshots['o/alpha'];
@@ -164,7 +170,7 @@ describe('scanning', () => {
   });
 
   it('derives fleet-wide metrics keyed by repo (no cross-repo path collisions)', async () => {
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient());
     await store.getState().scanRepo('o/alpha');
     await store.getState().scanRepo('o/beta');
@@ -185,7 +191,7 @@ describe('scanning', () => {
         rateRemaining: 100,
       })
       .mockResolvedValueOnce({ runs: [], etag: 'e1', notModified: true, rateRemaining: 99 });
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ listFactoryRuns }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().scanRepo('o/alpha');
@@ -201,7 +207,7 @@ describe('scanning', () => {
       .mockResolvedValue([
         { path: '.github/workflows/ci.yml', name: 'ci.yml', sha: 's', type: 'file' },
       ]);
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ listDir }));
     store.getState().addRepos('o/alpha o/beta');
     await store.getState().scanFleet();
@@ -217,7 +223,7 @@ describe('scanning', () => {
 describe('work orders', () => {
   it('fileWorkOrder embeds the dedup marker and records the filed url', async () => {
     const client = fakeClient();
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(client);
     const url = await store
       .getState()
@@ -235,7 +241,7 @@ describe('work orders', () => {
 
   it('the persisted localStorage payload carries no token or client material', () => {
     const storage = memoryStorage();
-    const store = createFleetOpsStore(storage);
+    const store = newStore(storage);
     // The client (and any Claude/PAT secret material) lives in the github store — never here.
     connect(fakeClient());
     store.getState().addRepos('o/alpha o/beta');
@@ -262,7 +268,7 @@ describe('workflow maintenance', () => {
       notModified: false,
       rateRemaining: 10,
     }));
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ rerunRun, listFactoryRuns }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().rerunLatestFailed('o/alpha', CI);
@@ -281,7 +287,7 @@ describe('workflow maintenance', () => {
       notModified: false,
       rateRemaining: 10,
     }));
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ rerunRun, listFactoryRuns }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().rerunLatestFailed('o/alpha', CI);
@@ -291,7 +297,7 @@ describe('workflow maintenance', () => {
 
   it('setKillSwitch writes "true"/"false" via setVariable, then rescans', async () => {
     const setVariable = vi.fn(async () => {});
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ setVariable }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().setKillSwitch('o/alpha', 'CONTENT_FACTORY_ENABLED', false);
@@ -310,7 +316,7 @@ describe('workflow maintenance', () => {
 
   it('setWorkflowEnabledById toggles the workflow file, then rescans', async () => {
     const setWorkflowEnabled = vi.fn(async () => {});
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ setWorkflowEnabled }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().setWorkflowEnabledById('o/alpha', 1, false);
@@ -330,7 +336,7 @@ describe('workflow maintenance', () => {
         steps: [],
       },
     ]);
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ listRunJobs }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().loadRunJobs('o/alpha', 2);
@@ -349,7 +355,7 @@ describe('workflow maintenance', () => {
       .mockResolvedValueOnce([
         { jobId: 1, name: 'build', status: 'completed', conclusion: 'success', startedAt: null, completedAt: null, htmlUrl: 'https://x/j1', steps: [] },
       ]);
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ listRunJobs }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().loadRunJobs('o/alpha', 2);
@@ -365,7 +371,7 @@ describe('workflow maintenance', () => {
     const dispatchWorkflow = vi.fn(async () => {
       throw new Error('dispatch boom');
     });
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     connect(fakeClient({ dispatchWorkflow }));
     await store.getState().scanRepo('o/alpha');
     await store.getState().dispatchWorkflowFile('o/alpha', CI);
@@ -374,7 +380,7 @@ describe('workflow maintenance', () => {
   });
 
   it('maintenance without a connection reports the connect error', async () => {
-    const store = createFleetOpsStore(memoryStorage());
+    const store = newStore();
     await store.getState().dispatchWorkflowFile('o/alpha', CI);
     expect(store.getState().error).toMatch(/Connect/);
   });

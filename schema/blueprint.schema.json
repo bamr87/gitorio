@@ -50,6 +50,10 @@
               "gate.approval",
               "gate.enablement",
               "rate.limiter",
+              "processor.ledger",
+              "gate.budget",
+              "processor.evidence",
+              "gate.verified_fix",
               "sink.comment",
               "sink.label",
               "sink.create_issue",
@@ -133,6 +137,22 @@
           {
             "if": { "properties": { "type": { "const": "rate.limiter" } }, "required": ["type"] },
             "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "maxPerDay": { "type": "number" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "processor.ledger" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "ledgerPath": { "type": "string" }, "selectCmd": { "type": "string" }, "updateCmd": { "type": "string" }, "reportBranch": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "gate.budget" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "maxOpenPrs": { "type": "number" }, "maxItemsPerRun": { "type": "number" }, "skipWithinDays": { "type": "number" }, "prLabel": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "processor.evidence" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "measureCmd": { "type": "string" }, "evidencePath": { "type": "string" }, "artifactName": { "type": "string" } } } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "gate.verified_fix" } }, "required": ["type"] },
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "verifyCmd": { "type": "string" }, "onFail": { "type": "string" }, "maxRounds": { "type": "number" } } } } }
           },
           {
             "if": { "properties": { "type": { "const": "sink.comment" } }, "required": ["type"] },

@@ -101,7 +101,7 @@ export const useContentStore = create<ContentState>((set, get) => ({
         client.getFile(repo, BACKLOG_PATH),
         client.listVariables(repo),
       ]);
-      const byName = new Map(repoVars.map((v) => [v.name, v.value]));
+      const byName = new Map((repoVars ?? []).map((v) => [v.name, v.value]));
       const switches: KillSwitch[] = blueprintSwitchVars().map((variable) => ({
         variable,
         on: byName.get(variable) === 'true',

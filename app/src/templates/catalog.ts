@@ -27,6 +27,64 @@ const E = (id: string, from: string, to: string) => ({
 
 export const TEMPLATES: FactoryTemplate[] = [
   {
+    id: 'perfection-loop',
+    name: 'Perfection Loop',
+    icon: '♾️',
+    blurb:
+      'An autonomous improvement loop that CONVERGES. A committed ledger picks the highest-priority unfinished slice, budget caps hold throughput to human review speed, evidence is sealed before the agent so it cannot grade itself, an independent check decides whether each edit survives, and a deterministic report job recomputes “done”. Adapted from it-journey’s quest-perfection loop.',
+    blueprint: {
+      version: 1,
+      meta: {
+        name: 'Perfection Loop',
+        description:
+          'Walk the highest-priority unfinished slice, repair only what the walk witnessed, certify done deterministically — repeat until perfect.',
+      },
+      nodes: [
+        T('t', 'trigger.cron', 40, 160, { cron: '0 6 * * *' }),
+        T('m', 'trigger.manual', 40, 300, {}),
+        T('k', 'gate.enablement', 300, 160, { variable: 'PERFECTION_ENABLED' }),
+        T('l', 'processor.ledger', 300, 300, {
+          ledgerPath: '.factory/ledger.json',
+          selectCmd: 'python3 scripts/ledger.py select --json',
+          updateCmd: 'python3 scripts/ledger.py update --evidence evidence/',
+          reportBranch: 'factory/ledger',
+        }),
+        T('b', 'gate.budget', 560, 300, {
+          maxOpenPrs: 6,
+          maxItemsPerRun: 3,
+          skipWithinDays: 7,
+          prLabel: 'automated',
+        }),
+        T('e', 'processor.evidence', 820, 300, {
+          measureCmd: 'python3 scripts/measure.py --out evidence/',
+          evidencePath: 'evidence/',
+          artifactName: 'perfection-evidence',
+        }),
+        T('a', 'agent.claude', 1080, 300, {
+          promptRef: '.factory/prompts/perfection-walker.md',
+          model: 'claude-opus-5',
+          maxTurns: 30,
+        }),
+        T('v', 'gate.verified_fix', 1340, 300, {
+          verifyCmd: 'python3 scripts/verify.py --fail-under-baseline',
+          onFail: 'revert',
+          maxRounds: 3,
+        }),
+        T('pr', 'sink.open_pr', 1600, 300, { branchHint: 'factory/perfection-*' }),
+      ],
+      edges: [
+        E('e1', 't', 'k'),
+        E('e2', 'm', 'k'),
+        E('e3', 'k', 'l'),
+        E('e4', 'l', 'b'),
+        E('e5', 'b', 'e'),
+        E('e6', 'e', 'a'),
+        E('e7', 'a', 'v'),
+        E('e8', 'v', 'pr'),
+      ],
+    },
+  },
+  {
     id: 'issue-triage',
     name: 'Issue Triage Line',
     icon: '📥',
@@ -36,7 +94,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       meta: { name: 'Issue Triage Line', description: 'Label + summarize every new issue.' },
       nodes: [
         T('t', 'trigger.issue_opened', 40, 140),
-        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/triage.md', model: 'claude-sonnet-4-6', maxTurns: 8 }),
+        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/triage.md', model: 'claude-opus-5', maxTurns: 8 }),
         T('lb', 'sink.label', 660, 60, { labels: '' }),
         T('cm', 'sink.comment', 660, 220, { instruction: 'summarizes the triage decision in 3 lines and links any duplicates' }),
       ],
@@ -54,7 +112,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       nodes: [
         T('wm', 'trigger.manual', 40, 120),
         T('wc', 'trigger.cron', 40, 240, { cron: '0 6 * * 1' }),
-        T('wa', 'agent.claude', 340, 180, { promptRef: '.factory/prompts/dependency-warden.md', model: 'claude-sonnet-4-6', maxTurns: 25 }),
+        T('wa', 'agent.claude', 340, 180, { promptRef: '.factory/prompts/dependency-warden.md', model: 'claude-opus-5', maxTurns: 25 }),
         T('cm', 'sink.comment', 660, 60, { instruction: 'records the merge-risk verdict (bump size, breaking-change check, recommendation)' }),
         T('lb', 'sink.label', 660, 200, { labels: '' }),
         T('mg', 'sink.merge_pr', 660, 320, { method: 'squash', when: 'auto' }),
@@ -72,7 +130,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       meta: { name: 'CI Failure Alarm', description: 'Diagnose CI failures and open an issue.' },
       nodes: [
         T('t', 'trigger.workflow_run', 40, 140, { workflow: 'CI', conclusion: 'failure' }),
-        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/ci-triage.md', model: 'claude-sonnet-4-6', maxTurns: 10 }),
+        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/ci-triage.md', model: 'claude-opus-5', maxTurns: 10 }),
         T('s', 'sink.create_issue', 660, 140, { titleHint: 'CI failed on main' }),
       ],
       edges: [E('e1', 't', 'a'), E('e2', 'a', 's')],
@@ -105,7 +163,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       nodes: [
         T('t', 'trigger.cron', 40, 160, { cron: '0 7 * * *' }),
         T('rl', 'rate.limiter', 240, 160, { maxPerDay: 4 }),
-        T('a', 'agent.claude', 440, 160, { promptRef: '.factory/prompts/watchdog.md', model: 'claude-sonnet-4-6', maxTurns: 12 }),
+        T('a', 'agent.claude', 440, 160, { promptRef: '.factory/prompts/watchdog.md', model: 'claude-opus-5', maxTurns: 12 }),
         T('s', 'sink.create_issue', 720, 160, { titleHint: 'Factory alarm' }),
       ],
       edges: [E('e1', 't', 'rl'), E('e2', 'rl', 'a'), E('e3', 'a', 's')],
@@ -130,14 +188,14 @@ export const TEMPLATES: FactoryTemplate[] = [
         T('cm', 'trigger.manual', 40, 200, { mode: 'plan-first' }),
         T('cg', 'gate.enablement', 240, 140, { variable: 'CONTENT_FACTORY_ENABLED' }),
         T('crl', 'rate.limiter', 430, 140, { maxPerDay: 4 }),
-        T('ca', 'agent.claude', 620, 140, { promptRef: '.factory/prompts/content-grow.md', model: 'claude-opus-4-8', maxTurns: 20 }),
+        T('ca', 'agent.claude', 620, 140, { promptRef: '.factory/prompts/content-grow.md', model: 'claude-opus-5', maxTurns: 20 }),
         T('cpr', 'sink.open_pr', 860, 140, { branchHint: 'factory/content-*' }),
         // Line 2 — the feedback loop: weekly, kill-switched, tunes the factory itself.
         T('ld', 'trigger.cron', 40, 380, { cron: '23 6 * * 1' }),
         T('lg', 'gate.enablement', 300, 380, { variable: 'LOOP_TUNER_ENABLED' }),
         T('lf', 'processor.feedback_controller', 560, 380, {
           promptRef: '.factory/prompts/loop-tuner.md',
-          model: 'claude-opus-4-8',
+          model: 'claude-opus-5',
           ledgerPath: '.factory/metrics/improvements.yml',
           windowDays: 7,
           maxTurns: 30,
@@ -171,7 +229,7 @@ export const TEMPLATES: FactoryTemplate[] = [
         T('dm', 'trigger.manual', 40, 210, { mode: 'plan-first' }),
         T('dg', 'gate.enablement', 250, 150, { variable: 'DOCS_GARDENER_ENABLED' }),
         T('drl', 'rate.limiter', 440, 150, { maxPerDay: 2 }),
-        T('da', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/docs-gardener.md', model: 'claude-opus-4-8', maxTurns: 24 }),
+        T('da', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/docs-gardener.md', model: 'claude-opus-5', maxTurns: 24 }),
         T('dpr', 'sink.open_pr', 870, 150, { branchHint: 'factory/docs-*' }),
       ],
       edges: [

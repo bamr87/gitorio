@@ -383,6 +383,13 @@
   font-family: var(--readout);
   font-size: 11px;
 }
+/* Kill switch we could not read. Deliberately NOT styled like .dim/disarmed — an
+   unreadable switch may be armed, and an ops cockpit must not imply "stopped". */
+.unknown {
+  color: var(--warn, #d0a215);
+  font-family: var(--readout);
+  font-size: 11px;
+}
 
 /* ── workflows board ── */
 .wfboard {

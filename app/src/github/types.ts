@@ -291,7 +291,13 @@ export interface GithubClient {
    * an empty/absent list or missing permission — returns `[]`. Values are readable (unlike
    * secrets), which is exactly what lets the app show a line as armed or idle.
    */
-  listVariables(repo: RepoRef): Promise<RepoVariable[]>;
+  /**
+   * Repo Actions variables, or `null` when they could not be read (no permission,
+   * no Actions). `null` is NOT the same as `[]`: an empty list means the repo really
+   * has no variables, so a kill switch is genuinely off, while `null` means we do not
+   * know — and a cockpit must not draw a running loop as stopped.
+   */
+  listVariables(repo: RepoRef): Promise<RepoVariable[] | null>;
 
   /** Read one Actions variable, or `null` if unset. */
   getVariable(repo: RepoRef, name: string): Promise<RepoVariable | null>;
