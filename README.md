@@ -66,6 +66,11 @@ This repo is designed to be **built by Claude Code, session by session**:
 
 Powering a deployed factory requires a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
 
+## Repository layout
+
+Which paths the compiler writes and which are yours to hand-edit is documented in
+[`docs/FILE-OWNERSHIP.md`](docs/FILE-OWNERSHIP.md).
+
 ## Status
 
 Scaffold + canvas MVP + compiler v0, dogfooding itself in `.factory/`. Pre-alpha; the roadmap is the product spec.
