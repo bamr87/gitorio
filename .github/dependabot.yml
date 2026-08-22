@@ -1,21 +1,26 @@
+# Dependabot configuration
+#
+# Keeps GitHub Actions used by this repository's workflows up to date.
+#
+# This is the companion control to pinning actions by full commit SHA:
+# a SHA pin is immutable (a tag such as @v4 can be repointed at new code
+# after review), but it also never picks up security fixes on its own.
+# Dependabot closes that gap by opening PRs that bump the pinned SHA and
+# the human-readable version comment together.
+#
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
 updates:
-  # Frontend npm dependencies (the app lives in /app).
-  - package-ecosystem: npm
-    directory: /app
+  # `directory: "/"` is the documented value for the github-actions
+  # ecosystem; Dependabot scans all workflow files under .github/workflows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    # Batch action bumps into a single PR to keep review noise low.
     groups:
-      # Batch low-risk updates so review stays cheap.
-      minor-and-patch:
-        update-types:
-          - minor
-          - patch
-
-  # The workflows GitFactory itself ships (CI + Pages).
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      github-actions:
+        patterns:
+          - "*"
