@@ -70,6 +70,43 @@ This repo is designed to be **built by Claude Code, session by session**:
 
 Powering a deployed factory requires a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
 
+## Where documentation lives
+
+The repository root holds several places that all look like "docs". Use this map
+to decide where a new page belongs.
+
+| Location | What goes here | Written for |
+| --- | --- | --- |
+| `README.md` | This file. The one-screen pitch, quickstart, and pointers to everywhere else. | Anyone arriving at the repo for the first time |
+| `CLAUDE.md` | Project memory for Claude Code sessions: architecture, golden rules, definition of done. | Claude Code agents, and humans steering them |
+| `CONTRIBUTING.md` ⟨?⟩ | How to contribute changes to this repo. | Contributors |
+| `SECURITY.md` ⟨?⟩ | Security policy and how to report a vulnerability. | Security reporters |
+| `BACKLOG.md` ⟨?⟩ | Tracked work that is not yet scheduled. | Maintainers |
+| `docs/` | Long-form project documentation. The roadmap — which doubles as the product spec — lives at `docs/ROADMAP.md`, linked from the Quickstart above. | Users and contributors reading about the project |
+| `_docs/` | **TBD** — see the note below. | **TBD** |
+| `specs/` | **TBD** — see the note below. | **TBD** |
+| `blog/` | **TBD** — see the note below. | **TBD** |
+| `seeds/` | Ordered Claude Code session prompts with acceptance criteria, e.g. `seeds/00-bootstrap.md`. Not prose documentation — these are executable instructions. | Whoever is driving the next build session |
+| `.claude/commands/` | Slash-command definitions (`/add-machine`, `/compile-check`, `/session-log`). | Claude Code |
+| `.factory/` | GitFactory's own blueprints — the project dogfooding itself. | Maintainers |
+
+<!--
+TODO(maintainer): the three TBD rows above are unresolved on purpose.
+The author of this section could not read the contents of `_docs/`, `specs/`,
+or `blog/`, and would rather leave a visible gap than invent a description.
+Please fill them in — in particular, state plainly what distinguishes `_docs/`
+from `docs/` (authored vs. generated? published vs. internal? current vs.
+legacy?) — and delete this comment.
+
+Rows marked ⟨?⟩ are inferred from conventional filenames and have not been
+verified against the files themselves. Confirm or correct them, then drop the
+marker.
+-->
+
+Not documentation, but often mistaken for it: `app/` is the frontend source
+(`npm run build` emits `app/dist`), and `examples/`, `schema/`, and `tools/`
+hold supporting project files rather than prose.
+
 ## Status
 
 Scaffold + canvas MVP + compiler v0, dogfooding itself in `.factory/`. Pre-alpha; the roadmap is the product spec.
