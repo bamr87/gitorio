@@ -70,6 +70,17 @@ This repo is designed to be **built by Claude Code, session by session**:
 
 Powering a deployed factory requires a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
 
+## Project docs
+
+| Document | What it covers |
+| --- | --- |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to propose changes to this repo. Read this before opening a pull request. |
+| [`SECURITY.md`](SECURITY.md) | How to report a security vulnerability. Please use this instead of a public issue. |
+| [`BACKLOG.md`](BACKLOG.md) | Work that is queued but not yet scheduled — a good place to look for something to pick up. |
+| [`CLAUDE.md`](CLAUDE.md) | Project memory for Claude Code sessions: architecture, golden rules, definition of done. |
+| [`seeds/`](seeds/) | Ordered session prompts with acceptance criteria, starting at `seeds/00-bootstrap.md`. |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | The phased plan; while the project is pre-alpha the roadmap doubles as the product spec. |
+
 ## Status
 
 Scaffold + canvas MVP + compiler v0, dogfooding itself in `.factory/`. Pre-alpha; the roadmap is the product spec.
