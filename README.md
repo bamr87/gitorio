@@ -70,6 +70,34 @@ This repo is designed to be **built by Claude Code, session by session**:
 
 Powering a deployed factory requires a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
 
+## Repository layout
+
+Where things live at the root:
+
+| Path | What it is |
+| --- | --- |
+| `app/` | The GitFactory frontend — the canvas, palette, compiler and Fleet Ops cockpit. This is where `npm install`, `npm run dev`, `npm test` (vitest) and `npm run build` (→ `app/dist`) are run. |
+| `seeds/` | Ordered Claude Code session prompts with acceptance criteria, used to build this project session by session. Start at `seeds/00-bootstrap.md`. |
+| `docs/` | Long-form project documentation. `docs/ROADMAP.md` is the closest thing to a product spec while the project is pre-alpha. |
+| `.claude/` | Claude Code project configuration. `.claude/commands/` holds the repo's slash commands: `/add-machine`, `/compile-check`, `/session-log`. |
+| `.factory/` | GitFactory's own factory — the project dogfoods its compiler on itself (see [Status](#status)). |
+| `.vscode/` | Editor configuration, including the `launch.json` debug configs described above. |
+| `.github/` | GitHub repository configuration (workflows and other repo metadata). |
+| `CLAUDE.md` | Project memory for Claude Code: architecture, golden rules, definition of done. |
+| `CONTRIBUTING.md` / `SECURITY.md` | How to contribute, and how to report security issues. |
+| `BACKLOG.md` | Tracked work that has not been scheduled into a roadmap phase. |
+| `docker-compose.yml` | The `dev` and `preview` services used by the Docker workflow above. |
+| `.nvmrc`, `.editorconfig`, `.gitattributes` | Toolchain pins and editor/Git hygiene. |
+
+### Not yet documented
+
+These root entries exist but are not described above yet: `schema/`, `specs/`,
+`tools/`, `examples/`, `_docs/` (which sits alongside the separate `docs/`),
+`blog/`, and `fleet.manifest.yml`. Rather than guess, they are left blank here —
+if you know what they hold, a PR adding a row for each is very welcome, and the
+`_docs/` vs `docs/` split probably deserves a decision as well as a
+description.
+
 ## Status
 
 Scaffold + canvas MVP + compiler v0, dogfooding itself in `.factory/`. Pre-alpha; the roadmap is the product spec.
