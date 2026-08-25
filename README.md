@@ -56,6 +56,23 @@ Your working tree is mounted into the `dev` container, so edits hot-reload (`VIT
 - **Debug in Chrome (npm dev)** — same, using local Node instead of Docker.
 - **Vitest: all tests** / **Vitest: current file** — breakpoint-debug the test suite.
 
+## Repository layout
+
+The paths you are most likely to need first:
+
+| Path | What lives there |
+| --- | --- |
+| `app/` | The frontend — canvas, palette, compiler, and the demo fixtures. This is the npm project: run `npm install` and `npm run dev` from here, and `npm run build` writes to `app/dist`. |
+| `seeds/` | Ordered Claude Code session prompts, each with acceptance criteria. Start at `seeds/00-bootstrap.md` (see [Building this with Claude Code](#building-this-with-claude-code)). |
+| `.claude/` | Claude Code project configuration, including the slash commands in `.claude/commands/`: `/add-machine`, `/compile-check`, `/session-log`. |
+| `.factory/` | GitFactory's own blueprints — the repo dogfooding itself, so the workflows that run on this repo are compiled from a blueprint like any other. |
+| `docs/` | Project documentation, including `docs/ROADMAP.md`, which doubles as the product spec. |
+| `CLAUDE.md` | Project memory for Claude Code: architecture, golden rules, and the definition of done. Read this first if you are pairing with an agent. |
+| `docker-compose.yml` | The `dev` service (Vite + HMR on port 5173) and the `preview` profile (production build behind nginx on port 8080) described above. |
+| `.vscode/` | Editor settings and `launch.json`, the F5 debug configurations described above. |
+
+Also at the top level, and not yet described here: `schema/`, `specs/`, `examples/`, `tools/`, `_docs/`, `blog/`, `fleet.manifest.yml`, plus `BACKLOG.md`, `CONTRIBUTING.md`, and `SECURITY.md`. If you know what one of these is for, a one-line addition to the table above is a welcome first contribution.
+
 ## Building this with Claude Code
 
 This repo is designed to be **built by Claude Code, session by session**:
