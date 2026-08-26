@@ -56,6 +56,41 @@ Your working tree is mounted into the `dev` container, so edits hot-reload (`VIT
 - **Debug in Chrome (npm dev)** — same, using local Node instead of Docker.
 - **Vitest: all tests** / **Vitest: current file** — breakpoint-debug the test suite.
 
+## Repository layout
+
+Where things live at the repo root:
+
+| Path | What lives there |
+| --- | --- |
+| `app/` | The GitFactory frontend — the canvas, palette, compiler, and Fleet Ops cockpit. This is the only npm project: `npm install`, `npm run dev`, `npm test` (vitest) and `npm run build` (into `app/dist`) all run from here. |
+| `.factory/` | GitFactory's own blueprint — the project dogfoods itself, so the automation running on this repo is designed with the tool it ships. |
+| `.claude/` | Claude Code project configuration, including the slash commands in `.claude/commands/` (`/add-machine`, `/compile-check`, `/session-log`). |
+| `seeds/` | Ordered Claude Code session prompts with acceptance criteria, one file per build session. Start at `seeds/00-bootstrap.md` — see [Building this with Claude Code](#building-this-with-claude-code). |
+| `docs/` | Project documentation, including `docs/ROADMAP.md`, which doubles as the product spec. |
+| `_docs/` † | Additional documentation source. |
+| `specs/` † | Written specifications feeding the roadmap. |
+| `blog/` † | Long-form posts / development log. |
+| `examples/` † | Example blueprints and generated output. |
+| `schema/` † | Schemas for the project's structured files (blueprints, manifest). |
+| `tools/` † | Repository-level scripts and utilities, outside the `app/` build. |
+| `.github/` † | GitHub configuration for this repository, including its own Actions workflows. |
+| `fleet.manifest.yml` † | Declares the fleet of repositories this factory operates on. |
+
+And the loose files worth knowing about:
+
+| File | Purpose |
+| --- | --- |
+| `CLAUDE.md` | Project memory for Claude Code: architecture, golden rules, definition of done. Read this first if you are driving the build with an agent. |
+| `CONTRIBUTING.md` | How to propose changes. |
+| `SECURITY.md` | How to report a vulnerability. |
+| `BACKLOG.md` | Queued work that has not been scheduled into a seed or the roadmap yet. |
+| `docker-compose.yml` | The `dev` and `preview` services used by [Run with Docker](#run-with-docker). |
+| `.vscode/` | Editor settings and the `launch.json` debug configs described above. |
+| `.nvmrc` | Node version used by the project. |
+| `.editorconfig`, `.gitattributes`, `.gitignore` | Formatting and Git hygiene. |
+
+† These entries are still being confirmed by a maintainer — treat the description as a hint, not a contract. In particular, the division of labour between `_docs/`, `docs/`, `specs/`, and `blog/` is not yet documented; if you know it, a PR clarifying these rows is very welcome.
+
 ## Building this with Claude Code
 
 This repo is designed to be **built by Claude Code, session by session**:
