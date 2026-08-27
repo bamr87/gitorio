@@ -28,11 +28,26 @@ Open the app with **`?demo=1`** and the whole tool comes alive on a fictional th
 
 ## Quickstart (development)
 
+All application code and its `package.json` live in `app/`, so run npm from there. The repo pins a Node version in `.nvmrc` — if you use [nvm](https://github.com/nvm-sh/nvm), `nvm use` will pick it up.
+
 ```bash
-cd app && npm install && npm run dev
+cd app
+npm install
+npm run dev     # dev server + HMR; Vite prints the local URL
 ```
 
 Open the canvas, drag machines from the palette, connect belts, press **Compile** to see the generated workflows. GitHub connectivity, telemetry, and the prompt studio land in later phases — see `docs/ROADMAP.md`.
+
+### Everyday commands
+
+Also from `app/`:
+
+```bash
+npm test         # run the vitest suite
+npm run build    # production build → app/dist
+```
+
+These are the same scripts the Docker workflow below invokes inside the container, so a green run locally means a green run in the container and vice versa.
 
 ### Run with Docker
 
