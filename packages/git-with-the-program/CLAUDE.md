@@ -10,7 +10,7 @@ Implementation proceeds through four ordered seed prompts in [seeds/](seeds/), e
 
 **The stack is undecided.** [docs/adr/0006-reference-stack.md](docs/adr/0006-reference-stack.md) is `Status: Proposed`, leaning TypeScript for v0. The first act of SEED-01 is to flip it to Accepted with a justification, then scaffold accordingly. Until then, `schemas/*.schema.json` is the only binding contract.
 
-CLI surface the seeds are required to build: `gwtp validate` (SEED-01) and `gwtp ledger append|fold|replay|status` (SEED-02).
+CLI surface the seeds are required to build: `gwtp validate` (SEED-01) and `gwtp ledger append|fold|replay|status` (SEED-02). Post-seed additions: `gwtp nexus build|status|defs|imports|importers|callers|seams|ring` and `gwtp judge --ring` (ADR-0007, spec 05).
 
 ## The core idea in one paragraph
 
@@ -26,6 +26,7 @@ Read the four specs before touching anything they govern; they are the source of
 | Ledger | [docs/spec/02-ledger.md](docs/spec/02-ledger.md) | Event store on `refs/program/ledger`, the fold, firing + dispersion, compaction |
 | Judge | [docs/spec/03-judge.md](docs/spec/03-judge.md) | The judgment ladder, blindness rules, output contract, panels, bar exam |
 | Distillation | [docs/spec/04-distillation.md](docs/spec/04-distillation.md) | Cold-start bootstrap: fact miner, epochs, synthesis, ratification, backfill |
+| Nexus | [docs/spec/05-nexus.md](docs/spec/05-nexus.md) | The perception layer (ADR-0007, clean-room GitNexus adaptation): derived code knowledge graph in `src/nexus/**`, cached gitignored under `.gwtp/nexus/`; context rings, seams, negative-space queries. Identity-free by construction — it may never read git log/blame, `accumulators/`, or the ledger, and no blind dir may import it until the INV-003 scope amendment ratifies (`proposals/PROPOSED-nexus-amendment.md`) |
 
 Three structural facts that span multiple files:
 

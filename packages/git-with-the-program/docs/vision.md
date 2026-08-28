@@ -23,6 +23,7 @@ The design is predictive processing applied to repositories, and the mapping is 
 |---|---|
 | Generative model | The program (`.program/`) |
 | Observations | Commits, PRs, merges |
+| Perceptual organization | The nexus — structured percepts (definitions, dependencies, callers) from raw bytes (spec 05) |
 | Prediction error | Drift verdicts |
 | Precision weighting | Per-assertion `precision` |
 | Evidence accumulation | Leaky-integrator accumulators in the ledger |
@@ -34,6 +35,7 @@ This frame answers design questions on principled grounds:
 
 - **Recommendation fatigue** → act on *accumulated surprise*, never single deviations. Precision, budget, and half-life are the sensitivity knobs, tuned per-assertion.
 - **Judge independence** → evidence accumulation assumes conditionally independent samples. A judge that can see the running accumulator produces autocorrelated verdicts, and accumulated surprise stops being evidence. Hence the blindness rules (spec 03).
+- **Uncertainty wants perception, not exposure** → an abstaining judge needs *more world*, never *more meter*: escalation widens the context ring over the nexus (function body → file → nearest callers), and the percepts themselves carry no authorship and no accumulator state — perception is kept as blind as judgment, one step upstream (spec 05).
 - **Bootstrap from history** → distillation is the loop run in reverse: infer the model from observations instead of scoring observations against the model. The live loop filters forward; distillation smooths backward.
 
 ## Non-goals

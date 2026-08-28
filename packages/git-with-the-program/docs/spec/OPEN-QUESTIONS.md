@@ -1103,3 +1103,111 @@ break) or about vocabulary coupling (type-only breaks)? If the latter, the prove
 `imp.kind !== 'type-only'` guard is the one line to drop, and Q-58's severity ladder should be
 revisited in the same breath.
 **Pinned at:** `src/distill/miner.ts` → `proveNegativeSpaceForProbe` (the `type-only` guard).
+
+---
+
+## The nexus (spec 05, ADR-0007)
+
+Raised while integrating the code knowledge graph. Spec 05 was written in the same change, so
+these are places where THAT spec chose the least-committal reading of the specs it plugs into
+— recorded here so a human can ratify or reverse each one at a single pinned site.
+
+### Q-65 — is the nexus artifact inside INV-006's jurisdiction?
+INV-006 says "all program and ledger artifacts validate against `schemas/` in CI". The nexus
+artifact is NEITHER: it is a derived, gitignored cache (spec 05 §1), yet it now has a real
+schema (`schemas/nexus.schema.json`) — the fifth — while `SCHEMA_ID` in `src/core/index.ts`
+still lists exactly four, on Q-08's argument that inventing `$id`s manufactures contracts.
+
+**Shipped (least-committal):** the schema exists and is enforced where the artifact lives —
+`tests/nexus/serialize.test.ts` holds ajv and the engine decoder against each other (the Q-29
+split), and `gwtp nexus status` hash-verifies the cache — but `gwtp validate` and `SCHEMA_ID`
+are untouched: INV-006's letter covers program and ledger artifacts, and a cache is neither.
+**Question for ratification:** should INV-006's statement widen to "all machine artifacts",
+pulling the nexus under `gwtp validate` and `SCHEMA_ID`? That is an amendment to the law plus
+an engine change, in that order.
+**Pinned at:** `src/nexus/serialize.ts` → `NEXUS_SCHEMA_ID`; `src/core/index.ts` → `SCHEMA_ID`
+(deliberately still four).
+
+### Q-66 — does the context ring escape the assertion's scope?
+Spec 03 §3 grants "the diff hunks intersecting the assertion's scope, with an expanding
+context ring". For rings `enclosing-symbol` and `file` the granted context shares the hunk's
+path, which already intersected scope. Ring `callers` is the interesting one: a nearest caller
+can live OUTSIDE the assertion's scope (e.g. a caller in `src/ledger/` of a function in
+`src/core/` under INV-005's `src/core/**`), and the spec does not say whether the grant
+overrides the scope filter.
+
+**Shipped (least-committal): it does not.** The ring source scope-filters what it offers and
+the assembler re-applies `scopedHunks` (belt and braces), so an out-of-scope caller is never
+shown — a judge granted out-of-scope code would be ruling on conduct outside its jurisdiction.
+Consequence: for a narrowly-scoped assertion, `callers` may add nothing beyond `file`.
+**Question for ratification:** should `callers` context be exempt from the scope filter
+(shown, but never citable as an offence)? That needs a spec 03 §3 ruling, since it widens what
+a judge sees past the assertion's own jurisdiction.
+**Pinned at:** `src/nexus/rings.ts` → `nexusChangeSource` (the `scopedHunks` call);
+`tests/nexus/rings.test.ts` ("rule 2").
+
+### Q-67 — which tree does ring context come from?
+Granted context is read from the snapshot the graph was built over (spec 05 §5 rule 3), and
+`gwtp judge --ring` / `gwtp nexus ring` perceive the CURRENT WORKTREE. A diff judged against a
+worktree that has since moved gets context from the wrong tree — deterministically wrong, but
+wrong. Nothing in spec 03 says how the harness must pin the post-image tree for escalation,
+and the SEED-03 harness (`escalateEvidence`) takes whatever `ChangeSource` it was handed.
+
+**Shipped:** the CLI states the assumption in its help text and judges the worktree as given;
+the pure pipeline (`buildNexus` over an explicit snapshot) already supports tree-accurate
+assembly — the caller chooses the snapshot.
+**Question:** when SEED-03's escalation loop runs against a historical commit (or SEED-04's
+backfill replays one), must the nexus be built from that commit's tree via `git show`? Almost
+certainly yes; the plumbing to feed the builder a commit tree instead of a worktree is the
+missing piece, and it belongs beside the other git reads (`src/ledger/git.ts`-adjacent, never
+under a blind directory).
+**Pinned at:** `src/cli/commands/judge.ts` (the `--ring` help text); `src/nexus/build.ts` →
+`FileSnapshot` (the seam where a commit tree would enter).
+
+### Q-68 — seam naming in proposals: where does the join happen?
+Spec 05 §6 defines seams and forbids them from the fold; spec 02 §5's outputs argue "one seam
+or many call sites" and a refactoring recommendation would be sharper if it NAMED the
+import-connected seam instead of a directory glob. That join (firing evidence paths →
+`seamOf`) belongs on the sentencing side — `src/ledger/firing.ts` resolves the paths and
+`src/adapters/github/render.ts` renders the proposal — and neither may be touched casually:
+the fold's purity property and the proposal's byte-stable body both live there.
+
+**Shipped:** the query surface only (`seams`, `seamOf`, `gwtp nexus seams`); no firing-side
+wiring. A human consulting `gwtp nexus seams` next to a proposal gets the answer today.
+**Question for ratification:** may a proposal's evidence block carry a `seams:` section (seam
+id + member count per contributing path), the way it already carries the compliance ratio as
+evidence quality? If yes, it enters through `render.ts` at firing time — sighted territory —
+and MUST NOT feed `classifyFiring` (Q-22's thresholds stay the ratified inputs).
+**Pinned at:** `src/nexus/query.ts` → `seams`, `seamOf`; deliberately absent from
+`src/ledger/**` and `src/adapters/**`.
+
+### Q-69 — should assertions gain a `check: nexus-query` field (rung-0 queries as law)?
+Spec 05 §7 shows INV-005's negative space as a whole-tree query, and
+`tests/nexus/negative-space.test.ts` runs it — but as a TEST of this repository, not as a
+rung-0 check any repository's assertion can declare. Making it declarable means a new field on
+`schemas/assertion.schema.json` (which queries are law-grade? what grammar? what severity does
+a whole-tree absence-violation carry, when ADR-0005's anchors were written for diffs?), which
+is a schema-semantics change with governance weight.
+
+**Shipped:** nothing on the assertion atom; the capability exists as library + CLI + test.
+**Question for ratification:** the field, its grammar (the `importsMatching` shape? full
+queries?), and its trigger tier (spec 02 §7 — every push, or the scheduled sweep alongside
+obsolescence, which whole-tree checks resemble more than diff checks do).
+**Pinned at:** `src/nexus/query.ts` → `importsMatching` (the primitive a future field would
+compile to); `schemas/assertion.schema.json` (deliberately unchanged).
+
+### Q-70 — two readers of one concept: the miner's import graphs and the nexus
+Spec 04 §2's pass one builds `ImportGraphSnapshot`s at epoch boundaries
+(`src/distill/miner.ts` → `buildImportGraphForBoundary`); the nexus builds the same concept —
+richer (definitions, calls, heritage) — at any single tree. Two import readers with different
+shapes will drift the way the module headers of `imports.ts` and `check-inv003.ts` warn a
+third reader would.
+
+**Shipped:** both stand; neither was refactored (SEED-04's miner is merged, working code, and
+spec 05 §8 explicitly declines to rewrite it under a new spec). The extractors are already
+vocabulary-aligned (`type-only` / `value` / `dynamic` / `re-export`, Q-64's kinds).
+**Question:** should pass one's boundary snapshot become `buildNexus(treeAt(boundary))` —
+one reader, with the fact base keeping only its aggregation? That is a SEED-04-territory
+refactor and wants its own change, judged by the framework it feeds.
+**Pinned at:** `src/distill/miner.ts` → `ImportGraphSnapshot`; `src/nexus/build.ts` →
+`buildNexus`; docs/spec/05-nexus.md §8.
