@@ -21,13 +21,10 @@ import { useFactoryStore } from './state/store';
 import { useGithubStore } from './state/github';
 import { useTelemetryStore } from './state/telemetry';
 import { useUiStore, type AppView } from './state/ui';
+import { applyTheme, useSettingsStore } from './state/settings';
 import { demoRequested, enterDemoMode, isDemoActive } from './demo/seed';
 import { repoSlug } from './github/types';
-import {
-  decodeBlueprintString,
-  encodeBlueprintString,
-  type Blueprint,
-} from './blueprint/types';
+import { decodeBlueprintString, encodeBlueprintString, type Blueprint } from './blueprint/types';
 
 function download(filename: string, text: string) {
   const a = document.createElement('a');
@@ -41,11 +38,36 @@ function download(filename: string, text: string) {
 
 const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
   { id: 'build', label: 'Build', icon: '⚒', title: 'Design the factory: machines, belts, compile' },
-  { id: 'prompts', label: 'Prompts', icon: '📜', title: 'Prompt Studio — edit the agents’ operating instructions' },
-  { id: 'content', label: 'Content', icon: '📰', title: 'Headless-CMS cockpit — config, content backlog, kill switches' },
-  { id: 'docs', label: 'Docs', icon: '📖', title: 'The rendered docs collection — the content factory’s visible output' },
-  { id: 'monitor', label: 'Monitor', icon: '📊', title: 'Runs, per-line stats, schedules, controls' },
-  { id: 'fleet', label: 'Fleet', icon: '🛰', title: 'Observe any repo’s workflows; switch between repos' },
+  {
+    id: 'prompts',
+    label: 'Prompts',
+    icon: '📜',
+    title: 'Prompt Studio — edit the agents’ operating instructions',
+  },
+  {
+    id: 'content',
+    label: 'Content',
+    icon: '📰',
+    title: 'Headless-CMS cockpit — config, content backlog, kill switches',
+  },
+  {
+    id: 'docs',
+    label: 'Docs',
+    icon: '📖',
+    title: 'The rendered docs collection — the content factory’s visible output',
+  },
+  {
+    id: 'monitor',
+    label: 'Monitor',
+    icon: '📊',
+    title: 'Runs, per-line stats, schedules, controls',
+  },
+  {
+    id: 'fleet',
+    label: 'Fleet',
+    icon: '🛰',
+    title: 'Observe any repo’s workflows; switch between repos',
+  },
   { id: 'settings', label: 'Settings', icon: '⚙', title: 'Connections and preferences' },
 ];
 
@@ -75,6 +97,11 @@ export default function App() {
   // isDemoActive() is module state, not store state, so key it off the store's client —
   // entering or leaving the demo always swaps that, which is what re-renders this.
   const demo = !!client && isDemoActive();
+
+  // Theme preference → <html data-theme> (specs/011): system removes the stamp so the
+  // prefers-color-scheme media query decides.
+  const theme = useSettingsStore((s) => s.theme);
+  useEffect(() => applyTheme(theme), [theme]);
 
   // Reconnect from a sessionStorage PAT if this tab already has one — unless the URL
   // asked for the demo, in which case the demo client takes the seat instead (FR-5).
@@ -179,8 +206,13 @@ export default function App() {
         >
           {login ? `⚡ ${repo ? repoSlug(repo) : login}` : 'Connect'}
         </button>
-        <span className="power" title="Power = Claude auth secret on the target repo (CLAUDE_CODE_OAUTH_TOKEN, or ANTHROPIC_API_KEY fallback).">
-          <span className={`led led--${power === 'on' ? 'on' : power === 'off' ? 'off' : 'idle'}`} />
+        <span
+          className="power"
+          title="Power = Claude auth secret on the target repo (CLAUDE_CODE_OAUTH_TOKEN, or ANTHROPIC_API_KEY fallback)."
+        >
+          <span
+            className={`led led--${power === 'on' ? 'on' : power === 'off' ? 'off' : 'idle'}`}
+          />
           {power === 'on' ? 'power' : power === 'off' ? 'no power' : '—'}
         </span>
         <input
@@ -200,7 +232,8 @@ export default function App() {
 
       {view === 'build' && drift.length > 0 && (
         <div className="banner banner--drift">
-          ⚠ {drift.length} deployed workflow{drift.length > 1 ? 's were' : ' was'} hand-edited since the last blueprint.
+          ⚠ {drift.length} deployed workflow{drift.length > 1 ? 's were' : ' was'} hand-edited since
+          the last blueprint.
           <button type="button" className="btn" onClick={() => setDialog('deploy')}>
             Review &amp; redeploy
           </button>
@@ -216,7 +249,12 @@ export default function App() {
             onTemplates={() => setDialog('templates')}
             onImportFile={() => fileRef.current?.click()}
             onImportString={importString}
-            onExport={() => download(`${meta.name || 'blueprint'}.blueprint.json`, JSON.stringify(toBlueprint(), null, 2))}
+            onExport={() =>
+              download(
+                `${meta.name || 'blueprint'}.blueprint.json`,
+                JSON.stringify(toBlueprint(), null, 2),
+              )
+            }
             onCopyString={() => {
               void navigator.clipboard.writeText(encodeBlueprintString(toBlueprint()));
               say('Blueprint string copied — share it like a Factorio blueprint.');

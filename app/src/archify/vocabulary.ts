@@ -102,3 +102,8 @@ export const LOOP_PRONE_TRIGGERS = new Set([
   'trigger.pr_opened',
   'trigger.comment',
 ]);
+
+/** The canvas/palette CSS modifier for a machine kind — the same colour the maps use. */
+export function machineTone(type: string): `c-${ComponentType}` {
+  return `c-${vocabularyFor(type).component}`;
+}

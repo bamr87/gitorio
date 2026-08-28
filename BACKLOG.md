@@ -26,6 +26,9 @@
 
 ## Open
 
+- **BL-20260828-13** — *feature, low* — Port archify's DESIGN.md recipe components (toolbar-button, diagram-panel, search-field, evidence-beacon) as React primitives in `app/src/ui/` next to `Menu`, and re-skin the panels onto them. _Surfaced in:_ specs/011-evidence-console.
+- **BL-20260828-12** — *refactor, low* — Retire the transitional aliases in `theme.css` (`--floor`, `--panel`, `--seam`, `--copper*`, `--steel`, `--signal`, `--alarm`) once every rule uses the semantic names — ~35 references remain. _Surfaced in:_ specs/011-evidence-console.
+- **BL-20260828-11** — *tech-debt, low* — React Flow's own attribution link (`.react-flow__attribution a`) is the one text element below AA contrast in light mode; it is styled by the library — override it through the theme or hide it with `proOptions.hideAttribution` (check the license terms first). _Surfaced in:_ specs/011-evidence-console.
 - **BL-20260828-09** — *tech-debt, low* — `toWorkflowIR` lane capacity is four nodes; a line with a gate chain plus ≥3 sinks collapses outputs into "+N more". Consider a two-row lane (32 px nodes with `yOffset`) once archify's showcase rules for stacked nodes are understood. _Surfaced in:_ specs/010-archify-maps.
 - **BL-20260828-08** — *feature, low* — Per-district fleet maps for rosters larger than the 12-component story budget (`toArchitectureIR` currently collapses the tail into one "N more workflows" node per repo). _Surfaced in:_ specs/010-archify-maps.
 - **BL-20260828-07** — *infra, low* — Monthly upstream drift check for the vendored archify pin (`vendor/archify/VENDOR.md`): diff the pinned commit against upstream and file a BL item when the schemas or renderer contracts change. _Surfaced in:_ specs/010-archify-maps.
@@ -74,6 +77,7 @@
 
 ## Claimed
 
+- **BL-20260828-10** — *refactor, high* — Design-language migration to archify's DESIGN.md ("The Evidence Console"): semantic tokens shared with the maps' vocabulary, light theme as a peer with a Settings preference, mono-forward chrome, DESIGN.md radii/motion, zero colour literals outside the theme (claimed-by:specs/011-evidence-console). _Surfaced in:_ the archify adoption plan (ADR-034), companion to specs/010.
 - **BL-20260828-03** — *feature, high* — Adopt tt-a1i/archify as GitFactory's visualization layer and design language: vendored pinned renderer, a pure Blueprint/Fleet → archify IR compiler, generated maps served with the app, a CI diagram gate, then the design-token migration and in-app Map surfaces as companion specs (claimed-by:specs/010-archify-maps). _Surfaced in:_ the 2026-08-27 archify adoption plan (ADR-034).
 
 ## Done

@@ -82,7 +82,7 @@
 
 - **Refs**: FR-6, NFR-GEN-1
 - **Owner**: @bamr87
-- **Status**: `[~]`
+- **Status**: `[x]`
 - **Files**:
   - `.github/workflows/ci.yml`
 - **Steps**:

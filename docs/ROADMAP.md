@@ -136,7 +136,7 @@ Goal: configure an autonomous, configurable, headless content management system 
 ## Maps — archify as the renderer (ADR-034)
 
 - [x] Vendor `tt-a1i/archify` at a pinned commit; pure `Blueprint`/`Fleet` → IR compiler (`app/src/archify/`); generated dogfood + demo maps under `app/public/maps/`; CI `diagram-gate`; skill installed — specs/010-archify-maps.
-- [ ] Design-token migration to archify's DESIGN.md ("The Evidence Console"), light theme as a peer — companion spec.
+- [x] Design-token migration to archify's DESIGN.md ("The Evidence Console"), light theme as a peer — specs/011-evidence-console.
 - [ ] In-app Map surfaces: `DiagramFrame` embeds, Build "Map" drawer, Fleet Observe replacement (retire the read-only React Flow fleet canvas), Docs embeds, demo tour step — companion spec; depends on the Cartographer line for non-dogfood blueprints (BL-20260828-05).
 - [ ] Sequence / lifecycle / dataflow maps (BL-20260828-04); deploy `compare` (BL-20260828-06).
 

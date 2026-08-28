@@ -88,15 +88,33 @@
   min-width: 4px;
   background: var(--dim);
 }
-.typebar--ai { background: var(--steel); }
-.typebar--ci { background: var(--signal); }
-.typebar--deploy { background: #4db6ac; }
-.typebar--release { background: #9ccc65; }
-.typebar--docs { background: #b0a46b; }
-.typebar--security { background: var(--copper); }
-.typebar--dependencies { background: #ce7bb0; }
-.typebar--automation { background: #7986cb; }
-.typebar--other { background: var(--dim); }
+.typebar--ai {
+  background: var(--steel);
+}
+.typebar--ci {
+  background: var(--signal);
+}
+.typebar--deploy {
+  background: var(--cat-deploy);
+}
+.typebar--release {
+  background: var(--cat-release);
+}
+.typebar--docs {
+  background: var(--cat-docs);
+}
+.typebar--security {
+  background: var(--c-security);
+}
+.typebar--dependencies {
+  background: var(--cat-dependencies);
+}
+.typebar--automation {
+  background: var(--cat-automation);
+}
+.typebar--other {
+  background: var(--dim);
+}
 
 .fleetops__boards {
   display: flex;
@@ -204,12 +222,31 @@
   border: 1px solid var(--seam);
   flex: none;
 }
-.grade--s { color: var(--floor); background: var(--copper); border-color: var(--copper); box-shadow: 0 0 8px rgba(227, 155, 59, 0.55); }
-.grade--a { color: var(--signal); border-color: var(--signal); }
-.grade--b { color: var(--steel); border-color: var(--steel); }
-.grade--c { color: var(--copper); border-color: var(--copper-dim); }
-.grade--d { color: var(--alarm); border-color: var(--alarm); }
-.grade--none { color: var(--dim); }
+.grade--s {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-soft);
+}
+.grade--a {
+  color: var(--signal);
+  border-color: var(--signal);
+}
+.grade--b {
+  color: var(--steel);
+  border-color: var(--steel);
+}
+.grade--c {
+  color: var(--copper);
+  border-color: var(--copper-dim);
+}
+.grade--d {
+  color: var(--alarm);
+  border-color: var(--alarm);
+}
+.grade--none {
+  color: var(--dim);
+}
 
 /* ── flags ── */
 .flagchips {
@@ -227,12 +264,21 @@
   white-space: nowrap;
 }
 .flagchip--failing,
-.flagchip--high-cost-low-value { color: var(--alarm); border-color: var(--alarm); }
+.flagchip--high-cost-low-value {
+  color: var(--alarm);
+  border-color: var(--alarm);
+}
 .flagchip--flaky,
 .flagchip--slow,
 .flagchip--cancel-heavy,
-.flagchip--rework-heavy { color: var(--copper); border-color: var(--copper-dim); }
-.flagchip--cron-heavy { color: var(--steel); border-color: var(--steel); }
+.flagchip--rework-heavy {
+  color: var(--copper);
+  border-color: var(--copper-dim);
+}
+.flagchip--cron-heavy {
+  color: var(--steel);
+  border-color: var(--steel);
+}
 
 /* ── rankings / audit tables ── */
 .rankings,
@@ -309,9 +355,15 @@
   flex: none;
   text-align: center;
 }
-.finding--fail .finding__sev { color: var(--alarm); }
-.finding--warn .finding__sev { color: var(--copper); }
-.finding--info .finding__sev { color: var(--dim); }
+.finding--fail .finding__sev {
+  color: var(--alarm);
+}
+.finding--warn .finding__sev {
+  color: var(--copper);
+}
+.finding--info .finding__sev {
+  color: var(--dim);
+}
 .finding__body {
   flex: 1;
   font-size: 12px;
@@ -355,7 +407,7 @@
 }
 .schedboard__fill--hot {
   background: var(--alarm);
-  box-shadow: 0 0 6px rgba(224, 96, 84, 0.5);
+  box-shadow: 0 0 6px var(--danger-soft);
 }
 .schedboard__hour {
   font-family: var(--readout);
@@ -386,7 +438,7 @@
 /* Kill switch we could not read. Deliberately NOT styled like .dim/disarmed — an
    unreadable switch may be armed, and an ops cockpit must not imply "stopped". */
 .unknown {
-  color: var(--warn, #d0a215);
+  color: var(--warn);
   font-family: var(--readout);
   font-size: 11px;
 }
@@ -423,7 +475,7 @@
 .wfdrawer__scrim {
   position: absolute;
   inset: 0;
-  background: rgba(4, 6, 9, 0.55);
+  background: var(--scrim);
 }
 .wfdrawer__panel {
   position: absolute;
@@ -433,8 +485,8 @@
   width: min(560px, 96vw);
   overflow-y: auto;
   background: var(--panel);
-  border-left: 3px solid var(--copper);
-  box-shadow: -18px 0 50px rgba(0, 0, 0, 0.6);
+  border-left: 3px solid var(--accent);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
 }
@@ -476,14 +528,30 @@
 .wfdrawer__arch {
   border-left: 3px solid var(--dim);
 }
-.wfdrawer__arch--ai { border-left-color: var(--steel); }
-.wfdrawer__arch--ci { border-left-color: var(--signal); }
-.wfdrawer__arch--deploy { border-left-color: #4db6ac; }
-.wfdrawer__arch--release { border-left-color: #9ccc65; }
-.wfdrawer__arch--docs { border-left-color: #b0a46b; }
-.wfdrawer__arch--security { border-left-color: var(--copper); }
-.wfdrawer__arch--dependencies { border-left-color: #ce7bb0; }
-.wfdrawer__arch--automation { border-left-color: #7986cb; }
+.wfdrawer__arch--ai {
+  border-left-color: var(--steel);
+}
+.wfdrawer__arch--ci {
+  border-left-color: var(--signal);
+}
+.wfdrawer__arch--deploy {
+  border-left-color: var(--cat-deploy);
+}
+.wfdrawer__arch--release {
+  border-left-color: var(--cat-release);
+}
+.wfdrawer__arch--docs {
+  border-left-color: var(--cat-docs);
+}
+.wfdrawer__arch--security {
+  border-left-color: var(--copper);
+}
+.wfdrawer__arch--dependencies {
+  border-left-color: var(--cat-dependencies);
+}
+.wfdrawer__arch--automation {
+  border-left-color: var(--cat-automation);
+}
 .wfdrawer__body {
   display: flex;
   flex-direction: column;

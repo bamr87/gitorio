@@ -1,7 +1,7 @@
 # Spec: Archify maps — vendored renderer, pure Blueprint→IR compiler, generated maps
 
 - **ID**: 010-archify-maps
-- **Status**: in-progress
+- **Status**: shipped
 - **Owner**: @bamr87
 - **Created**: 2026-08-28
 - **Roadmap link**: adoption/plug-and-play — a factory, a fleet, and a run should each be legible as one map; see ADR-034 in [docs/DECISIONS.md](../../docs/DECISIONS.md)

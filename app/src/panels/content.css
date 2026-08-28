@@ -26,7 +26,7 @@
 }
 .content__sub {
   margin: 2px 0 0;
-  color: var(--muted, #8b949e);
+  color: var(--muted);
   font-size: 13px;
 }
 .content__headctl {
@@ -39,22 +39,22 @@
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: var(--muted, #8b949e);
+  color: var(--muted);
 }
 
 .content__error {
   padding: 8px 12px;
   border-radius: 6px;
-  background: rgba(248, 81, 73, 0.12);
-  border: 1px solid rgba(248, 81, 73, 0.5);
-  color: #ffb4ad;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  color: var(--danger);
   font-size: 13px;
 }
 .content__pr {
   padding: 8px 12px;
   border-radius: 6px;
-  background: rgba(63, 185, 80, 0.1);
-  border: 1px solid rgba(63, 185, 80, 0.4);
+  background: var(--ok-soft);
+  border: 1px solid var(--ok);
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -67,19 +67,19 @@
 }
 
 .content__sec {
-  border: 1px solid var(--border, #30363d);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 14px;
-  background: var(--panel, #0d1117);
+  background: var(--panel);
 }
 .content__note {
   margin: 8px 0 0;
-  color: var(--muted, #8b949e);
+  color: var(--muted);
   font-size: 12px;
 }
 .content__warn {
   margin-left: 10px;
-  color: #e3b341;
+  color: var(--warn);
   font-size: 12px;
   font-weight: 600;
 }
@@ -109,23 +109,23 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 1px solid var(--border, #30363d);
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 .switch.is-on {
-  border-color: rgba(63, 185, 80, 0.55);
-  background: rgba(63, 185, 80, 0.06);
+  border-color: var(--ok);
+  background: var(--ok-soft);
 }
 .switch__led {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--muted, #6e7681);
+  background: var(--muted);
   flex: none;
 }
 .switch__led.is-on {
-  background: #3fb950;
-  box-shadow: 0 0 6px rgba(63, 185, 80, 0.8);
+  background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
 }
 .switch__var {
   font-size: 12.5px;
@@ -133,15 +133,15 @@
 .switch__state {
   margin-left: auto;
   font-size: 12px;
-  color: var(--muted, #8b949e);
+  color: var(--muted);
 }
 
 .btn--go {
-  border-color: rgba(63, 185, 80, 0.6);
-  color: #3fb950;
+  border-color: var(--ok);
+  color: var(--ok);
 }
 .btn--go:hover {
-  background: rgba(63, 185, 80, 0.12);
+  background: var(--ok-soft);
 }
 
 /* review-criteria + skills editors */
@@ -151,7 +151,7 @@
 .content__sublabel {
   display: block;
   font-size: 12px;
-  color: var(--muted, #8b949e);
+  color: var(--muted);
   margin-bottom: 6px;
 }
 .editlist {
@@ -169,9 +169,9 @@
 }
 .editlist__row input {
   flex: 1;
-  background: var(--input, #010409);
+  background: var(--input);
   color: inherit;
-  border: 1px solid var(--border, #30363d);
+  border: 1px solid var(--border);
   border-radius: 5px;
   padding: 5px 8px;
   font: inherit;
@@ -193,21 +193,21 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--muted, #8b949e);
+  color: var(--muted);
   padding: 4px 6px;
-  border-bottom: 1px solid var(--border, #30363d);
+  border-bottom: 1px solid var(--border);
 }
 .backlog td {
   padding: 4px 6px;
-  border-bottom: 1px solid var(--border, #21262d);
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
 .backlog input,
 .backlog select {
   width: 100%;
-  background: var(--input, #010409);
+  background: var(--input);
   color: inherit;
-  border: 1px solid var(--border, #30363d);
+  border: 1px solid var(--border);
   border-radius: 5px;
   padding: 4px 6px;
   font: inherit;

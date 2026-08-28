@@ -31,6 +31,10 @@ The fix that survived is the honest one: placement is rightward only, and when a
 
 One more truth-preserving detail: whenever a line is loop-prone by ADR-009's condition (an event trigger an agent's own write can re-emit, plus a writing sink), the map draws the compiler's bot-actor guard as a node in an exception lane. The YAML carries that guard; now the picture does too.
 
+## Then the chrome caught up: the Evidence Console
+
+Same session, second spec. The app's copper-and-steel control room became archify's midnight console tokens-first: one `:root` block with the seven semantic tones, the old names kept as aliases so seven hundred rules kept resolving, then each rule moved to what it actually meant — copper had been both "primary accent" and "warning", and those are cyan and amber now. Machines on the canvas take `machine--c-<tone>` from the same vocabulary the maps use, so a gate is rose in both places. Light mode is a peer, not an inversion; a computed WCAG audit over seven tabs × two themes caught the one real regression (cyan as small text on white, 3.4:1) before a human would have, and the light signal hues were darkened to AA.
+
 ## What is deliberately not here
 
 Decision D-1 — pre-rendered only — has a consequence the plan under-weighted: the app can only show maps that exist as files, which today means gitorio's own lines and the demo fleet. A "Map" button in the Build tab for an arbitrary blueprint being edited in the browser has nothing to render until either the Cartographer line (regenerate on push, filed as a follow-up) or a fork of the renderers exists. The in-app Map surfaces and the design-token migration are therefore separate companion specs, sequenced after this one, rather than half-built here.
