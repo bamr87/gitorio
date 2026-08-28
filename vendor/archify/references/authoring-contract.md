@@ -14,31 +14,82 @@ Do not invent fields. Use the nearest matching example for structure, then autho
 
 ## Legend contract
 
-Omit `meta.legend` for the truthful default: `auto` lists only semantic kinds present in typed IR. Use `mode: "all"` for a renderer reference or `mode: "hidden"` to remove the full legend. Under `entries`, only keys listed by the selected mode schema are valid; each key accepts `label`, `visible`, or both. `visible: true` may show an unused supported convention, while `visible: false` hides it. `hidden` cannot be overridden.
+Omit `meta.legend` for the truthful default: `auto` lists only semantic kinds
+present in typed IR. Use `mode: "all"` for a renderer reference or
+`mode: "hidden"` to remove the full legend. Under `entries`, only keys listed
+by the selected mode schema are valid; each key accepts `label`, `visible`, or
+both. `visible: true` may show an unused supported convention, while
+`visible: false` hides it. `hidden` cannot be overridden.
 
-A label override changes reader wording only. Never infer a kind from prose or use the legend to compensate for missing nodes, states, messages, or flows. Long labels are measured and wrap into deterministic rows. Architecture's implicit automatic viewBox grows from that same measured footprint. For backwards compatibility, a legacy document with no `meta.legend` may omit an implicit auto legend that cannot fit its explicit viewBox; this never changes its typed topology. Adding `meta.legend` makes the presentation intentional and strict: if its resolved labels cannot fit the authored viewBox, shorten or hide them, or widen the viewBox using the emitted diagnostic.
+A label override changes reader wording only. Never infer a kind from prose or
+use the legend to compensate for missing nodes, states, messages, or flows.
+Long labels are measured and wrap into deterministic rows. Architecture's
+implicit automatic viewBox grows from that same measured footprint. For
+backwards compatibility, a legacy document with no `meta.legend` may omit an
+implicit auto legend that cannot fit its explicit viewBox; this never changes
+its typed topology. Adding `meta.legend` makes the presentation intentional and
+strict: if its resolved labels cannot fit the authored viewBox, shorten or hide
+them, or widen the viewBox using the emitted diagnostic.
 
 ## Language consistency
 
-Choose one primary authored language. An explicit user choice wins; otherwise use the language of the request, or the conversation's dominant language when the request itself is language-neutral. Separately choose the Viewer locale. For supported languages, always write the matching `meta.locale`: `"en"` for English or `"zh-CN"` for Simplified Chinese. The renderer consumes the authored locale without inferring language from diagram strings. Documents that omit it remain valid and default to English.
+Choose one primary authored language. An explicit user choice wins; otherwise
+use the language of the request, or the conversation's dominant language when
+the request itself is language-neutral. Separately choose the Viewer locale.
+For supported languages, always write the matching `meta.locale`: `"en"` for
+English or `"zh-CN"` for Simplified Chinese. The renderer consumes the authored
+locale without inferring language from diagram strings. Documents that omit it
+remain valid and default to English.
 
-`meta.locale` controls only renderer-owned reader surfaces: `<html lang>`, the document-title suffix, default SVG description and focus labels, default legend labels, and fixed Viewer controls, statuses, accessibility names, and errors. It never translates authored content. Apply the primary language separately to titles, subtitles, node and relationship copy, boundaries, lanes, groups, guided views, legend label overrides, and cards. A bilingual diagram still chooses one primary locale for the Viewer; follow an explicit primary-language request, then prompt order or conversation dominance.
+`meta.locale` controls only renderer-owned reader surfaces: `<html lang>`, the
+document-title suffix, default SVG description and focus labels, default legend
+labels, and fixed Viewer controls, statuses, accessibility names, and errors.
+It never translates authored content. Apply the primary language separately to
+titles, subtitles, node and relationship copy, boundaries, lanes, groups,
+guided views, legend label overrides, and cards. A bilingual diagram still
+chooses one primary locale for the Viewer; follow an explicit primary-language
+request, then prompt order or conversation dominance.
 
-For a requested language outside `en` and `zh-CN`, do not write an unsupported locale. Keep every reader-facing authored string in the requested language, omit `meta.locale` so the renderer safely uses English, and explicitly tell the user that fixed Viewer UI and `<html lang>` remain English and the artifact is not fully localized. The fallback applies only to renderer-owned surfaces; it never permits authored copy to fall back to English. Do not silently substitute `zh-CN` for another language or Chinese locale.
+For a requested language outside `en` and `zh-CN`, do not write an unsupported
+locale. Keep every reader-facing authored string in the requested language,
+omit `meta.locale` so the renderer safely uses English, and explicitly tell the
+user that fixed Viewer UI and `<html lang>` remain English and the artifact is
+not fully localized. The fallback applies only to renderer-owned surfaces; it
+never permits authored copy to fall back to English. Do not silently substitute
+`zh-CN` for another language or Chinese locale.
 
-Keep exact product names, code identifiers, commands, protocols, API paths, and environment names intact. Those terms may remain English inside localized copy, but surrounding explanatory prose must still use the selected language. Renderer-owned default legend labels follow `meta.locale`; author a `meta.legend.entries.*.label` override only when the diagram needs different domain wording, and keep that authored override in the primary language.
+Keep exact product names, code identifiers, commands, protocols, API paths, and
+environment names intact. Those terms may remain English inside localized copy,
+but surrounding explanatory prose must still use the selected language.
+Renderer-owned default legend labels follow `meta.locale`; author a
+`meta.legend.entries.*.label` override only when the diagram needs different
+domain wording, and keep that authored override in the primary language.
 
 ## Visual preset default
 
-Omit `meta.visual_preset` by default. The renderer then opens the diagram in `classic` for both light and dark color modes. Color mode and visual preset are independent viewer state: switching Light / Dark must preserve the current preset. Author `signal-flow`, `blueprint`, or `editorial` only when the user explicitly requests that visual style.
+Omit `meta.visual_preset` by default. The renderer then opens the diagram in
+`classic` for both light and dark color modes. Color mode and visual preset are
+independent viewer state: switching Light / Dark must preserve the current
+preset. Author `signal-flow`, `blueprint`, or `editorial` only when the user
+explicitly requests that visual style.
 
 ## Engineering profile default
 
-Omit `meta.engineering_profile` for an ordinary system architecture. Region, cluster, and security boundary wording do not by themselves enable an engineering profile. Enable `deployment-ownership` only when the user explicitly asks for a production deployment topology, ownership handoff, or fail-closed deployment review and the source facts are known. Once enabled, do not remove the engineering profile merely to pass validation; repair the authored facts or report the diagnostics truthfully.
+Omit `meta.engineering_profile` for an ordinary system architecture. Region,
+cluster, and security boundary wording do not by themselves enable an
+engineering profile. Enable `deployment-ownership` only when the user
+explicitly asks for a production deployment topology, ownership handoff, or
+fail-closed deployment review and the source facts are known. Once enabled,
+do not remove the engineering profile merely to pass validation; repair the
+authored facts or report the diagnostics truthfully.
 
 ## Title hierarchy
 
-Use one concise title and let the diagram carry the explanation. Omit `meta.subtitle` by default, and never use it to restate the title, nodes, edges, or cards. Include one short supporting line only when the user explicitly asks for a subtitle; an omitted or blank subtitle must not leave an empty visual row in the generated viewer.
+Use one concise title and let the diagram carry the explanation. Omit
+`meta.subtitle` by default, and never use it to restate the title, nodes, edges,
+or cards. Include one short supporting line only when the user explicitly asks
+for a subtitle; an omitted or blank subtitle must not leave an empty visual row
+in the generated viewer.
 
 ## Executable geometry rules
 
@@ -62,7 +113,14 @@ label mask width ≈ 6.5px × ASCII units + 13px
 CJK characters count as two units
 ```
 
-Relationship labels are semantic data. If the gap is too small, move the label, adjust the route or spacing, then shorten the wording while preserving meaning. Only delete a label when both endpoints fully imply the relationship and it contains no protocol, action, direction, synchronous/asynchronous behavior, or cross-boundary mechanism. Explain why a deleted label is redundant. Never delete a meaningful label merely to pass `showcase`. Apply a diagnosed `labelAt`, `labelDx`/`labelDy`, or `labelSegment` before guessing several geometry controls at once.
+Relationship labels are semantic data. If the gap is too small, move the label,
+adjust the route or spacing, then shorten the wording while preserving meaning.
+Only delete a label when both endpoints fully imply the relationship and it
+contains no protocol, action, direction, synchronous/asynchronous behavior, or
+cross-boundary mechanism. Explain why a deleted label is redundant. Never
+delete a meaningful label merely to pass `showcase`. Apply a diagnosed
+`labelAt`, `labelDx`/`labelDy`, or `labelSegment` before guessing several
+geometry controls at once.
 
 ### Repair order
 

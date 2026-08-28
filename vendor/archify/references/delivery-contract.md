@@ -14,15 +14,25 @@ The deterministic receipt proves byte identity and automated checks. Never claim
 
 ## Automated visual evidence
 
-After delivery, inspect the exact trusted HTML without rerendering or modifying it:
+After delivery, inspect the exact trusted HTML without rerendering or modifying
+it:
 
 ```bash
 node bin/archify.mjs visual-check <output.html> --json
 ```
 
-The zero-dependency command uses Chrome/Chromium through the DevTools pipe. It measures light-theme containment at 1440×900, 1600×1000, 1920×1080, and 2048×1320, then captures light/dark screenshots at 1440×900 and 2048×1320. It writes four PNG sidecars, one relative-path HTML contact sheet, and one JSON receipt beside the artifact. The receipt binds the source artifact SHA-256 and byte count, records READ plus Still runtime state, and always reports `visualReview: "pending"`; automated evidence cannot claim perceptual review.
+The zero-dependency command uses Chrome/Chromium through the DevTools pipe. It
+measures light-theme containment at 1440×900, 1600×1000, 1920×1080, and
+2048×1320, then captures light/dark screenshots at 1440×900 and 2048×1320. It
+writes four PNG sidecars, one relative-path HTML contact sheet, and one JSON
+receipt beside the artifact. The receipt binds the source artifact SHA-256 and
+byte count, records READ plus Still runtime state, and always reports
+`visualReview: "pending"`; automated evidence cannot claim perceptual review.
 
-Exit 0 means every containment measurement and capture passed. Exit 1 means an overflow or capture failure. Exit 2 means Chrome/Chromium was unavailable and the receipt status is `skipped`. Failed or skipped capture runs remove stale image/contact-sheet sidecars rather than presenting prior evidence as current.
+Exit 0 means every containment measurement and capture passed. Exit 1 means an
+overflow or capture failure. Exit 2 means Chrome/Chromium was unavailable and
+the receipt status is `skipped`. Failed or skipped capture runs remove stale
+image/contact-sheet sidecars rather than presenting prior evidence as current.
 
 ## Optional opening
 

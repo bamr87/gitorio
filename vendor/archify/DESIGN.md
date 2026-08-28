@@ -128,7 +128,9 @@ The palette is a midnight console with seven semantic signals; color identifies 
 
 ## Typography
 
-**Display Font:** JetBrains Mono (with system monospace fallbacks)<br> **Body Font:** JetBrains Mono (with system monospace fallbacks)<br> **Label/Mono Font:** JetBrains Mono
+**Display Font:** JetBrains Mono (with system monospace fallbacks)<br>
+**Body Font:** JetBrains Mono (with system monospace fallbacks)<br>
+**Label/Mono Font:** JetBrains Mono
 
 **Character:** A single mono family makes the artifact feel authored by an engineering instrument. Hierarchy comes from weight, scale, spacing, and case rather than a decorative display face.
 
@@ -204,7 +206,12 @@ An evidence-backed node receives one viewer-only `SRC n` capsule in its upper-ri
 
 ### Brand Mark
 
-An authored `brand` adds one compact identity badge to the upper-right of the node. Built-in vectors and explicitly captured, digest-pinned site icons sit on a neutral plate; their color stays inside that plate and never recolors the semantic node, edge, legend, focus, or evidence vocabulary. The semantic sigil remains visible. A Verified Source Beacon shifts left when both facts are present. Brand marks are canonical authored SVG content and therefore survive visual export.
+An authored `brand` adds one compact identity badge to the upper-right of the
+node. Built-in vectors and explicitly captured, digest-pinned site icons sit on a neutral plate;
+their color stays inside that plate and never recolors the semantic node, edge,
+legend, focus, or evidence vocabulary. The semantic sigil remains visible. A
+Verified Source Beacon shifts left when both facts are present. Brand marks are
+canonical authored SVG content and therefore survive visual export.
 
 ### Authored Reachability
 

@@ -1,6 +1,8 @@
 # Brand marks
 
-Use a brand mark only when a real product, provider, model family, channel, or service identity helps the reader. Semantic `type` still explains what the node does; `brand` explains whose product it is.
+Use a brand mark only when a real product, provider, model family, channel, or
+service identity helps the reader. Semantic `type` still explains what the node
+does; `brand` explains whose product it is.
 
 ## Agent decision path
 
@@ -45,8 +47,19 @@ Use a brand mark only when a real product, provider, model family, channel, or s
 4. If there is no match and no user-provided URL, omit `brand`. Do not invent a
    URL or silently assign a visually similar company.
 
-Known-brand URLs resolve to the bundled vector instead of using the network. Unknown URL capture accepts only bounded raster image formats, blocks credentials, nonstandard public ports, and private or link-local destinations, uses bounded concurrency and one total deadline, and returns the captured content digest. Later render and validate operations require that exact digest; blocked, unavailable, changed, oversized, or unsafe content fails closed instead of silently changing the artifact.
+Known-brand URLs resolve to the bundled vector instead of using the network.
+Unknown URL capture accepts only bounded raster image formats, blocks
+credentials, nonstandard public ports, and private or link-local destinations,
+uses bounded concurrency and one total deadline, and returns the captured
+content digest. Later render and validate operations require that exact digest;
+blocked, unavailable, changed, oversized, or unsafe content fails closed instead
+of silently changing the artifact.
 
-The final artifact never fetches a brand asset when opened. Preset vectors and digest-verified captured site icons remain embedded in SVG, PNG, WebP, JPEG, Share Card, and WebM exports.
+The final artifact never fetches a brand asset when opened. Preset vectors and
+digest-verified captured site icons remain embedded in SVG, PNG, WebP, JPEG,
+Share Card, and WebM exports.
 
-Use `node bin/archify.mjs brands --json` to inspect all canonical IDs, aliases, categories, domains, and provenance. Current categories cover AI, cloud, engineering, data, collaboration, business systems, channels, languages, and frameworks.
+Use `node bin/archify.mjs brands --json` to inspect all canonical IDs, aliases,
+categories, domains, and provenance. Current categories cover AI, cloud,
+engineering, data, collaboration, business systems, channels, languages, and
+frameworks.

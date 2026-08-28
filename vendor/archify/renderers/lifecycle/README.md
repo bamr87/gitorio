@@ -1,14 +1,17 @@
 # Lifecycle Renderer
 
-Render `diagram_type: "lifecycle"` JSON files into the standard Archify HTML template.
+Render `diagram_type: "lifecycle"` JSON files into the standard Archify HTML
+template.
 
 ```bash
 node archify/renderers/lifecycle/render-lifecycle.mjs input.lifecycle.json output.html
 ```
 
-The renderer validates input against `archify/schemas/lifecycle.schema.json` with the bundled standalone validator. No dependency installation is required.
+The renderer validates input against `archify/schemas/lifecycle.schema.json`
+with the bundled standalone validator. No dependency installation is required.
 
-If `output.html` is omitted, the renderer uses `meta.output` from the JSON file or falls back to `lifecycle.html` in the current working directory.
+If `output.html` is omitted, the renderer uses `meta.output` from the JSON file
+or falls back to `lifecycle.html` in the current working directory.
 
 ## Input
 
@@ -29,7 +32,12 @@ Lifecycle JSON files must set:
 }
 ```
 
-Lane ids are semantic and reserved: a lane with id `main` is required and maps to the top phase band; `terminal` maps to the bottom outcome band; every other lane id (up to 4 lanes total) shares the single middle event band. The three band headers render from your lane labels — the middle band joins the labels of all event lanes with ` + `. A complete worked example lives at `archify/examples/agent-run.lifecycle.json`.
+Lane ids are semantic and reserved: a lane with id `main` is required and maps
+to the top phase band; `terminal` maps to the bottom outcome band; every other
+lane id (up to 4 lanes total) shares the single middle event band. The three
+band headers render from your lane labels — the middle band joins the labels of
+all event lanes with ` + `. A complete worked example lives at
+`archify/examples/agent-run.lifecycle.json`.
 
 The schema lives at:
 
@@ -39,7 +47,11 @@ archify/schemas/lifecycle.schema.json
 
 ## Legend
 
-The default legend derives kinds from `states[].type`. Supported `meta.legend.entries` keys, in stable order, are `start`, `active`, `waiting`, `decision`, `success`, `failure`, `neutral`, and `external`. Labels and visibility may be overridden through the shared legend contract; only kinds backed by rendered states receive Semantic Legend controls.
+The default legend derives kinds from `states[].type`. Supported
+`meta.legend.entries` keys, in stable order, are `start`, `active`, `waiting`,
+`decision`, `success`, `failure`, `neutral`, and `external`. Labels and
+visibility may be overridden through the shared legend contract; only kinds
+backed by rendered states receive Semantic Legend controls.
 
 ## Layout budget
 
@@ -57,7 +69,12 @@ The default legend derives kinds from `states[].type`. Supported `meta.legend.en
 | Transition length | ≥32px between endpoints |
 | Legend row | final baseline y = height − 36; extra measured rows wrap upward |
 
-The primary lifecycle rail runs along the phase band and extends to the furthest occupied phase column. Route presets for transitions: `straight`, `drop` (bend at `channelY`, defaulting to the vertical midpoint), `bottom-channel`, `top-channel`, `right-channel`, `left-channel`, explicit `via` points, or the default `auto`. Multi-segment transitions get rounded corners; tune them with `cornerRadius` (default 10, `0` for sharp bends).
+The primary lifecycle rail runs along the phase band and extends to the
+furthest occupied phase column. Route presets for transitions: `straight`,
+`drop` (bend at `channelY`, defaulting to the vertical midpoint),
+`bottom-channel`, `top-channel`, `right-channel`, `left-channel`, explicit
+`via` points, or the default `auto`. Multi-segment transitions get rounded
+corners; tune them with `cornerRadius` (default 10, `0` for sharp bends).
 
 ## Design Rules
 
@@ -72,6 +89,22 @@ The primary lifecycle rail runs along the phase band and extends to the furthest
 - Use `success` for completion, `failure` for failure/terminal exits,
   `waiting` for pauses, and `decision` for quality gates.
 
-Schema violations exit non-zero with path-prefixed messages annotated with the element's id or label. The renderer additionally fails when it can detect layout problems, including a missing `main` lane, duplicate state IDs, unknown lanes, unknown transition endpoints, states outside the lifecycle area, overlapping states (including across lanes), labels colliding with states or other labels, labels wider than their state, unreadably short transitions, or transitions crossing unrelated states (2px Clean Flow clearance). Lifecycle bands remain intentional pass-through containers. Text width is estimated CJK-aware: fullwidth glyphs count as two units.
+Schema violations exit non-zero with path-prefixed messages annotated with the
+element's id or label. The renderer additionally fails when it can detect
+layout problems, including a missing `main` lane, duplicate state IDs, unknown
+lanes, unknown transition endpoints, states outside the lifecycle area,
+overlapping states (including across lanes), labels colliding with states or
+other labels, labels wider than their state, unreadably short transitions, or
+transitions crossing unrelated states (2px Clean Flow clearance). Lifecycle
+bands remain intentional pass-through containers.
+Text width is estimated CJK-aware: fullwidth glyphs count as two units.
 
-Set `meta.quality_profile` to `showcase` for polished delivery. Unrelated proper X crossings then fail with `composition/proper-crossing`; default `standard` keeps them as artifact-receipt warnings. The final artifact check samples rounded `Q` corners. Collinear corridors remain outside the proper-X rule, but a separate gate warns in `standard` and fails in `showcase` when unrelated transitions overlap for at least 8px. Shared semantic endpoints, point touches, and shorter overlaps remain valid. Showcase also rejects any route segment below 8px and any interior turn segment below 16px; ordinary 8–15px endpoint stubs remain valid.
+Set `meta.quality_profile` to `showcase` for polished delivery. Unrelated proper
+X crossings then fail with `composition/proper-crossing`; default `standard`
+keeps them as artifact-receipt warnings. The final artifact check samples
+rounded `Q` corners. Collinear corridors remain outside the proper-X rule, but
+a separate gate warns in `standard` and fails in `showcase` when unrelated
+transitions overlap for at least 8px. Shared semantic endpoints, point touches,
+and shorter overlaps remain valid. Showcase also rejects any route segment
+below 8px and any interior turn segment below 16px; ordinary 8–15px endpoint
+stubs remain valid.
