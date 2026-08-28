@@ -40,18 +40,18 @@ export interface CompileOptions {
 /**
  * SHA-pinned actions mode (ADR-026): the pin table for every `uses:` ref this
  * compiler can emit. The compiler is pure (golden rule #3), so pins are a
- * curated static table, not an API lookup. SHAs verified against the upstream
+ * curated static table, not an API lookup. SHAs verified against the upstream (checkout@v7 = v7.0.1 re-verified 2026-08-28)
  * tag refs on 2026-08-18 (golden rule #4) — re-verify with:
  *   gh api repos/<owner>/<repo>/git/ref/tags/<tag>   (deref annotated tags via /git/tags/<sha>)
  * The pinned-actions invariant test fails if an emitted ref is missing here.
  */
 export const PINNED_ACTIONS: Record<string, string> = {
-  'actions/checkout@v4': '11d5960a326750d5838078e36cf38b85af677262',
+  'actions/checkout@v7': '3d3c42e5aac5ba805825da76410c181273ba90b1',
   'dependabot/fetch-metadata@v2': '21025c705c08248db411dc16f3619e6b5f9ea21a',
   'anthropics/claude-code-action@v1': '459ad358ae43fea66bfefd0a1f8d840b4b9791fb',
   // The perfection loop's three (ADR-031). Resolved upstream with
   // `git ls-remote https://github.com/<repo> refs/tags/<tag>` — the same method that
-  // reproduces the actions/checkout@v4 pin above exactly.
+  // reproduces the actions/checkout@v7 pin above exactly.
   'actions/upload-artifact@v4': 'ea165f8d65b6e75b540449e92b4886f43607fa02',
   'actions/download-artifact@v4': 'd3f86a106a0bac45b974a628896c90dbdf5c8093',
   'peter-evans/create-pull-request@v7': '22a9089034f40e5a961c8808d113e2c98fb63676',
@@ -759,7 +759,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           'if [ "$COUNT" -ge "$LIMIT" ]; then echo "rate limit ($LIMIT/day) reached — stopping"; exit 1; fi',
       });
     }
-    if (agent || evidence || ledger) steps.push({ uses: pinRef('actions/checkout@v4', pinActions) });
+    if (agent || evidence || ledger) steps.push({ uses: pinRef('actions/checkout@v7', pinActions) });
     if (evidence) {
       // BEFORE the agent, deliberately. Two reasons, both load-bearing:
       // (1) the agent must not be able to manufacture the evidence it is judged on, and
@@ -1117,7 +1117,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
       // PLAN — deterministic. The ledger, not a model, chooses the work. Budget caps
       // clamp throughput to what one human can actually review; without them an
       // autonomous loop out-runs its reviewer and the queue becomes the bottleneck.
-      const planSteps: Record<string, unknown>[] = [{ uses: pinRef('actions/checkout@v4', pinActions) }];
+      const planSteps: Record<string, unknown>[] = [{ uses: pinRef('actions/checkout@v7', pinActions) }];
       if (budget) {
         const maxOpen = Number(budget.config.maxOpenPrs) > 0 ? Math.floor(Number(budget.config.maxOpenPrs)) : 6;
         planSteps.push({
@@ -1194,7 +1194,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         if: "!cancelled() && needs.plan.outputs.count != '0'",
         permissions: { contents: 'write', 'pull-requests': 'write' },
         steps: [
-          { uses: pinRef('actions/checkout@v4', pinActions) },
+          { uses: pinRef('actions/checkout@v7', pinActions) },
           ...(evidence
             ? [
                 {

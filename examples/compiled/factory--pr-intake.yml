@@ -6,7 +6,7 @@ on:
     types:
       - opened
 concurrency:
-  group: factory--pr-intake-${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.run_id }}
+  group: factory--pr-intake-${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.client_payload.number || github.run_id }}
   cancel-in-progress: false
 jobs:
   line:
@@ -21,12 +21,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number }}
+          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.client_payload.number }}
         run: gh issue edit "$NUMBER" --add-label "needs-review"
       - name: 📝 sink.comment (s2)
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number }}
+          NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.event.client_payload.number }}
           BODY: Thanks for the pull request — a maintainer will review it shortly.
         run: gh issue comment "$NUMBER" --body "$BODY"
