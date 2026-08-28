@@ -1016,14 +1016,14 @@ describe('SHA-pinned actions mode (ADR-026): meta.pinActions pins every emitted 
   it('pinned: agent + checkout refs become verified SHAs with the tag as a trailing comment', () => {
     const { yaml } = compile(line(true)).workflows[0];
     expect(yaml).toContain('anthropics/claude-code-action@459ad358ae43fea66bfefd0a1f8d840b4b9791fb # v1');
-    expect(yaml).toContain('actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4');
+    expect(yaml).toContain('actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7');
     expect(yaml).not.toContain('claude-code-action@v1');
   });
 
   it('default (unset): floating tags, byte-identical to pre-feature output', () => {
     const { yaml } = compile(line()).workflows[0];
     expect(yaml).toContain('uses: anthropics/claude-code-action@v1');
-    expect(yaml).toContain('uses: actions/checkout@v4');
+    expect(yaml).toContain('uses: actions/checkout@v7');
     expect(yaml).not.toContain('459ad358');
   });
 

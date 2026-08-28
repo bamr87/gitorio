@@ -261,7 +261,7 @@ closed. Never switch to `pull_request_target` + checkout of PR head; if fork sup
 5. **Workflow write access is code execution.** The PAT/App permission that lets the
 UI deploy workflows is the crown jewel; device-flow tokens + short PAT expiries; deploy-as-PR mode for shared repos.
 6. **Action supply chain.** Only `anthropics/claude-code-action@v1` and
-`actions/checkout@v4` in generated output; version bumps are deliberate compiler changes, reviewed against upstream release notes (pin to SHAs in hardened mode — backlog).
+`actions/checkout@v7` in generated output; version bumps are deliberate compiler changes, reviewed against upstream release notes (pin to SHAs in hardened mode — backlog).
 
 ## 9. Future
 
