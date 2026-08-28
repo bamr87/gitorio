@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gwtp/nexus.schema.json",
+  "title": "GWTP Nexus Artifact",
+  "description": "One tree state, perceived: the serialized code knowledge graph (spec 05). Derived, disposable, identity-free — no author, no committer, no timestamp, no meter state has a field here, by design (spec 05 §1).",
+  "type": "object",
+  "required": ["nexus", "extractor", "stats", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "nexus": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$", "description": "Content hash of the canonical body minus this field — the artifact's address, mirroring the ledger event discipline (spec 02 §1, spec 05 §3)" },
+    "extractor": {
+      "type": "object",
+      "required": ["name", "version", "languages"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "description": "Extraction identity, versioned like a judge's prompt hash (spec 05 §1.5): behavior change without a bump is a defect" },
+        "languages": { "type": "array", "items": { "type": "string" }, "description": "Languages this extractor parses; other files degrade to structure-only modules" }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["files", "parsed", "definitions", "imports", "calls"],
+      "additionalProperties": false,
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "parsed": { "type": "integer", "minimum": 0 },
+        "definitions": { "type": "integer", "minimum": 0 },
+        "imports": {
+          "type": "object",
+          "required": ["internal", "external", "unresolved"],
+          "additionalProperties": false,
+          "properties": {
+            "internal": { "type": "integer", "minimum": 0 },
+            "external": { "type": "integer", "minimum": 0 },
+            "unresolved": { "type": "integer", "minimum": 0, "description": "Relative specifiers that resolved to nothing in the snapshot — counted, never guessed (spec 05 §2)" }
+          }
+        },
+        "calls": {
+          "type": "object",
+          "required": ["resolved", "sites"],
+          "additionalProperties": false,
+          "properties": {
+            "resolved": { "type": "integer", "minimum": 0 },
+            "sites": { "type": "integer", "minimum": 0, "description": "Candidate call sites scanned; resolved <= sites states the recall honestly" }
+          }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^(dir|module|def|ext):", "description": "dir:<path> | module:<path> | def:<path>#<name>@<start-line> | ext:<specifier> (spec 05 §2)" },
+          "kind": { "enum": ["directory", "module", "definition", "external"] },
+          "path": { "type": "string" },
+          "language": { "type": ["string", "null"], "description": "null = no extractor parses this module; it still serves ring `file` (spec 05 §3 P1)" },
+          "parsed": { "type": "boolean" },
+          "lines": { "type": "integer", "minimum": 0 },
+          "name": { "type": "string" },
+          "form": { "enum": ["function", "class", "method", "interface", "type-alias", "enum", "const"] },
+          "span": {
+            "type": "object",
+            "required": ["start", "end"],
+            "additionalProperties": false,
+            "properties": {
+              "start": { "type": "integer", "minimum": 1 },
+              "end": { "type": "integer", "minimum": 1 }
+            },
+            "description": "1-based inclusive line span — every definition is citable as path:start-end (INV-004 currency)"
+          },
+          "exported": { "type": "boolean" },
+          "specifier": { "type": "string", "description": "external nodes only: the import specifier as written" }
+        },
+        "allOf": [
+          { "if": { "properties": { "kind": { "const": "directory" } } }, "then": { "required": ["path"] } },
+          { "if": { "properties": { "kind": { "const": "module" } } }, "then": { "required": ["path", "language", "parsed", "lines"] } },
+          { "if": { "properties": { "kind": { "const": "definition" } } }, "then": { "required": ["path", "name", "form", "span", "exported"] } },
+          { "if": { "properties": { "kind": { "const": "external" } } }, "then": { "required": ["specifier"] } }
+        ]
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "from", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["contains", "defines", "imports", "calls", "extends", "implements"] },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "specifier": { "type": "string", "description": "imports only: the specifier as written" },
+          "form": { "enum": ["value", "type-only", "dynamic", "re-export"], "description": "imports only: the ImportForm ladder of src/judge/deterministic/imports.ts, shared vocabulary on purpose (spec 05 §2)" },
+          "at": { "type": "integer", "minimum": 1, "description": "1-based line of the import / call site / heritage clause" },
+          "resolution": { "enum": ["same-file", "imported"], "description": "calls only: how the target was proved; unprovable calls are counted in stats, never emitted (spec 05 §3 P4)" }
+        },
+        "allOf": [
+          { "if": { "properties": { "kind": { "const": "imports" } } }, "then": { "required": ["specifier", "form", "at"] } },
+          { "if": { "properties": { "kind": { "const": "calls" } } }, "then": { "required": ["resolution", "at"] } }
+        ]
+      }
+    }
+  }
+}

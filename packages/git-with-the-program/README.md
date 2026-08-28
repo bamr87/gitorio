@@ -37,7 +37,7 @@ The program is a generative model of the repo; commits are observations; drift i
    cold start: DISTILLATION WALK  (history ▶ candidate program ▶ ratification PR ▶ ledger backfill)
 ```
 
-Five components, four specs, one loop:
+Six components, five specs, one loop:
 
 | Component | Spec | One-liner |
 |---|---|---|
@@ -45,6 +45,7 @@ Five components, four specs, one loop:
 | Ledger | [docs/spec/02-ledger.md](docs/spec/02-ledger.md) | Event-sourced, content-addressed, conflict-free; leaky-integrator accumulators; dispersion decides firing direction |
 | Judge | [docs/spec/03-judge.md](docs/spec/03-judge.md) | Bench of narrow magistrates; author-blind and accumulator-blind; anchored ordinal severity; precedents as bar exam |
 | Distillation | [docs/spec/04-distillation.md](docs/spec/04-distillation.md) | Two-pass bootstrap: deterministic fact miner + LLM law-namer; epoch segmentation by change-point detection; ratification ritual |
+| Nexus | [docs/spec/05-nexus.md](docs/spec/05-nexus.md) | The perception layer: a derived, identity-free code knowledge graph (a clean-room [GitNexus](https://github.com/abhigyanpatwari/GitNexus) adaptation, ADR-0007) powering context rings, seams and negative-space proofs |
 | Vision | [docs/vision.md](docs/vision.md) | Why bidirectionality is the point, and the predictive-processing frame behind the design |
 
 ## Repo layout
@@ -52,9 +53,9 @@ Five components, four specs, one loop:
 ```
 .program/          This repo's OWN program (dogfood, status: inferred — ratify it first)
 docs/vision.md     Conceptual foundation
-docs/spec/         The four component specifications
+docs/spec/         The five component specifications
 docs/adr/          Architecture decision records (the irreversible choices)
-schemas/           JSON Schemas: assertion, event, verdict, precedent
+schemas/           JSON Schemas: assertion, event, verdict, precedent, nexus
 prompts/           Judge prompt templates (invariant judge, regression judge)
 seeds/             Claude Code seed-session prompts, SEED-01 → SEED-04
 posts/             it-journey draft posts documenting the build

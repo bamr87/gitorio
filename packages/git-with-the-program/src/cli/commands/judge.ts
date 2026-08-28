@@ -38,12 +38,14 @@ import {
   type AssertionView,
   type ChangeRef,
   type ChangeSource,
+  type ContextRing,
   type ContractError,
   type JudgeRef,
   type Judge,
   type Precedent,
   type RepoPath,
   type Verdict,
+  CONTEXT_RINGS,
   assertionView,
   committerTimeFromEpochMillis,
   decodeInvariantsFile,
@@ -57,6 +59,13 @@ import {
   unwrap,
 } from '../../core/index.js';
 import { assembleEvidence, type AssembleRequest } from '../../evidence/index.js';
+import {
+  buildNexus,
+  collectTreeSnapshot,
+  indexNexus,
+  nexusChangeSource,
+  snapshotMap,
+} from '../../nexus/index.js';
 import {
   IMPORT_BOUNDARY_JUDGE,
   PATH_BOUNDARY_JUDGE,
@@ -214,6 +223,7 @@ const ASSERTION_OPTIONS = {
   diff: { type: 'string' },
   repo: { type: 'string' },
   json: { type: 'boolean' },
+  ring: { type: 'string' },
 } as const;
 
 function assertionUsage(): string {
@@ -232,6 +242,12 @@ function assertionUsage(): string {
     'Options:',
     '  --diff <file|->      the unified diff to judge; `-` reads stdin (required)',
     '  --repo <dir>         repository holding .program/ (default: cwd)',
+    `  --ring <ring>        context ring to assemble at: ${CONTEXT_RINGS.join(' | ')}`,
+    '                       (default: hunk). Wider rings perceive the worktree through the',
+    '                       nexus (spec 05 §5) and grant `-`-free context hunks — spec 03 §3\'s',
+    '                       "function bodies → file → nearest callers", made real. Context is',
+    '                       read from the CURRENT worktree, which must be the tree the diff',
+    '                       lands on (docs/spec/OPEN-QUESTIONS.md Q-67).',
     '  --json               machine-readable output',
     '  -h, --help           show this message',
     '',
@@ -266,6 +282,7 @@ async function runJudgeAssertion(argv: readonly string[]): Promise<number> {
     diff?: string | undefined;
     repo?: string | undefined;
     json?: boolean | undefined;
+    ring?: string | undefined;
   };
   let positionals: string[];
   try {
@@ -305,6 +322,14 @@ async function runJudgeAssertion(argv: readonly string[]): Promise<number> {
     return 2;
   }
 
+  // Usage validation before any input is consumed: a bad --ring must not eat stdin first.
+  const ringRaw = values.ring ?? 'hunk';
+  if (!(CONTEXT_RINGS as readonly string[]).includes(ringRaw)) {
+    errOut(`gwtp judge: --ring must be one of ${CONTEXT_RINGS.join(' | ')}, got \`${ringRaw}\``);
+    return 2;
+  }
+  const ring = ringRaw as ContextRing;
+
   const repo = resolve(values.repo ?? process.cwd());
   const program = loadProgram(repo);
   if (!program.ok) {
@@ -333,14 +358,29 @@ async function runJudgeAssertion(argv: readonly string[]): Promise<number> {
   // identity and accumulator state (compile-time via Blind<T>, runtime via assertBlind) before any
   // judge sees anything (ADR-0003). The ChangeSource returns the parsed hunks; the assembler
   // re-scopes them to the assertion's scope (spec 03 §3).
+  //
+  // At the default `hunk` ring the source is ring-independent, exactly as before. At a wider
+  // ring the nexus supplies the FIRST ChangeSource in the engine that honors the parameter
+  // (spec 05 §5): the worktree is perceived in memory — read-only, nothing cached — and the
+  // granted context arrives as ` `-prefixed hunks a deterministic judge cannot cite an offence
+  // from, while remaining citable evidence (INV-004). Everything still passes through
+  // `sealEvidence`; the widening changes what is OFFERED, never what is allowed.
   const view: AssertionView = assertionView(assertion);
-  const change: ChangeSource = { hunksIntersecting: async () => parsedHunks };
+  const change: ChangeSource =
+    ring === 'hunk'
+      ? { hunksIntersecting: async () => parsedHunks }
+      : (() => {
+          const snapshot = collectTreeSnapshot(repo);
+          const ix = indexNexus(buildNexus(snapshot));
+          return nexusChangeSource(ix, snapshotMap(snapshot), parsedHunks);
+        })();
   const req: AssembleRequest = {
     assertion: view,
     charter: program.value.charter,
     change,
     ref: PLACEHOLDER_REF,
     precedent: null,
+    ring,
   };
   const sealedResult = await assembleEvidence(req, sealEvidence);
   if (!sealedResult.ok) {
@@ -587,7 +627,7 @@ function usage(): string {
     'gwtp judge — run the judgment ladder against a change; bar-exam a candidate judge (spec 03)',
     '',
     'Usage:',
-    '  gwtp judge <assertion-id> --diff <file|-> [--repo <dir>] [--json]',
+    '  gwtp judge <assertion-id> --diff <file|-> [--repo <dir>] [--ring <ring>] [--json]',
     '  gwtp judge bar-exam [--repo <dir>] [--json]',
     '',
     'Forms:',

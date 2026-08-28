@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Implements: seeds/SEED-01-scaffold.md deliverable 2 (the `gwtp` command surface) and
-// CLAUDE.md's stated CLI contract: `gwtp validate` (SEED-01) and
-// `gwtp ledger append|fold|replay|status` (SEED-02).
+// CLAUDE.md's stated CLI contract: `gwtp validate` (SEED-01),
+// `gwtp ledger append|fold|replay|status` (SEED-02), and `gwtp nexus …` (ADR-0007, spec 05).
 //
 // Argument parsing is node:util parseArgs — no commander, no yargs (ADR-0006 keeps the
 // dependency list small). Global flags are parsed from the tokens BEFORE the subcommand; the
@@ -35,6 +35,11 @@ const COMMANDS: Readonly<Record<string, CommandSpec>> = {
     summary: 'Run the judgment ladder against a change; bar-exam a candidate judge',
     seed: 'SEED-03',
     load: () => import('./commands/judge.js'),
+  },
+  nexus: {
+    summary: 'build | status | defs | imports | importers | callers | seams | ring — the code knowledge graph',
+    seed: 'ADR-0007',
+    load: () => import('./commands/nexus.js'),
   },
   distill: {
     summary: 'facts | epochs | candidates | ratify | backfill — the cold-start distillation walk',
