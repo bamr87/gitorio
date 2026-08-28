@@ -39,3 +39,26 @@ jobs:
       - run: python3 tools/backlog_lint.py
         env:
           BACKLOG_LINT_BASE: HEAD^1
+
+  # Archify maps (ADR-034, specs/010): the committed maps under app/public/maps must be
+  # exactly what the pure IR compiler + the VENDORED archify renderer produce (golden
+  # rule #2), and every IR must pass archify's showcase gate. No network, no secrets.
+  diagram-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run maps:check
+      - name: showcase-validate every committed IR
+        run: |
+          set -e
+          for f in public/maps/*.workflow.json; do node ../vendor/archify/bin/archify.mjs validate workflow "$f" --quality showcase --json > /dev/null; done
+          for f in public/maps/*.architecture.json; do node ../vendor/archify/bin/archify.mjs validate architecture "$f" --quality showcase --json > /dev/null; done

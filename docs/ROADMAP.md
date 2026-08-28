@@ -133,6 +133,13 @@ Goal: configure an autonomous, configurable, headless content management system 
 - [ ] Work-leasing (git-ref CAS mutex), diff-classifier router, multi-tier job DAG within a line,
       shared knowledge store + brand linter — **parked** supporting machinery (see ADR-017 brief).
 
+## Maps — archify as the renderer (ADR-034)
+
+- [x] Vendor `tt-a1i/archify` at a pinned commit; pure `Blueprint`/`Fleet` → IR compiler (`app/src/archify/`); generated dogfood + demo maps under `app/public/maps/`; CI `diagram-gate`; skill installed — specs/010-archify-maps.
+- [ ] Design-token migration to archify's DESIGN.md ("The Evidence Console"), light theme as a peer — companion spec.
+- [ ] In-app Map surfaces: `DiagramFrame` embeds, Build "Map" drawer, Fleet Observe replacement (retire the read-only React Flow fleet canvas), Docs embeds, demo tour step — companion spec; depends on the Cartographer line for non-dogfood blueprints (BL-20260828-05).
+- [ ] Sequence / lifecycle / dataflow maps (BL-20260828-04); deploy `compare` (BL-20260828-06).
+
 ## Backlog
 
 > **Migrated 2026-08-16 (ADR-022):** the live backlog moved to `BACKLOG.md` at the repo root. Every still-open item below — including the Fleet-track FF-list and the Phase 6/7/8 parked boxes — was carried over as a `BL-20260816-NN` entry (undo/redo excluded: shipped in ADR-016). This section is frozen history, kept append-only for the audit trail; add new items to `BACKLOG.md`, never here.

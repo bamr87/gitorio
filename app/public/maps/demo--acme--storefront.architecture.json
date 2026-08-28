@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "acme/storefront automation",
+    "subtitle": "5 workflows mapped · 0 belts",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "repo-acme-storefront",
+        "label": "acme/storefront",
+        "focus": [
+          "acme-storefront--factory--content-factory",
+          "acme-storefront--factory--perfection-loop",
+          "acme-storefront--factory--issue-triage",
+          "acme-storefront--nightly",
+          "acme-storefront--ci"
+        ]
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "AI workflow"
+        },
+        "frontend": {
+          "label": "Writes (PR/issue/comment)"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Deploys"
+        },
+        "security": {
+          "label": "Gated only"
+        },
+        "external": {
+          "label": "Other / external"
+        }
+      }
+    },
+    "viewBox": [
+      800,
+      400
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 4,
+    "cellW": 150,
+    "cellH": 64,
+    "gapX": 40,
+    "gapY": 72,
+    "origin": [
+      40,
+      48
+    ]
+  },
+  "components": [
+    {
+      "id": "acme-storefront--factory--content-factory",
+      "type": "backend",
+      "label": "Factory: content-…",
+      "sublabel": "workflow_dispatch, sche…",
+      "row": 0,
+      "col": 0
+    },
+    {
+      "id": "acme-storefront--factory--perfection-loop",
+      "type": "backend",
+      "label": "Factory: perfecti…",
+      "sublabel": "workflow_dispatch, sche…",
+      "row": 0,
+      "col": 1
+    },
+    {
+      "id": "acme-storefront--factory--issue-triage",
+      "type": "backend",
+      "label": "Factory: issue-tr…",
+      "sublabel": "issues",
+      "row": 0,
+      "col": 2
+    },
+    {
+      "id": "acme-storefront--nightly",
+      "type": "backend",
+      "label": "Nightly (ungated)",
+      "sublabel": "schedule, workflow_disp…",
+      "row": 0,
+      "col": 3
+    },
+    {
+      "id": "acme-storefront--ci",
+      "type": "external",
+      "label": "CI",
+      "sublabel": "pull_request, push",
+      "row": 1,
+      "col": 0
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "acme/storefront",
+      "wraps": [
+        "acme-storefront--factory--content-factory",
+        "acme-storefront--factory--perfection-loop",
+        "acme-storefront--factory--issue-triage",
+        "acme-storefront--nightly",
+        "acme-storefront--ci"
+      ]
+    }
+  ],
+  "connections": []
+}

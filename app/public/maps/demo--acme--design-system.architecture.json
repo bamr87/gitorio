@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "acme/design-system automation",
+    "subtitle": "2 workflows mapped · 0 belts",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "repo-acme-design-system",
+        "label": "acme/design-system",
+        "focus": [
+          "acme-design-system--factory--docs-gardener",
+          "acme-design-system--ci"
+        ]
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "AI workflow"
+        },
+        "frontend": {
+          "label": "Writes (PR/issue/comment)"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Deploys"
+        },
+        "security": {
+          "label": "Gated only"
+        },
+        "external": {
+          "label": "Other / external"
+        }
+      }
+    },
+    "viewBox": [
+      800,
+      400
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 4,
+    "cellW": 150,
+    "cellH": 64,
+    "gapX": 40,
+    "gapY": 72,
+    "origin": [
+      40,
+      48
+    ]
+  },
+  "components": [
+    {
+      "id": "acme-design-system--factory--docs-gardener",
+      "type": "backend",
+      "label": "Factory: Docs Gar…",
+      "sublabel": "workflow_dispatch, sche…",
+      "row": 0,
+      "col": 0
+    },
+    {
+      "id": "acme-design-system--ci",
+      "type": "external",
+      "label": "CI",
+      "sublabel": "pull_request, push",
+      "row": 0,
+      "col": 1
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "acme/design-system",
+      "wraps": [
+        "acme-design-system--factory--docs-gardener",
+        "acme-design-system--ci"
+      ]
+    }
+  ],
+  "connections": []
+}

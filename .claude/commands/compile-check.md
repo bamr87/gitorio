@@ -1,6 +1,6 @@
 ---
 description: Compiler health check — invariant tests, blueprint schema validation, example drift, claude-code-action input freshness
-allowed-tools: Read, Write, Bash(npm test:*), Bash(node:*), Bash(npx:*), Bash(diff:*), WebFetch
+allowed-tools: Read, Write, Bash(npm test:*), Bash(npm run maps:*), Bash(node:*), Bash(npx:*), Bash(diff:*), WebFetch
 ---
 
 Run the compiler health check:
@@ -13,4 +13,6 @@ Run the compiler health check:
 4. Fetch https://raw.githubusercontent.com/anthropics/claude-code-action/main/action.yml
 and confirm every input we emit still exists and no input we rely on is deprecated. Report findings.
 
-Output: a short PASS/FAIL table for the four checks plus recommended fixes. Fix nothing unless asked.
+5. Maps (ADR-034): `cd app && npm run maps:check`, then `node ../vendor/archify/bin/archify.mjs validate <workflow|architecture> public/maps/<file>.json --quality showcase --json` for every committed IR — every map must be byte-exact with the compiler's output and pass showcase with zero diagnostics.
+
+Output: a short PASS/FAIL table for the five checks plus recommended fixes. Fix nothing unless asked.

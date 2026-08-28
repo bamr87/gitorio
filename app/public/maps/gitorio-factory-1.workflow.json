@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Gitorio Factory 1",
+    "subtitle": "Gitorio Factory · factory--gitorio-factory-1.yml · .factory/blueprint.json",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "animation": "trace",
+    "views": [
+      {
+        "id": "main-path",
+        "label": "Main path",
+        "focus": [
+          "t1",
+          "a1",
+          "s1"
+        ],
+        "note": "Trigger to terminal output — the line as compiled."
+      },
+      {
+        "id": "loop-guard",
+        "label": "Loop guard",
+        "focus": [
+          "t1",
+          "guard-bot-actor",
+          "s1",
+          "s2"
+        ],
+        "note": "Writes this line performs could re-emit its own trigger; the actor guard breaks the loop."
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": {
+          "label": "Trigger"
+        },
+        "security": {
+          "label": "Gate / guard"
+        },
+        "backend": {
+          "label": "Agent"
+        },
+        "database": {
+          "label": "Ledger / evidence"
+        },
+        "frontend": {
+          "label": "Output"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Cross-repo"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "triggers",
+      "label": "Triggers"
+    },
+    {
+      "id": "agent",
+      "label": "Processing"
+    },
+    {
+      "id": "sinks",
+      "label": "Outputs"
+    },
+    {
+      "id": "guards",
+      "label": "Guards",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "t1",
+    "a1",
+    "s1"
+  ],
+  "nodes": [
+    {
+      "id": "t1",
+      "lane": "triggers",
+      "col": 0,
+      "type": "external",
+      "label": "Issue opened"
+    },
+    {
+      "id": "a1",
+      "lane": "agent",
+      "col": 1,
+      "type": "backend",
+      "label": "Claude agent",
+      "sublabel": "triage"
+    },
+    {
+      "id": "s1",
+      "lane": "sinks",
+      "col": 2,
+      "type": "frontend",
+      "label": "Label"
+    },
+    {
+      "id": "s2",
+      "lane": "sinks",
+      "col": 3,
+      "type": "frontend",
+      "label": "Comment"
+    },
+    {
+      "id": "guard-bot-actor",
+      "lane": "guards",
+      "col": 1,
+      "type": "security",
+      "label": "Bot guard",
+      "sublabel": "sender ≠ Bot"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-e1",
+      "from": "t1",
+      "to": "a1",
+      "role": "main"
+    },
+    {
+      "id": "e-e2",
+      "from": "a1",
+      "to": "s1",
+      "role": "main"
+    },
+    {
+      "id": "e-e3",
+      "from": "a1",
+      "to": "s2",
+      "role": "branch"
+    },
+    {
+      "id": "e-guard-t1",
+      "from": "t1",
+      "to": "guard-bot-actor",
+      "label": "if",
+      "variant": "security",
+      "role": "branch"
+    }
+  ]
+}

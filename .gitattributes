@@ -13,3 +13,7 @@
 # Generated / vendored — collapse in diffs and exclude from language stats.
 app/package-lock.json  linguist-generated=true
 examples/compiled/**   linguist-generated=true
+
+# Vendored archify (ADR-034) + generated maps — collapse in diffs, exclude from stats.
+vendor/archify/**       linguist-vendored=true
+app/public/maps/**      linguist-generated=true

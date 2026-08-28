@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Docs Gardener",
+    "subtitle": "Docs Gardener · factory--docs-gardener.yml · .factory/docs-gardener.blueprint.json",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "animation": "trace",
+    "views": [
+      {
+        "id": "main-path",
+        "label": "Main path",
+        "focus": [
+          "dd",
+          "dg",
+          "drl",
+          "da",
+          "dpr"
+        ],
+        "note": "Trigger to terminal output — the line as compiled."
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": {
+          "label": "Trigger"
+        },
+        "security": {
+          "label": "Gate / guard"
+        },
+        "backend": {
+          "label": "Agent"
+        },
+        "database": {
+          "label": "Ledger / evidence"
+        },
+        "frontend": {
+          "label": "Output"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Cross-repo"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "triggers",
+      "label": "Triggers"
+    },
+    {
+      "id": "policy",
+      "label": "Gates & limits"
+    },
+    {
+      "id": "agent",
+      "label": "Processing"
+    },
+    {
+      "id": "sinks",
+      "label": "Outputs"
+    }
+  ],
+  "mainPath": [
+    "dd",
+    "dg",
+    "drl",
+    "da",
+    "dpr"
+  ],
+  "nodes": [
+    {
+      "id": "dd",
+      "lane": "triggers",
+      "col": 0,
+      "type": "external",
+      "label": "Schedule",
+      "sublabel": "0 8 * * *"
+    },
+    {
+      "id": "dm",
+      "lane": "triggers",
+      "col": 1,
+      "type": "external",
+      "label": "Manual lever"
+    },
+    {
+      "id": "dg",
+      "lane": "policy",
+      "col": 1,
+      "type": "security",
+      "label": "Kill switch",
+      "sublabel": "DOCS_GARDENER_ENA…"
+    },
+    {
+      "id": "drl",
+      "lane": "policy",
+      "col": 3,
+      "type": "security",
+      "label": "Rate limit",
+      "sublabel": "2/day"
+    },
+    {
+      "id": "da",
+      "lane": "agent",
+      "col": 3,
+      "type": "backend",
+      "label": "Claude agent",
+      "sublabel": "docs-gardener"
+    },
+    {
+      "id": "dpr",
+      "lane": "sinks",
+      "col": 4,
+      "type": "frontend",
+      "label": "Open PR"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-e1",
+      "from": "dd",
+      "to": "dg",
+      "role": "main"
+    },
+    {
+      "id": "e-e2",
+      "from": "dm",
+      "to": "dg",
+      "role": "branch"
+    },
+    {
+      "id": "e-e3",
+      "from": "dg",
+      "to": "drl",
+      "role": "main"
+    },
+    {
+      "id": "e-e4",
+      "from": "drl",
+      "to": "da",
+      "role": "main"
+    },
+    {
+      "id": "e-e5",
+      "from": "da",
+      "to": "dpr",
+      "role": "main"
+    }
+  ]
+}

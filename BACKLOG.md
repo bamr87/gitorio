@@ -26,6 +26,12 @@
 
 ## Open
 
+- **BL-20260828-09** — *tech-debt, low* — `toWorkflowIR` lane capacity is four nodes; a line with a gate chain plus ≥3 sinks collapses outputs into "+N more". Consider a two-row lane (32 px nodes with `yOffset`) once archify's showcase rules for stacked nodes are understood. _Surfaced in:_ specs/010-archify-maps.
+- **BL-20260828-08** — *feature, low* — Per-district fleet maps for rosters larger than the 12-component story budget (`toArchitectureIR` currently collapses the tail into one "N more workflows" node per repo). _Surfaced in:_ specs/010-archify-maps.
+- **BL-20260828-07** — *infra, low* — Monthly upstream drift check for the vendored archify pin (`vendor/archify/VENDOR.md`): diff the pinned commit against upstream and file a BL item when the schemas or renderer contracts change. _Surfaced in:_ specs/010-archify-maps.
+- **BL-20260828-06** — *feature, low* — Deploy-time before/after map: run archify `compare` on the fleet architecture IR before and after a deploy plan and attach the HTML to the deploy PR (PR mode only). _Surfaced in:_ specs/010-archify-maps.
+- **BL-20260828-05** — *infra, med* — The Cartographer factory line: `trigger.push` on `.factory/**` → deterministic `npm run maps` step → `sink.open_pr`, default-OFF via `CARTOGRAPHER_ENABLED`, so GitFactory regenerates its own maps instead of relying on a local `npm run maps`. _Surfaced in:_ specs/010-archify-maps.
+- **BL-20260828-04** — *feature, med* — Sequence maps for runs (`toSequenceIR` over jobs + steps), lifecycle maps for the perfection loop's ledger, and dataflow maps for belts — the three archify kinds specs/010 deliberately left out (NG3). _Surfaced in:_ specs/010-archify-maps.
 - **BL-20260822-05** — *feature, low* — The demo cannot reach `listVariables` returning `null` (the ADR-021 false-disarmed fix), so the Schedule board's "unknown" kill-switch state has no demo coverage; a fixture repo with deliberately unreadable variables would exercise it. _Surfaced in:_ specs/009-demo-environment.
 - **BL-20260822-04** — *feature, low* — Turn the demo into the screenshot rig: with the clock pinned, drive the seven tabs from a script and emit README/docs images deterministically — retiring the "every screenshot needs a live token and a scratch repo" cost. _Surfaced in:_ specs/009-demo-environment.
 - **BL-20260822-03** — *test-gap, low* — A shared `GithubClient` conformance suite run against BOTH implementations (the demo client and the transport client via an injected `fetchImpl`): today only a structural type check holds them together, which catches a shape divergence but not a semantic one. _Surfaced in:_ specs/009-demo-environment.
@@ -68,6 +74,7 @@
 
 ## Claimed
 
+- **BL-20260828-03** — *feature, high* — Adopt tt-a1i/archify as GitFactory's visualization layer and design language: vendored pinned renderer, a pure Blueprint/Fleet → archify IR compiler, generated maps served with the app, a CI diagram gate, then the design-token migration and in-app Map surfaces as companion specs (claimed-by:specs/010-archify-maps). _Surfaced in:_ the 2026-08-27 archify adoption plan (ADR-034).
 
 ## Done
 
