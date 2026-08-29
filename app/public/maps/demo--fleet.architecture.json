@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Demo fleet · acme",
+    "subtitle": "9 workflows mapped · 0 belts",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "repo-acme-storefront",
+        "label": "acme/storefront",
+        "focus": [
+          "acme-storefront--factory--content-factory",
+          "acme-storefront--factory--perfection-loop",
+          "acme-storefront--factory--issue-triage",
+          "acme-storefront--more"
+        ]
+      },
+      {
+        "id": "repo-acme-design-system",
+        "label": "acme/design-system",
+        "focus": [
+          "acme-design-system--factory--docs-gardener",
+          "acme-design-system--ci"
+        ]
+      },
+      {
+        "id": "repo-acme-infra",
+        "label": "acme/infra",
+        "focus": [
+          "acme-infra--ci",
+          "acme-infra--deploy",
+          "acme-infra--stale-sweep"
+        ]
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "AI workflow"
+        },
+        "frontend": {
+          "label": "Writes (PR/issue/comment)"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Deploys"
+        },
+        "security": {
+          "label": "Gated only"
+        },
+        "external": {
+          "label": "Other / external"
+        }
+      }
+    },
+    "viewBox": [
+      800,
+      472
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 4,
+    "cellW": 150,
+    "cellH": 64,
+    "gapX": 40,
+    "gapY": 72,
+    "origin": [
+      40,
+      48
+    ]
+  },
+  "components": [
+    {
+      "id": "acme-storefront--factory--content-factory",
+      "type": "backend",
+      "label": "Factory: content-…",
+      "sublabel": "workflow_dispatch, sche…",
+      "row": 0,
+      "col": 0
+    },
+    {
+      "id": "acme-storefront--factory--perfection-loop",
+      "type": "backend",
+      "label": "Factory: perfecti…",
+      "sublabel": "workflow_dispatch, sche…",
+      "row": 0,
+      "col": 1
+    },
+    {
+      "id": "acme-storefront--factory--issue-triage",
+      "type": "backend",
+      "label": "Factory: issue-tr…",
+      "sublabel": "issues",
+      "row": 0,
+      "col": 2
+    },
+    {
+      "id": "acme-storefront--more",
+      "type": "external",
+      "label": "2 more workflows",
+      "sublabel": "not shown",
+      "row": 0,
+      "col": 3
+    },
+    {
+      "id": "acme-design-system--factory--docs-gardener",
+      "type": "backend",
+      "label": "Factory: Docs Gar…",
+      "sublabel": "workflow_dispatch, sche…",
+      "row": 1,
+      "col": 0
+    },
+    {
+      "id": "acme-design-system--ci",
+      "type": "external",
+      "label": "CI",
+      "sublabel": "pull_request, push",
+      "row": 1,
+      "col": 1
+    },
+    {
+      "id": "acme-infra--ci",
+      "type": "external",
+      "label": "CI",
+      "sublabel": "pull_request",
+      "row": 2,
+      "col": 0
+    },
+    {
+      "id": "acme-infra--deploy",
+      "type": "external",
+      "label": "Deploy",
+      "sublabel": "push, workflow_dispatch",
+      "row": 2,
+      "col": 1
+    },
+    {
+      "id": "acme-infra--stale-sweep",
+      "type": "external",
+      "label": "Stale Sweep",
+      "sublabel": "schedule",
+      "row": 2,
+      "col": 2
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "acme/storefront",
+      "wraps": [
+        "acme-storefront--factory--content-factory",
+        "acme-storefront--factory--perfection-loop",
+        "acme-storefront--factory--issue-triage",
+        "acme-storefront--more"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "acme/design-system",
+      "wraps": [
+        "acme-design-system--factory--docs-gardener",
+        "acme-design-system--ci"
+      ]
+    },
+    {
+      "kind": "region",
+      "label": "acme/infra",
+      "wraps": [
+        "acme-infra--ci",
+        "acme-infra--deploy",
+        "acme-infra--stale-sweep"
+      ]
+    }
+  ],
+  "connections": []
+}

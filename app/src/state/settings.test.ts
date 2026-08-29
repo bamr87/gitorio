@@ -44,7 +44,12 @@ describe('settings store', () => {
 
   it('hydrates from prior storage and survives corrupt JSON', () => {
     const good = fakeStorage({
-      [SETTINGS_KEY]: JSON.stringify({ recentRepos: ['o/r'], defaultDeployMode: 'commit', pollMs: 30_000, defaultModel: 'claude-opus-4-8' }),
+      [SETTINGS_KEY]: JSON.stringify({
+        recentRepos: ['o/r'],
+        defaultDeployMode: 'commit',
+        pollMs: 30_000,
+        defaultModel: 'claude-opus-4-8',
+      }),
     });
     const s1 = createSettingsStore(good).getState();
     expect(s1.recentRepos).toEqual(['o/r']);
@@ -62,5 +67,23 @@ describe('settings store', () => {
     store.getState().addRecentRepo('c/d');
     store.getState().removeRecentRepo('a/b');
     expect(store.getState().recentRepos).toEqual(['c/d']);
+  });
+});
+
+describe('theme preference (specs/011 FR-4)', () => {
+  it('defaults to system, persists a valid choice, and rejects junk', () => {
+    const mem = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
+    };
+    const store = createSettingsStore(storage);
+    expect(store.getState().theme).toBe('system');
+    store.getState().setTheme('light');
+    expect(JSON.parse(mem.get(SETTINGS_KEY)!).theme).toBe('light');
+    expect(createSettingsStore(storage).getState().theme).toBe('light');
+    mem.set(SETTINGS_KEY, JSON.stringify({ theme: 'neon' }));
+    expect(createSettingsStore(storage).getState().theme).toBe('system');
   });
 });

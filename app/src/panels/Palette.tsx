@@ -1,3 +1,4 @@
+import { machineTone } from '../archify/vocabulary';
 import { useState } from 'react';
 import { MACHINES, type MachineCategory } from '../machines/registry';
 import { DRAG_MIME } from '../canvas/FactoryCanvas';
@@ -14,7 +15,10 @@ export function Palette() {
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
   const matches = (m: (typeof MACHINES)[number]) =>
-    !q || m.label.toLowerCase().includes(q) || m.type.includes(q) || m.blurb.toLowerCase().includes(q);
+    !q ||
+    m.label.toLowerCase().includes(q) ||
+    m.type.includes(q) ||
+    m.blurb.toLowerCase().includes(q);
   return (
     <aside className="palette" aria-label="Machine palette">
       <div className="panel__eyebrow">Machines</div>
@@ -33,7 +37,7 @@ export function Palette() {
             <button
               key={m.type}
               type="button"
-              className={`palette__item palette__item--${category}`}
+              className={`palette__item palette__item--${category} palette__item--${machineTone(m.type)}`}
               draggable
               title={`${m.blurb}\n\nClick to add · or drag onto the floor`}
               onClick={() => addMachineAuto(m.type)}
@@ -48,7 +52,9 @@ export function Palette() {
           ))}
         </section>
       ))}
-      <p className="palette__hint">Click a machine to drop it, or drag it onto the floor. Then belt out → in.</p>
+      <p className="palette__hint">
+        Click a machine to drop it, or drag it onto the floor. Then belt out → in.
+      </p>
     </aside>
   );
 }

@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Gitorio Factory 3",
+    "subtitle": "Gitorio Factory · factory--gitorio-factory-3.yml · .factory/blueprint.json",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "animation": "trace",
+    "views": [
+      {
+        "id": "main-path",
+        "label": "Main path",
+        "focus": [
+          "wm",
+          "wa",
+          "ws1"
+        ],
+        "note": "Trigger to terminal output — the line as compiled."
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": {
+          "label": "Trigger"
+        },
+        "security": {
+          "label": "Gate / guard"
+        },
+        "backend": {
+          "label": "Agent"
+        },
+        "database": {
+          "label": "Ledger / evidence"
+        },
+        "frontend": {
+          "label": "Output"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Cross-repo"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "triggers",
+      "label": "Triggers"
+    },
+    {
+      "id": "agent",
+      "label": "Processing"
+    },
+    {
+      "id": "sinks",
+      "label": "Outputs"
+    }
+  ],
+  "mainPath": [
+    "wm",
+    "wa",
+    "ws1"
+  ],
+  "nodes": [
+    {
+      "id": "wm",
+      "lane": "triggers",
+      "col": 0,
+      "type": "external",
+      "label": "Manual lever"
+    },
+    {
+      "id": "wc",
+      "lane": "triggers",
+      "col": 1,
+      "type": "external",
+      "label": "Schedule",
+      "sublabel": "0 6 * * 1"
+    },
+    {
+      "id": "wa",
+      "lane": "agent",
+      "col": 1,
+      "type": "backend",
+      "label": "Claude agent",
+      "sublabel": "dependency-warden"
+    },
+    {
+      "id": "ws1",
+      "lane": "sinks",
+      "col": 2,
+      "type": "frontend",
+      "label": "Comment"
+    },
+    {
+      "id": "ws2",
+      "lane": "sinks",
+      "col": 3,
+      "type": "frontend",
+      "label": "Label"
+    },
+    {
+      "id": "ws3",
+      "lane": "sinks",
+      "col": 5,
+      "type": "frontend",
+      "label": "Merge PR"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-e6",
+      "from": "wm",
+      "to": "wa",
+      "role": "main"
+    },
+    {
+      "id": "e-e7",
+      "from": "wc",
+      "to": "wa",
+      "role": "branch"
+    },
+    {
+      "id": "e-e8",
+      "from": "wa",
+      "to": "ws1",
+      "role": "main"
+    },
+    {
+      "id": "e-e9",
+      "from": "wa",
+      "to": "ws2",
+      "role": "branch"
+    },
+    {
+      "id": "e-e10",
+      "from": "wa",
+      "to": "ws3",
+      "role": "branch"
+    }
+  ]
+}

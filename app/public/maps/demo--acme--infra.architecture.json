@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "acme/infra automation",
+    "subtitle": "3 workflows mapped · 0 belts",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "repo-acme-infra",
+        "label": "acme/infra",
+        "focus": [
+          "acme-infra--ci",
+          "acme-infra--deploy",
+          "acme-infra--stale-sweep"
+        ]
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "backend": {
+          "label": "AI workflow"
+        },
+        "frontend": {
+          "label": "Writes (PR/issue/comment)"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Deploys"
+        },
+        "security": {
+          "label": "Gated only"
+        },
+        "external": {
+          "label": "Other / external"
+        }
+      }
+    },
+    "viewBox": [
+      800,
+      400
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 4,
+    "cellW": 150,
+    "cellH": 64,
+    "gapX": 40,
+    "gapY": 72,
+    "origin": [
+      40,
+      48
+    ]
+  },
+  "components": [
+    {
+      "id": "acme-infra--ci",
+      "type": "external",
+      "label": "CI",
+      "sublabel": "pull_request",
+      "row": 0,
+      "col": 0
+    },
+    {
+      "id": "acme-infra--deploy",
+      "type": "external",
+      "label": "Deploy",
+      "sublabel": "push, workflow_dispatch",
+      "row": 0,
+      "col": 1
+    },
+    {
+      "id": "acme-infra--stale-sweep",
+      "type": "external",
+      "label": "Stale Sweep",
+      "sublabel": "schedule",
+      "row": 0,
+      "col": 2
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "acme/infra",
+      "wraps": [
+        "acme-infra--ci",
+        "acme-infra--deploy",
+        "acme-infra--stale-sweep"
+      ]
+    }
+  ],
+  "connections": []
+}

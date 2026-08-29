@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { machineDef } from '../machines/registry';
+import { machineTone } from '../archify/vocabulary';
 import { useTelemetryStore } from '../state/telemetry';
 import { useBlueprintDiagnostics } from '../state/diagnostics';
 import type { LedState } from '../github/types';
@@ -22,7 +23,9 @@ export function MachineNode({ id, data, selected }: NodeProps<MachineNodeType>) 
     return <div className="machine machine--unknown">unknown: {data.machineType}</div>;
   }
   return (
-    <div className={`machine machine--${def.category}${selected ? ' is-selected' : ''}${worst ? ` machine--${worst}` : ''}`}>
+    <div
+      className={`machine machine--${def.category} machine--${machineTone(def.type)}${selected ? ' is-selected' : ''}${worst ? ` machine--${worst}` : ''}`}
+    >
       <div className="machine__head">
         <span className="machine__icon" aria-hidden>
           {def.icon}
