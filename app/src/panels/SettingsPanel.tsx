@@ -1,8 +1,9 @@
 import './settings.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConnectDialog } from './ConnectDialog';
 import { useGithubStore } from '../state/github';
 import { useSettingsStore } from '../state/settings';
+import { DEFAULT_HUB, useHubStore } from '../state/hub';
 import { repoSlug, type PermState } from '../github/types';
 import { PageHeader, Panel } from '../ui/primitives';
 
@@ -140,6 +141,7 @@ export function SettingsPanel() {
               ))}
             </div>
           )}
+          <HubField />
         </Panel>
 
         {/* ── Preferences ── */}
@@ -255,5 +257,46 @@ export function SettingsPanel() {
       </div>
       {connectOpen && <ConnectDialog onClose={() => setConnectOpen(false)} />}
     </div>
+  );
+}
+
+/** The hub the Harness tab reads (specs/014, FR-4): a slug only, persisted; never a token. */
+function HubField() {
+  const hubSlug = useHubStore((s) => s.hubSlug);
+  const setHubSlug = useHubStore((s) => s.setHubSlug);
+  const [draft, setDraft] = useState(hubSlug);
+  const [bad, setBad] = useState(false);
+  useEffect(() => setDraft(hubSlug), [hubSlug]);
+  const commit = () => {
+    const ok = setHubSlug(draft.trim() || DEFAULT_HUB);
+    setBad(!ok);
+  };
+  return (
+    <label className="field settings__hub">
+      <span className="field__label">Hub — the site that presents the harness</span>
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+        }}
+        placeholder={DEFAULT_HUB}
+        spellCheck={false}
+        aria-invalid={bad || undefined}
+        aria-label="Hub repository"
+      />
+      <span className="field__help">
+        {bad ? (
+          'Expected owner/repo.'
+        ) : (
+          <>
+            The Harness tab reads this repo’s committed <code>_data/*.yml</code> and{' '}
+            <code>fleet.manifest.yml</code> — read-only; the slug persists, never a token. Default{' '}
+            <code>{DEFAULT_HUB}</code>.
+          </>
+        )}
+      </span>
+    </label>
   );
 }

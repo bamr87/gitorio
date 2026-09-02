@@ -140,6 +140,11 @@ Goal: configure an autonomous, configurable, headless content management system 
 - [x] The console (specs/013-archify-console, ADR-035): a pure IR → geometry layout + an inline-SVG `MapView` carrying archify's reader model (Node Finder, Semantic Passport with authored reach, guided views, zoom, evidence beacons), fed live by the IR compiler — Build `Floor | Map` mode, Fleet Observe on the map (the read-only React Flow fleet canvas retired), the palette and Inspector re-homed as floating Machine Finder / Passport, `DiagramFrame` + `::map` Docs embeds through a `gen-maps` manifest, and archify's chrome grammar as `app/src/ui/` primitives on every tab with the viewer's `T` theme toggle. Non-dogfood blueprints get a live map without the Cartographer line (BL-20260828-05 now only serves the delivered HTML).
 - [ ] Sequence / lifecycle / dataflow maps (BL-20260828-04); deploy `compare` (BL-20260828-06).
 
+## Harness — the hub as design model, monitor, and contract (ADR-036)
+
+- [x] Harness parity (specs/014-harness-parity): a pure port of the hub's `dash-gen harness` with a golden test over the hub's committed files, a live adapter over Fleet Ops scans, the `fleet/v1` lane bridge (blueprint → lanes, manifest → lanes, one `HarnessCard`, parity with `wtd`'s manifest for this repo), six-layer design readiness + the twelve-row checklist, a read-only hub store (default `bamr87/bamr87`), the eighth tab with the hub's `/harness/` anatomy over Hub and Live sources, a demo hub, deep links both ways.
+- [ ] Deploy writes `fleet.manifest.yml` with declared provenance (BL-20260902-13); live adapters for the issue pipeline and token rotation (BL-20260902-14); readiness over observed fleets (BL-20260902-15); hub-side scorecard tint + link back (BL-20260902-16); a vendored-archify drift guard against the hub (BL-20260902-17); ETag-conditional hub reads (BL-20260902-18).
+
 ## Backlog
 
 > **Migrated 2026-08-16 (ADR-022):** the live backlog moved to `BACKLOG.md` at the repo root. Every still-open item below — including the Fleet-track FF-list and the Phase 6/7/8 parked boxes — was carried over as a `BL-20260816-NN` entry (undo/redo excluded: shipped in ADR-016). This section is frozen history, kept append-only for the audit trail; add new items to `BACKLOG.md`, never here.

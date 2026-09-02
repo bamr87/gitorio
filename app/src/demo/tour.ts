@@ -1,6 +1,6 @@
-// The guided tour (spec FR-7, G4). Pure data: an ordered walk of the seven tabs, each
+// The guided tour (spec FR-7, G4). Pure data: an ordered walk of the eight tabs, each
 // step naming what that surface is FOR. A visitor who has never read the README should be
-// able to press "next" seven times and come away knowing what GitFactory does.
+// able to press "next" eight times and come away knowing what GitFactory does.
 //
 // No component logic here — `DemoBanner` renders it and drives `setView`.
 
@@ -50,6 +50,12 @@ export const TOUR: TourStep[] = [
     title: 'Fleet Ops',
     body: 'Observe reverse-imports any repo’s workflows and draws them as an archify architecture map with live run status on every node. Command scans a whole roster and grades it: cost, waste, rework, and a conformance audit against the fleet’s own conventions.',
     action: 'Press Scan fleet, then walk the Districts, Rankings, Workflows, Audit and Schedule boards.',
+  },
+  {
+    view: 'harness',
+    title: 'The harness',
+    body: 'Agent = Model + Harness. The hub’s scorecard and six trip wires, recomputed here by the same engine over the same committed signals, plus the blueprint’s design readiness across the six layers and the fleet/v1 lanes the hub presents.',
+    action: 'Flip the source to Live to evaluate the same wires over the scanned demo fleet.',
   },
   {
     view: 'settings',

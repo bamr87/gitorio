@@ -5,7 +5,15 @@
 
 import { create } from 'zustand';
 
-export type AppView = 'build' | 'prompts' | 'content' | 'docs' | 'monitor' | 'fleet' | 'settings';
+export type AppView =
+  | 'build'
+  | 'prompts'
+  | 'content'
+  | 'docs'
+  | 'monitor'
+  | 'fleet'
+  | 'harness'
+  | 'settings';
 export type BuildMode = 'floor' | 'map';
 
 interface UiState {

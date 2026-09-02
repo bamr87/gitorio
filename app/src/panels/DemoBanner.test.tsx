@@ -67,8 +67,8 @@ describe('DemoBanner', () => {
     expect(screen.queryByText(TOUR[0].title)).toBeNull();
   });
 
-  it('the tour reaches all seven tabs', () => {
-    expect(new Set(TOUR.map((s) => s.view)).size).toBe(7);
+  it('the tour reaches all eight tabs', () => {
+    expect(new Set(TOUR.map((s) => s.view)).size).toBe(8);
   });
 });
 

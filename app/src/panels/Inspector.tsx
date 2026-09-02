@@ -5,7 +5,7 @@
 // as one floating Semantic Passport when a machine is selected and closes on × / Escape.
 // The blueprint's own metadata is a second passport, opened from the toolbar title.
 
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { machineDef, type FieldDef } from '../machines/registry';
 import { machineTone } from '../archify/vocabulary';
 import { useFactoryStore, type MachineNodeType } from '../state/store';
@@ -18,6 +18,11 @@ import type { Diagnostic } from '../compiler/compile';
 import type { LedState } from '../github/types';
 
 const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller']);
+
+// The Lanes section carries the fleet/v1 vocabulary; it loads with the passport, not the floor.
+const BlueprintLanes = lazy(() =>
+  import('./BlueprintLanes').then((m) => ({ default: m.BlueprintLanes })),
+);
 
 const DIAG_MARK: Record<Diagnostic['level'], string> = { error: '✗', warning: '⚠', info: 'ℹ' };
 const LED_LABEL: Record<LedState, string> = {
@@ -164,8 +169,11 @@ export function BlueprintPassport() {
   const close = useUiStore((s) => s.setBlueprintPassportOpen);
   const diags = useBlueprintDiagnostics();
   // toBlueprint reads the store; nodes/edges/meta are its real inputs, so they stay as deps.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const lines = useMemo(() => assemblyLines(toBlueprint()), [nodes, edges, meta, toBlueprint]);
+  const { lines, blueprint } = useMemo(() => {
+    const bp = toBlueprint();
+    return { lines: assemblyLines(bp), blueprint: bp };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nodes, edges, meta, toBlueprint]);
   return (
     <aside
       className="passport passport--floor"
@@ -239,6 +247,9 @@ export function BlueprintPassport() {
           add.
         </p>
       </div>
+      <Suspense fallback={null}>
+        <BlueprintLanes blueprint={blueprint} />
+      </Suspense>
     </aside>
   );
 }

@@ -22,6 +22,7 @@ import { useFactoryStore } from './state/store';
 import { useGithubStore } from './state/github';
 import { useTelemetryStore } from './state/telemetry';
 import { useUiStore, type AppView } from './state/ui';
+import { useHubStore } from './state/hub';
 import { applyTheme, useSettingsStore, type ThemePref } from './state/settings';
 import { demoRequested, enterDemoMode, isDemoActive } from './demo/seed';
 import { repoSlug } from './github/types';
@@ -39,6 +40,10 @@ function download(filename: string, text: string) {
 
 // Map mode is a secondary chunk: the floor's first paint never pays for the map viewer.
 const LineMaps = lazy(() => import('./panels/LineMaps').then((m) => ({ default: m.LineMaps })));
+// The Harness tab reads the hub and draws readiness; it is a chunk of its own (specs/014 NFR-STATIC-1).
+const HarnessPanel = lazy(() =>
+  import('./panels/HarnessPanel').then((m) => ({ default: m.HarnessPanel })),
+);
 
 const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
   {
@@ -77,8 +82,15 @@ const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
     icon: '🛰',
     title: 'Command a roster of repos, or observe one as an archify map',
   },
+  {
+    id: 'harness',
+    label: 'Harness',
+    icon: '🧬',
+    title: 'Agent = Model + Harness — the hub’s scorecard and trip wires, design readiness, lanes',
+  },
   { id: 'settings', label: 'Settings', icon: '⚙', title: 'Connections and preferences' },
 ];
+const VIEW_IDS = new Set<string>(TABS.map((t) => t.id));
 
 /** The viewer's theme toggle, three-state so the `system` preference survives (specs/011). */
 const THEME_NEXT: Record<ThemePref, ThemePref> = { system: 'dark', dark: 'light', light: 'system' };
@@ -134,10 +146,17 @@ export default function App() {
   useEffect(() => {
     if (demoRequested(window.location.search, window.location.hash)) {
       void enterDemoMode();
-      return;
+    } else {
+      restore();
     }
-    restore();
-  }, [restore]);
+    // Deep links (specs/014, FR-9): the hub links here with `?tab=harness&hub=owner/repo`.
+    // A hub named in the URL is a session-only override — Settings is where the default changes.
+    const params = new URLSearchParams(window.location.search);
+    const hub = params.get('hub');
+    if (hub) useHubStore.getState().setHubSlug(hub, { persist: false });
+    const tab = params.get('tab');
+    if (tab && VIEW_IDS.has(tab)) setView(tab as AppView);
+  }, [restore, setView]);
 
   // The Machine Finder docks open while the floor is empty (specs/013 FR-5) — a first visit
   // should see the machines, not an empty canvas and a hidden `/`.
@@ -354,6 +373,11 @@ export default function App() {
       {view === 'docs' && <DocsView />}
       {view === 'monitor' && <MonitorPanel />}
       {view === 'fleet' && <FleetView />}
+      {view === 'harness' && (
+        <Suspense fallback={<p className="tabpane__empty">Reading the harness…</p>}>
+          <HarnessPanel />
+        </Suspense>
+      )}
       {view === 'settings' && <SettingsPanel />}
 
       {flash && <div className="flash">{flash}</div>}

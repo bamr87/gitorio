@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import { fleetComponentId, toArchitectureIR } from '../archify/ir';
 import type { Fleet, ImportedWorkflow } from '../fleet/types';
+import { HarnessCard } from '../harness/HarnessCard';
 import { repoSlug } from '../github/types';
 import { layoutArchitecture } from '../map/layout';
 import { DELIVERED_MAPS, deliveredMapFor, deliveredMapUrl, demoFleetSource } from '../map/manifest';
@@ -77,6 +78,14 @@ export function ObserveMap({ fleet }: { fleet: Fleet }) {
         ],
       },
     ];
+    if (w.lane) {
+      // The lane the repo's fleet.manifest.yml records — the same card the hub presents (specs/014 FR-7).
+      sections.push({
+        kind: 'custom',
+        title: 'Lane · fleet/v1',
+        node: <HarnessCard lane={w.lane} compact />,
+      });
+    }
     if (w.hasAgent && w.agent) {
       sections.push({
         kind: 'facts',

@@ -25,6 +25,10 @@ export type DemoRepo = (typeof DEMO_REPOS)[number];
 export const DEMO_PRIMARY: DemoRepo = 'acme/storefront';
 export const DEMO_LOGIN = 'demo-visitor';
 
+/** The demo hub (specs/014): the fictional Jekyll site that presents the demo fleet's harness. */
+export const DEMO_HUB = 'acme/hub';
+export const DEMO_HUB_PULSE_CRON = '0 6 * * *';
+
 const MIN = 60_000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
