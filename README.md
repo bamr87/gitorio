@@ -95,6 +95,7 @@ Four of these directories hold prose. [`docs/DOCUMENTATION-MAP.md`](docs/DOCUMEN
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Full design: auth phases, compiler spec, security model, machine catalog. |
 | [`docs/DOCUMENTATION-MAP.md`](docs/DOCUMENTATION-MAP.md) | Which of `docs/`, `_docs/`, `specs/`, `blog/` a piece of writing belongs in, and why. |
 | [`docs/GENERATED-FILES.md`](docs/GENERATED-FILES.md) | Which files the compiler writes, how to regenerate them, determinism and action-pinning guarantees. |
+| [`docs/DETERMINISM.md`](docs/DETERMINISM.md) | The determinism contract compiled output must satisfy — the rules, the pre-merge checklist, how it's enforced. Read before changing an emitter. |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | Phases and acceptance history. |
 
 ## Building this with Claude Code
