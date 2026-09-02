@@ -10,6 +10,7 @@ import { DemoInvite } from './DemoBanner';
 import { useSettingsStore } from '../state/settings';
 import { useMonitorStore } from '../state/monitor';
 import { repoSlug, type FactoryRun, type RunConclusion } from '../github/types';
+import { PageHeader, Panel } from '../ui/primitives';
 
 function durationSec(run: FactoryRun): number {
   const end = Date.parse(run.updatedAt);
@@ -146,14 +147,15 @@ export function MonitorPanel() {
 
   return (
     <div className="tabpane monitor">
-      <div className="monitor__head">
-        <span className={`led ${polling ? 'led--warn' : 'led--idle'}`} />
-        <span className="monitor__title">📊 MONITOR</span>
-        <span className="monitor__repo">{repo ? repoSlug(repo) : ''}</span>
-        <span className="monitor__spacer" />
+      <div className="container">
+      <PageHeader
+        title="Monitor"
+        subtitle={`Runs of every compiled line${repo ? ` on ${repoSlug(repo)}` : ''} — per-line stats, schedules, and the jobs behind each run.`}
+        live={polling}
+      >
         <span className="monitor__ago">{error ? '' : `polled ${fmtAgo(lastPolledAt)}`}</span>
         <button type="button" className="btn btn--small" onClick={() => void poll()}>Refresh</button>
-      </div>
+      </PageHeader>
 
       {error && <p className="diag diag--error">{error}</p>}
       {flash && <p className="diag diag--info">{flash}</p>}
@@ -165,7 +167,7 @@ export function MonitorPanel() {
         <div className="stat"><span className="stat__num">{fmtDur(stats?.p50DurationSec ?? null)}</span><span className="stat__lbl">p50</span></div>
       </div>
 
-      <div className="panel__eyebrow monitor__section">Assembly lines</div>
+      <Panel eyebrow="Assembly lines" className="monitor__section">
       <div className="monitor__lines">
         {lines.length === 0 && <p className="tabpane__empty">No assembly lines on the canvas yet — build one on the Build tab.</p>}
         {lines.map((l) => {
@@ -215,7 +217,9 @@ export function MonitorPanel() {
         })}
       </div>
 
-      <div className="panel__eyebrow monitor__section">Run history</div>
+      </Panel>
+
+      <Panel eyebrow="Run history" className="monitor__section">
       <div className="monitor__filters">
         <button type="button" className={`chip${!filterSlug ? ' is-active' : ''}`} onClick={() => setFilter(null)}>all</button>
         {slugs.map((s) => (
@@ -262,6 +266,8 @@ export function MonitorPanel() {
             </div>
           );
         })}
+      </div>
+      </Panel>
       </div>
     </div>
   );

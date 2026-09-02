@@ -67,6 +67,14 @@
   --r-pill: 999px;
   --motion: 160ms;
 
+  /* spacing (DESIGN.md spacing: xs … page) */
+  --sp-xs: 0.25rem;
+  --sp-sm: 0.5rem;
+  --sp-md: 0.75rem;
+  --sp-lg: 1rem;
+  --sp-xl: 1.5rem;
+  --sp-page: 2rem;
+
   /* transitional aliases — the control-room names every existing rule uses.
      Same meaning, new values; new rules should use the names above. */
   --floor: var(--canvas);
@@ -183,6 +191,7 @@ body {
   display: flex;
   flex: 1;
   min-height: 0;
+  position: relative;
 }
 
 /* ── top bar ─────────────────────────────────────────────────────────── */
@@ -196,10 +205,13 @@ body {
   border-bottom: 1px solid var(--seam);
 }
 .topbar__logo {
-  font-family: var(--readout);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--chrome);
   font-weight: 700;
   letter-spacing: 0.18em;
-  color: var(--accent);
+  color: var(--ink);
   font-size: 13px;
 }
 .topbar__name {
@@ -219,22 +231,42 @@ body {
   font-size: 11px;
 }
 
+/* archify's toolbar-button recipe (DESIGN.md): translucent mask ground, one-pixel structural
+   border, mono body label, 150 ms border/background response, cyan focus ring. Desktop
+   chrome uses the compact 32 px control; touch targets stay 2.75 rem via .btn--touch. */
 .btn {
-  background: var(--panel-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  background: var(--mask-2);
   color: var(--ink);
-  border: 1px solid var(--seam);
+  border: 1px solid var(--border);
   border-radius: var(--r-control);
-  padding: 5px 10px;
-  font-family: var(--readout);
-  font-size: 12px;
+  padding: 4px 11px;
+  font-family: var(--chrome);
+  font-size: 0.75rem;
+  line-height: 1.3;
   cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
 }
 .btn:hover {
-  border-color: var(--accent);
+  background: var(--hover);
+  border-color: color-mix(in srgb, var(--muted) 62%, var(--border));
 }
 .btn:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
+}
+.btn.is-active,
+.btn[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.btn--theme {
+  text-transform: capitalize;
+  min-width: 96px;
 }
 .btn--primary {
   background: var(--accent);
@@ -246,8 +278,9 @@ body {
   filter: brightness(1.08);
 }
 .btn--small {
+  min-height: 26px;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   margin-left: 10px;
 }
 .btn:disabled {
@@ -255,16 +288,17 @@ body {
   cursor: not-allowed;
 }
 .btn:disabled:hover {
-  border-color: var(--seam);
+  border-color: var(--border);
+  background: var(--mask-2);
   filter: none;
 }
 /* connected-session chip */
 .btn--live {
-  border-color: var(--signal);
-  color: var(--signal);
+  border-color: var(--ok);
+  color: var(--ok);
 }
 .btn--live:hover {
-  border-color: var(--signal);
+  border-color: var(--ok);
   filter: brightness(1.1);
 }
 
@@ -286,6 +320,30 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 42vw;
+}
+.viewbar__titlebtn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  padding: 3px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.viewbar__titlebtn:hover {
+  border-color: var(--border);
+  background: var(--hover);
+}
+.viewbar__titlebtn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.viewbar__titlebtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.viewbar__modes {
+  margin-left: 6px;
+  gap: 4px;
 }
 .viewbar__meta {
   color: var(--dim);
@@ -359,20 +417,52 @@ body {
   color: var(--dim);
   margin-bottom: 10px;
 }
-.palette,
-.inspector {
-  background: var(--panel);
-  border-color: var(--seam);
-  padding: 12px;
-  overflow-y: auto;
+/* The floor (specs/013): the canvas is dominant; the Machine Finder and the passports float
+   over it (archify's node-finder / focus-chip positions) instead of owning columns. */
+.workspace {
+  position: relative;
 }
-.palette {
-  width: 210px;
-  border-right: 1px solid var(--seam);
+.finder--machines {
+  width: min(20rem, calc(100% - 2rem));
 }
-.inspector {
-  width: 280px;
-  border-left: 1px solid var(--seam);
+.finder__results--grouped {
+  padding-bottom: 4px;
+}
+.finder__group {
+  display: flex;
+  flex-direction: column;
+}
+.finder__grouptitle {
+  padding: 8px 0.75rem 3px;
+  border-left: 3px solid var(--dim);
+  margin: 6px 0 0 0.75rem;
+  padding-left: 8px;
+}
+.finder__grouptitle--trigger {
+  border-color: var(--c-external);
+  color: var(--c-external);
+}
+.finder__grouptitle--processor {
+  border-color: var(--c-backend);
+  color: var(--c-backend);
+}
+.finder__grouptitle--sink {
+  border-color: var(--c-frontend);
+  color: var(--c-frontend);
+}
+.finder--machines .finder__result {
+  cursor: grab;
+}
+.finder--machines .finder__result:active {
+  cursor: grabbing;
+}
+.passport--floor {
+  font-size: 0.75rem;
+}
+.passport--floor .field input,
+.passport--floor .field textarea,
+.passport--floor .field select {
+  font-size: 0.75rem;
 }
 
 .palette__title {
@@ -1150,166 +1240,26 @@ body {
   margin-left: auto;
 }
 
-/* ── observe mode: fleet map ─────────────────────────────────────────── */
-.observe-bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 7px 14px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--seam);
-  font-family: var(--readout);
-  font-size: 12px;
-}
-.observe-bar__title {
-  color: var(--ink);
-}
-.observe-bar__title b {
-  color: var(--steel);
-}
+/* ── observe mode (specs/013): the fleet is a MapView now; only the stat line remains ── */
 .observe-bar__stat {
+  margin: 0 0 var(--sp-md);
   color: var(--dim);
-  font-size: 11px;
-}
-.observe-bar__spacer {
-  flex: 1;
-}
-.observe-bar__legend {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--dim);
-  font-size: 10px;
-}
-.observe-bar__legend .led {
-  margin-left: 8px;
+  font-family: var(--chrome);
+  font-size: 0.6875rem;
 }
 .observe-bar__poll {
-  display: flex;
-  align-items: center;
-  gap: 5px;
   color: var(--accent);
-  font-size: 11px;
 }
-
-/* workflow node (read-only) */
-.wfnode {
-  min-width: 200px;
-  max-width: 240px;
-  background: var(--panel-2);
-  border: 1px solid var(--seam);
-  border-top: 3px solid var(--dim);
-  border-radius: var(--r-control);
-  box-shadow: var(--shadow);
-  font-family: var(--readout);
-}
-.wfnode--agent {
-  border-top-color: var(--c-backend);
-}
-.wfnode__head {
+.fleetview .fleetmode {
   display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--seam);
-}
-.wfnode__triggers {
-  font-size: 12px;
-}
-.wfnode__name {
-  font-size: 12px;
-  font-weight: 700;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.wfnode__agent {
-  padding: 5px 10px;
-  font-size: 11px;
-  color: var(--steel);
-  display: flex;
-  align-items: center;
   gap: 6px;
 }
-.wfnode__runner {
-  color: var(--dim);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  margin-left: auto;
-}
-.wfnode__sinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 7px 10px;
-}
-.wfnode__none {
-  color: var(--dim);
-  font-size: 10px;
-  font-style: italic;
-}
-.sinkbadge {
-  font-size: 9.5px;
-  padding: 1px 6px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--seam);
-  color: var(--dim);
-  background: var(--floor);
-}
-.sinkbadge--in {
-  border-color: var(--c-frontend);
-  color: var(--c-frontend);
-}
-.sinkbadge--cross {
-  border-color: var(--c-cloud);
-  color: var(--c-cloud);
-}
-.wfnode__gate {
-  padding: 4px 10px;
-  border-top: 1px solid var(--seam);
-  font-size: 10px;
-  color: var(--c-security);
-  letter-spacing: 0.04em;
+.fleetbar__input {
+  width: 160px;
+  margin: 0;
 }
 
-/* external repo station */
-.extnode {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: var(--panel);
-  border: 1px dashed var(--c-cloud);
-  border-radius: var(--r-panel);
-  font-family: var(--readout);
-  font-size: 12px;
-  color: var(--c-cloud);
-  min-width: 150px;
-}
-.extnode__icon {
-  font-size: 16px;
-}
-
-/* cross-repo belts read differently from workflow_run chains */
-.react-flow__edge.fleetedge--cross_repo .react-flow__edge-path {
-  stroke: var(--c-cloud);
-  stroke-width: 2;
-  stroke-dasharray: 6 4;
-}
-.react-flow__edge.fleetedge--cross_repo .react-flow__edge-text {
-  fill: var(--c-cloud);
-}
-
-/* ── node tooling: palette-as-button reset, richer inspector, node badges ── */
-.palette__item {
-  width: 100%;
-  text-align: left;
-  color: var(--ink);
-  font-family: var(--chrome);
-}
-
+/* ── node tooling: richer passport, node badges ─────────────────────── */
 .inspector__titlerow {
   display: flex;
   align-items: center;
@@ -1379,18 +1329,89 @@ body {
   flex-wrap: wrap;
   gap: 4px;
 }
+/* chips (DESIGN.md): quiet bordered capsules for semantic metadata; a selected chip uses the
+   owning semantic colour plus weight, never colour alone */
 .chip {
-  background: var(--panel-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--mask-2);
   color: var(--ink);
-  border: 1px solid var(--seam);
-  border-radius: var(--r-control);
-  padding: 2px 7px;
-  font-family: var(--readout);
-  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  padding: 2px 9px;
+  font-family: var(--chrome);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  cursor: default;
+  white-space: nowrap;
+}
+button.chip {
   cursor: pointer;
 }
-.chip:hover {
+button.chip:hover {
+  border-color: var(--muted);
+}
+button.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.chip.is-active,
+.chip[aria-pressed='true'] {
+  color: var(--accent);
   border-color: var(--accent);
+  font-weight: 700;
+}
+.chip--frontend {
+  color: var(--c-frontend);
+  border-color: color-mix(in srgb, var(--c-frontend) 55%, var(--border));
+}
+.chip--backend {
+  color: var(--c-backend);
+  border-color: color-mix(in srgb, var(--c-backend) 55%, var(--border));
+}
+.chip--database {
+  color: var(--c-database);
+  border-color: color-mix(in srgb, var(--c-database) 55%, var(--border));
+}
+.chip--cloud {
+  color: var(--c-cloud);
+  border-color: color-mix(in srgb, var(--c-cloud) 55%, var(--border));
+}
+.chip--security {
+  color: var(--c-security);
+  border-color: color-mix(in srgb, var(--c-security) 55%, var(--border));
+}
+.chip--messagebus {
+  color: var(--c-messagebus);
+  border-color: color-mix(in srgb, var(--c-messagebus) 55%, var(--border));
+}
+.chip--external {
+  color: var(--c-external);
+  border-color: color-mix(in srgb, var(--c-external) 55%, var(--border));
+}
+.chip--accent {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+.chip--ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+}
+.chip--warn {
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border));
+}
+.chip--bad {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--border));
+}
+.chip--idle {
+  color: var(--dim);
+}
+.chip--tone {
+  background: color-mix(in srgb, currentColor 12%, var(--mask));
+  text-transform: capitalize;
 }
 
 /* agent capabilities drill-down (Inspector + Monitor) */
@@ -1499,30 +1520,36 @@ body {
 }
 
 /* ── app-shell tabs + tab panes ─────────────────────────────────────── */
+/* tabs as archify chips: quiet capsules; the active one combines weight, border, and tone */
 .tabs {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   margin-left: 14px;
+  flex-wrap: wrap;
 }
 .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: transparent;
-  color: var(--dim);
+  color: var(--muted);
   border: 1px solid transparent;
-  border-radius: var(--r-control) var(--r-control) 0 0;
-  padding: 6px 12px;
-  font-family: var(--readout);
-  font-size: 12px;
+  border-radius: var(--r-pill);
+  padding: 4px 11px;
+  font-family: var(--chrome);
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .tab:hover {
   color: var(--ink);
-  border-color: var(--seam);
+  border-color: var(--border);
+  background: var(--hover);
 }
 .tab.is-active {
   color: var(--accent);
-  border-color: var(--seam);
-  border-bottom-color: var(--panel);
-  background: var(--panel-2);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 700;
 }
 .tab:focus-visible {
   outline: 2px solid var(--accent);
@@ -1533,7 +1560,12 @@ body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: var(--sp-xl) var(--sp-page) var(--sp-page);
+}
+@media (max-width: 720px) {
+  .tabpane {
+    padding: var(--sp-lg);
+  }
 }
 .tabpane__empty {
   color: var(--dim);
@@ -1570,7 +1602,10 @@ body {
 .wfnode,
 .field input,
 .field textarea,
-.field select {
+.field select,
+.finder__result,
+.passport__reachbtn,
+.viewbar__titlebtn {
   transition:
     border-color var(--motion),
     color var(--motion),

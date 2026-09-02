@@ -1,13 +1,8 @@
 .settings {
-  max-width: 620px;
-}
-.settings__sec {
-  margin-bottom: 22px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--seam);
-}
-.settings__sec:last-child {
-  border-bottom: none;
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
 }
 .settings__line {
   font-size: 13px;
@@ -36,11 +31,11 @@
   color: var(--dim);
 }
 .perm--ok {
-  color: var(--signal);
-  border-color: var(--copper-dim);
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
 }
 .perm--missing {
-  color: var(--alarm);
+  color: var(--danger);
 }
 
 .settings__repos {
@@ -58,7 +53,7 @@
   padding: 6px 10px;
 }
 .settings__repo.is-current {
-  border-color: var(--copper-dim);
+  border-color: var(--accent);
 }
 .settings__reposlug {
   flex: 1;

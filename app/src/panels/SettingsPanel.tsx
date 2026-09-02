@@ -4,6 +4,7 @@ import { ConnectDialog } from './ConnectDialog';
 import { useGithubStore } from '../state/github';
 import { useSettingsStore } from '../state/settings';
 import { repoSlug, type PermState } from '../github/types';
+import { PageHeader, Panel } from '../ui/primitives';
 
 const PERM_MARK: Record<PermState, string> = { ok: '✓', missing: '✗', unknown: '?' };
 const PERM_ROWS: [
@@ -42,9 +43,13 @@ export function SettingsPanel() {
 
   return (
     <div className="tabpane settingspane">
+      <PageHeader
+        title="Settings"
+        subtitle="Connections and preferences. The token lives in sessionStorage only; everything here is harmless to persist."
+      />
       <div className="settings">
         {/* ── Session ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Session</div>
           {login ? (
             <>
@@ -89,10 +94,10 @@ export function SettingsPanel() {
               </button>
             </>
           )}
-        </section>
+        </Panel>
 
         {/* ── Connections ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Connections</div>
           {recentRepos.length === 0 ? (
             <p className="settings__note">
@@ -135,10 +140,10 @@ export function SettingsPanel() {
               ))}
             </div>
           )}
-        </section>
+        </Panel>
 
         {/* ── Preferences ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Preferences</div>
           <div className="field">
             <span className="field__label">Theme</span>
@@ -221,10 +226,10 @@ export function SettingsPanel() {
             </select>
             <span className="field__help">Prefilled on new Claude-agent machines.</span>
           </label>
-        </section>
+        </Panel>
 
         {/* ── Maintenance ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Maintenance</div>
           <div className="settings__radios">
             <button
@@ -246,7 +251,7 @@ export function SettingsPanel() {
               Reset preferences
             </button>
           </div>
-        </section>
+        </Panel>
       </div>
       {connectOpen && <ConnectDialog onClose={() => setConnectOpen(false)} />}
     </div>

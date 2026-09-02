@@ -137,7 +137,7 @@ Goal: configure an autonomous, configurable, headless content management system 
 
 - [x] Vendor `tt-a1i/archify` at a pinned commit; pure `Blueprint`/`Fleet` → IR compiler (`app/src/archify/`); generated dogfood + demo maps under `app/public/maps/`; CI `diagram-gate`; skill installed — specs/010-archify-maps.
 - [x] Design-token migration to archify's DESIGN.md ("The Evidence Console"), light theme as a peer — specs/011-evidence-console.
-- [ ] In-app Map surfaces: `DiagramFrame` embeds, Build "Map" drawer, Fleet Observe replacement (retire the read-only React Flow fleet canvas), Docs embeds, demo tour step — companion spec; depends on the Cartographer line for non-dogfood blueprints (BL-20260828-05).
+- [x] The console (specs/013-archify-console, ADR-035): a pure IR → geometry layout + an inline-SVG `MapView` carrying archify's reader model (Node Finder, Semantic Passport with authored reach, guided views, zoom, evidence beacons), fed live by the IR compiler — Build `Floor | Map` mode, Fleet Observe on the map (the read-only React Flow fleet canvas retired), the palette and Inspector re-homed as floating Machine Finder / Passport, `DiagramFrame` + `::map` Docs embeds through a `gen-maps` manifest, and archify's chrome grammar as `app/src/ui/` primitives on every tab with the viewer's `T` theme toggle. Non-dogfood blueprints get a live map without the Cartographer line (BL-20260828-05 now only serves the delivered HTML).
 - [ ] Sequence / lifecycle / dataflow maps (BL-20260828-04); deploy `compare` (BL-20260828-06).
 
 ## Backlog

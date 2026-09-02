@@ -15,6 +15,10 @@ This page is the one place that says which files in this repo the **compiler** w
 
 Everything else in `.github/workflows/` (`ci.yml`, `deploy-pages.yml`, `claude.yml`, `evolve.yml`, `markdown-oneline.yml`) is hand-written: only files named `factory--<slug>.yml` are compiler output. `.factory/` is **source** (blueprints, prompts, `config.yml`), not output — the one exception being the docs-gardener trio above, which a script materialises from the template so the committed dogfood can never drift from the gallery.
 
+### The map manifest
+
+`app/public/maps/manifest.json` is written by the same `npm run maps` run, beside the maps: one entry per delivered map (`slug`, `type`, `source`, `hash`), sorted by slug so the file is byte-stable, and covered by `npm run maps:check` like every other file in that directory. The app imports it at build time (`app/src/map/manifest.ts`) to decide where an "Open delivered map" link or a Docs `::map <slug>` figure may point; a slug that is not listed renders a note, never a broken frame. Edit a blueprint or a demo fixture and regenerate — never the manifest.
+
 ## How to recognise a generated file
 
 Every compiled workflow starts with exactly this two-line header (inline in `compile()`, `compile.ts`):

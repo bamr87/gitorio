@@ -5,12 +5,11 @@
 }
 
 .content {
-  max-width: 880px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--sp-lg);
 }
 
 .content__head {

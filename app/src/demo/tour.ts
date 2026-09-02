@@ -19,8 +19,8 @@ export const TOUR: TourStep[] = [
   {
     view: 'build',
     title: 'The factory floor',
-    body: 'Machines are dragged from the palette and wired with belts. This blueprint has three assembly lines: a governed content factory, an issue triage line, and a perfection loop. Each connected line compiles to one real GitHub Actions workflow.',
-    action: 'Click a machine to inspect its configuration and the tools it will be granted.',
+    body: 'The floor: press / to find a machine, drop it, belt it. This blueprint has three assembly lines: a governed content factory, an issue triage line, and a perfection loop. Each connected line compiles to one real GitHub Actions workflow — flip to Map to see each line as the archify map it compiles to.',
+    action: 'Click a machine to open its passport — dials, diagnostics, the tools it will be granted — then press Map.',
   },
   {
     view: 'prompts',
@@ -48,7 +48,7 @@ export const TOUR: TourStep[] = [
   {
     view: 'fleet',
     title: 'Fleet Ops',
-    body: 'Observe mode reverse-imports any repo’s workflows into a read-only map. Command mode scans a whole roster and grades it: cost, waste, rework, and a conformance audit against the fleet’s own conventions.',
+    body: 'Observe reverse-imports any repo’s workflows and draws them as an archify architecture map with live run status on every node. Command scans a whole roster and grades it: cost, waste, rework, and a conformance audit against the fleet’s own conventions.',
     action: 'Press Scan fleet, then walk the Districts, Rankings, Workflows, Audit and Schedule boards.',
   },
   {

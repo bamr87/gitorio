@@ -1,20 +1,24 @@
 .promptstudio {
-  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 .ps {
   display: flex;
-  height: 100%;
+  flex: 1;
   min-height: 0;
+  gap: var(--sp-lg);
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
 }
 .ps__section {
   margin-top: 12px;
 }
 
 .ps__library {
-  width: 230px;
+  width: 250px;
   flex-shrink: 0;
-  border-right: 1px solid var(--seam);
-  padding: 12px;
+  padding: var(--sp-lg);
   overflow-y: auto;
   display: flex;
   flex-direction: column;

@@ -1,0 +1,54 @@
+{
+  "generatedBy": "GITFACTORY gen-maps",
+  "archify": "7fe139ebe2e5",
+  "maps": [
+    {
+      "slug": "demo--acme--design-system",
+      "type": "architecture",
+      "source": "demo fleet acme/design-system",
+      "hash": "9ee767da85de"
+    },
+    {
+      "slug": "demo--acme--infra",
+      "type": "architecture",
+      "source": "demo fleet acme/infra",
+      "hash": "56b0c0f59a90"
+    },
+    {
+      "slug": "demo--acme--storefront",
+      "type": "architecture",
+      "source": "demo fleet acme/storefront",
+      "hash": "c1f1a528e4a1"
+    },
+    {
+      "slug": "demo--fleet",
+      "type": "architecture",
+      "source": "demo fleet (all repos)",
+      "hash": "ee91cb08f9c6"
+    },
+    {
+      "slug": "docs-gardener",
+      "type": "workflow",
+      "source": ".factory/docs-gardener.blueprint.json",
+      "hash": "75e191d9"
+    },
+    {
+      "slug": "gitorio-factory-1",
+      "type": "workflow",
+      "source": ".factory/blueprint.json",
+      "hash": "2d70a0af"
+    },
+    {
+      "slug": "gitorio-factory-2",
+      "type": "workflow",
+      "source": ".factory/blueprint.json",
+      "hash": "2d70a0af"
+    },
+    {
+      "slug": "gitorio-factory-3",
+      "type": "workflow",
+      "source": ".factory/blueprint.json",
+      "hash": "2d70a0af"
+    }
+  ]
+}

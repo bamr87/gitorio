@@ -8,13 +8,7 @@
   overflow-y: auto;
 }
 
-/* the fleetview container zeroes tabpane padding for the canvas; restore it here */
-.fleetview .fleetops {
-  padding: 4px 16px 16px;
-}
-.fleetview .fleetmode {
-  padding: 8px 12px 0;
-}
+
 
 /* ── command bar ── */
 .fleetops__bar {
@@ -24,11 +18,12 @@
   flex-wrap: wrap;
 }
 .fleetops__label {
-  font-family: var(--readout);
-  font-size: 12px;
+  font-family: var(--chrome);
+  font-size: 0.625rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--copper);
+  letter-spacing: 0.12em;
+  color: var(--dim);
 }
 .fleetops__input {
   width: 220px;
@@ -57,7 +52,14 @@
 .fleetops__hud {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: 8px;
+  gap: var(--sp-sm);
+}
+.fleetops__hud .stat {
+  background: var(--mask);
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  text-align: left;
+  padding: 10px 12px;
 }
 @media (max-width: 1100px) {
   .fleetops__hud {
@@ -65,7 +67,7 @@
   }
 }
 .stat__num--alarm {
-  color: var(--alarm);
+  color: var(--danger);
 }
 
 /* compute-share strip */

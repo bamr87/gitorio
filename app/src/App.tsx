@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 import './theme.css';
+import './ui/ui.css';
 import { FactoryCanvas } from './canvas/FactoryCanvas';
 import { FleetView } from './canvas/FleetView';
-import { Palette } from './panels/Palette';
+import { MachineFinder } from './panels/MachineFinder';
 import { BuildToolbar } from './panels/BuildToolbar';
 import { Inspector } from './panels/Inspector';
 import { CompileDrawer } from './panels/CompileDrawer';
@@ -21,7 +22,7 @@ import { useFactoryStore } from './state/store';
 import { useGithubStore } from './state/github';
 import { useTelemetryStore } from './state/telemetry';
 import { useUiStore, type AppView } from './state/ui';
-import { applyTheme, useSettingsStore } from './state/settings';
+import { applyTheme, useSettingsStore, type ThemePref } from './state/settings';
 import { demoRequested, enterDemoMode, isDemoActive } from './demo/seed';
 import { repoSlug } from './github/types';
 import { decodeBlueprintString, encodeBlueprintString, type Blueprint } from './blueprint/types';
@@ -36,8 +37,16 @@ function download(filename: string, text: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+// Map mode is a secondary chunk: the floor's first paint never pays for the map viewer.
+const LineMaps = lazy(() => import('./panels/LineMaps').then((m) => ({ default: m.LineMaps })));
+
 const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
-  { id: 'build', label: 'Build', icon: '⚒', title: 'Design the factory: machines, belts, compile' },
+  {
+    id: 'build',
+    label: 'Build',
+    icon: '⚒',
+    title: 'Design the factory: machines, belts, compile — and the map of each line',
+  },
   {
     id: 'prompts',
     label: 'Prompts',
@@ -66,13 +75,23 @@ const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
     id: 'fleet',
     label: 'Fleet',
     icon: '🛰',
-    title: 'Observe any repo’s workflows; switch between repos',
+    title: 'Command a roster of repos, or observe one as an archify map',
   },
   { id: 'settings', label: 'Settings', icon: '⚙', title: 'Connections and preferences' },
 ];
 
+/** The viewer's theme toggle, three-state so the `system` preference survives (specs/011). */
+const THEME_NEXT: Record<ThemePref, ThemePref> = { system: 'dark', dark: 'light', light: 'system' };
+const THEME_ICON: Record<ThemePref, string> = { system: '◐', dark: '●', light: '○' };
+
+const isTyping = (target: EventTarget | null): boolean => {
+  const el = target as HTMLElement | null;
+  return !!el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable);
+};
+
 export default function App() {
   const meta = useFactoryStore((s) => s.meta);
+  const nodeCount = useFactoryStore((s) => s.nodes.length);
   const toBlueprint = useFactoryStore((s) => s.toBlueprint);
   const loadBlueprint = useFactoryStore((s) => s.loadBlueprint);
   const undo = useFactoryStore((s) => s.undo);
@@ -89,6 +108,12 @@ export default function App() {
   const telemetryStop = useTelemetryStore((s) => s.stop);
   const view = useUiStore((s) => s.view);
   const setView = useUiStore((s) => s.setView);
+  const buildMode = useUiStore((s) => s.buildMode);
+  const setBuildMode = useUiStore((s) => s.setBuildMode);
+  const finderOpen = useUiStore((s) => s.finderOpen);
+  const setFinderOpen = useUiStore((s) => s.setFinderOpen);
+  const passportOpen = useUiStore((s) => s.blueprintPassportOpen);
+  const setPassportOpen = useUiStore((s) => s.setBlueprintPassportOpen);
   const fileRef = useRef<HTMLInputElement>(null);
   const flashTimer = useRef<number | undefined>(undefined);
   const [flash, setFlash] = useState<string | null>(null);
@@ -101,6 +126,7 @@ export default function App() {
   // Theme preference → <html data-theme> (specs/011): system removes the stamp so the
   // prefers-color-scheme media query decides.
   const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
   useEffect(() => applyTheme(theme), [theme]);
 
   // Reconnect from a sessionStorage PAT if this tab already has one — unless the URL
@@ -113,21 +139,46 @@ export default function App() {
     restore();
   }, [restore]);
 
-  // Undo/redo keyboard shortcuts (Build tab only — text inputs are exempt).
+  // The Machine Finder docks open while the floor is empty (specs/013 FR-5) — a first visit
+  // should see the machines, not an empty canvas and a hidden `/`.
+  const floorEmpty = nodeCount === 0;
+  useEffect(() => {
+    if (view === 'build' && floorEmpty) setFinderOpen(true);
+  }, [view, floorEmpty, setFinderOpen]);
+
+  // Keyboard: undo/redo on the floor, the viewer's `T` for the theme, `/` for the Machine
+  // Finder, Escape closes the finder → passport → blueprint passport (text inputs exempt).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (useUiStore.getState().view !== 'build') return;
-      const target = e.target as HTMLElement | null;
-      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (isTyping(e.target)) return;
+      const ui = useUiStore.getState();
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        if (ui.view !== 'build') return;
         e.preventDefault();
         if (e.shiftKey) redo();
         else undo();
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        setTheme(THEME_NEXT[useSettingsStore.getState().theme]);
+        return;
+      }
+      if (ui.view !== 'build' || ui.buildMode !== 'floor') return;
+      if (e.key === '/') {
+        e.preventDefault();
+        ui.setFinderOpen(!ui.finderOpen);
+      } else if (e.key === 'Escape') {
+        const factory = useFactoryStore.getState();
+        if (ui.finderOpen) ui.setFinderOpen(false);
+        else if (factory.selectedId) factory.setSelected(null);
+        else if (ui.blueprintPassportOpen) ui.setBlueprintPassportOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [undo, redo]);
+  }, [undo, redo, setTheme]);
 
   // The floating LED-telemetry poller follows its panel; stop on unmount/disconnect.
   useEffect(() => () => telemetryStop(), [telemetryStop]);
@@ -178,8 +229,10 @@ export default function App() {
 
   return (
     <div className="shell">
-      <header className="topbar">
-        <span className="topbar__logo">⚙ GITFACTORY</span>
+      <header className="topbar" role="banner">
+        <span className="topbar__logo">
+          <span className="pulse" aria-hidden /> GITFACTORY
+        </span>
         <span className="topbar__name">{meta.name}</span>
         <nav className="tabs" aria-label="App sections">
           {TABS.map((t) => (
@@ -196,8 +249,17 @@ export default function App() {
           ))}
         </nav>
         <span className="topbar__spacer" />
-        {/* Global chrome only: session (connection) + power. Per-view actions live in each
-            view's own toolbar (see BuildToolbar) so this bar never gets crowded. */}
+        {/* Global chrome only: theme, session (connection), power. Per-view actions live in
+            each view's own toolbar (see BuildToolbar) so this bar never gets crowded. */}
+        <button
+          type="button"
+          className="btn btn--theme"
+          onClick={() => setTheme(THEME_NEXT[theme])}
+          title={`Theme: ${theme} — press T to cycle system → dark → light`}
+          aria-label={`Theme: ${theme}. Cycle theme`}
+        >
+          <span aria-hidden>{THEME_ICON[theme]}</span> {theme}
+        </button>
         <button
           type="button"
           className={`btn${login ? ' btn--live' : ''}`}
@@ -264,13 +326,27 @@ export default function App() {
             loggedIn={!!login}
             showTelemetry={showTelemetry}
             onToggleTelemetry={toggleTelemetry}
+            mode={buildMode}
+            onMode={setBuildMode}
+            finderOpen={finderOpen}
+            onFinder={() => setFinderOpen(!finderOpen)}
+            passportOpen={passportOpen}
+            onPassport={() => setPassportOpen(!passportOpen)}
           />
-          <div className="workspace">
-            <Palette />
-            <FactoryCanvas />
-            <Inspector />
-          </div>
-          <CompileDrawer />
+          {buildMode === 'floor' ? (
+            <>
+              <div className="workspace">
+                <FactoryCanvas />
+                {finderOpen && <MachineFinder onClose={() => setFinderOpen(false)} />}
+                <Inspector />
+              </div>
+              <CompileDrawer />
+            </>
+          ) : (
+            <Suspense fallback={<p className="tabpane__empty">Drawing the maps…</p>}>
+              <LineMaps />
+            </Suspense>
+          )}
         </>
       )}
       {view === 'prompts' && <PromptStudio />}

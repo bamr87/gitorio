@@ -1,0 +1,426 @@
+/* The in-app map surface (specs/013-archify-console). Every colour is a theme token; the seven
+   `c-<tone>` classes are the same names the delivered maps use, so a gate is rose here and on
+   the exported map. Floating chrome (finder, passport, nav) follows archify's viewer: it
+   appears only when relevant and the diagram stays dominant. */
+
+.map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+  min-width: 0;
+  outline: none;
+}
+.map:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-panel);
+}
+.map__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-md);
+}
+.map__pulse {
+  width: 10px;
+  height: 10px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.map__title {
+  margin: 0;
+  font-family: var(--chrome);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.map__subtitle {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.map__views {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.map__viewslabel {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-right: 4px;
+}
+
+.map__panel {
+  position: relative;
+  background: var(--mask);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  padding: var(--sp-lg);
+  overflow: hidden;
+}
+.map--compact .map__panel {
+  padding: var(--sp-md);
+}
+.map__stage {
+  overflow: auto;
+  max-height: 72vh;
+}
+.map__svg {
+  display: block;
+  height: auto;
+  max-width: none;
+  font-family: var(--chrome);
+  transition: width var(--motion) ease-out;
+}
+.map--workflow .map__stage {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* ── structural frames ─────────────────────────────────────────────────── */
+.map-frame--lane rect {
+  fill: color-mix(in srgb, var(--mask-2) 60%, transparent);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.map-frame--exception rect {
+  fill: color-mix(in srgb, var(--c-security) 8%, transparent);
+  stroke: color-mix(in srgb, var(--c-security) 55%, var(--border));
+  stroke-width: 1;
+}
+.map-frame--boundary rect {
+  fill: color-mix(in srgb, var(--mask-2) 45%, transparent);
+  stroke: var(--dim-2);
+  stroke-width: 1;
+  stroke-dasharray: 6 4;
+}
+.map-frame__label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  fill: var(--dim);
+  text-transform: uppercase;
+}
+.map-frame--boundary .map-frame__label {
+  fill: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* ── nodes: fill/stroke from the semantic tone ─────────────────────────── */
+.c-mask {
+  fill: var(--mask);
+  stroke: none;
+}
+.map-node {
+  cursor: pointer;
+  outline: none;
+}
+.map-node__box {
+  stroke-width: 1.5;
+  transition:
+    opacity var(--motion),
+    stroke-width var(--motion),
+    filter var(--motion);
+}
+.map-node.c-frontend .map-node__box {
+  fill: color-mix(in srgb, var(--c-frontend) 16%, var(--mask));
+  stroke: var(--c-frontend);
+}
+.map-node.c-backend .map-node__box {
+  fill: color-mix(in srgb, var(--c-backend) 16%, var(--mask));
+  stroke: var(--c-backend);
+}
+.map-node.c-database .map-node__box {
+  fill: color-mix(in srgb, var(--c-database) 18%, var(--mask));
+  stroke: var(--c-database);
+}
+.map-node.c-cloud .map-node__box {
+  fill: color-mix(in srgb, var(--c-cloud) 14%, var(--mask));
+  stroke: var(--c-cloud);
+}
+.map-node.c-security .map-node__box {
+  fill: color-mix(in srgb, var(--c-security) 14%, var(--mask));
+  stroke: var(--c-security);
+}
+.map-node.c-messagebus .map-node__box {
+  fill: color-mix(in srgb, var(--c-messagebus) 14%, var(--mask));
+  stroke: var(--c-messagebus);
+}
+.map-node.c-external .map-node__box {
+  fill: color-mix(in srgb, var(--c-external) 16%, var(--mask));
+  stroke: var(--c-external);
+}
+.map-node__label {
+  fill: var(--ink);
+  font-weight: 700;
+  pointer-events: none;
+}
+.map-node__sublabel {
+  fill: var(--muted);
+  pointer-events: none;
+}
+.map-node:hover .map-node__box,
+.map-node:focus-visible .map-node__box {
+  stroke-width: 2.5;
+}
+.map-node:focus-visible .map-node__box {
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+.map-node.is-focus .map-node__box {
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 7px currentColor);
+}
+.map-node.c-frontend.is-focus {
+  color: var(--c-frontend);
+}
+.map-node.c-backend.is-focus {
+  color: var(--c-backend);
+}
+.map-node.c-database.is-focus {
+  color: var(--c-database);
+}
+.map-node.c-cloud.is-focus {
+  color: var(--c-cloud);
+}
+.map-node.c-security.is-focus {
+  color: var(--c-security);
+}
+.map-node.c-messagebus.is-focus {
+  color: var(--c-messagebus);
+}
+.map-node.c-external.is-focus {
+  color: var(--c-external);
+}
+.map-node.is-dim {
+  opacity: 0.28;
+}
+.map-node.is-reach-up .map-node__box {
+  stroke: var(--c-database);
+  stroke-width: 2.5;
+}
+.map-node.is-reach-down .map-node__box {
+  stroke: var(--c-backend);
+  stroke-width: 2.5;
+}
+
+/* evidence beacons — a text capsule, never colour alone */
+.map-beacon rect {
+  fill: var(--mask);
+  stroke-width: 1;
+}
+.map-beacon text {
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.map-beacon--ok rect {
+  stroke: var(--ok);
+}
+.map-beacon--ok text {
+  fill: var(--ok);
+}
+.map-beacon--warn rect {
+  stroke: var(--warn);
+}
+.map-beacon--warn text {
+  fill: var(--warn);
+}
+.map-beacon--bad rect {
+  stroke: var(--danger);
+}
+.map-beacon--bad text {
+  fill: var(--danger);
+}
+.map-beacon--idle rect {
+  stroke: var(--dim-2);
+}
+.map-beacon--idle text {
+  fill: var(--dim);
+}
+
+/* ── edges ─────────────────────────────────────────────────────────────── */
+.map-edge path {
+  fill: none;
+  stroke: var(--dim-2);
+  stroke-width: 1.4;
+  transition: opacity var(--motion);
+}
+.map-edge--main path,
+.map-edge--role-main path {
+  stroke: var(--c-backend);
+  stroke-width: 2;
+}
+.map-edge--security path {
+  stroke: var(--c-security);
+  stroke-dasharray: 5 3;
+}
+.map-edge--dashed path {
+  stroke: var(--c-cloud);
+  stroke-dasharray: 6 4;
+}
+.map-edge.is-dim {
+  opacity: 0.2;
+}
+.map-edge.is-reach-up path {
+  stroke: var(--c-database);
+  stroke-width: 2.2;
+}
+.map-edge.is-reach-down path {
+  stroke: var(--c-backend);
+  stroke-width: 2.2;
+}
+.map-edge__label text {
+  fill: var(--muted);
+  font-weight: 600;
+}
+.map-edge--security .map-edge__label text {
+  fill: var(--c-security);
+}
+.map-edge--dashed .map-edge__label text {
+  fill: var(--c-cloud);
+}
+.map-arrow {
+  fill: var(--dim-2);
+}
+.map-arrow--main {
+  fill: var(--c-backend);
+}
+.map-arrow--security {
+  fill: var(--c-security);
+}
+.map-arrow--dashed {
+  fill: var(--c-cloud);
+}
+.is-lensing.is-upstream .map-edge.is-reach-up .map-arrow,
+.map-edge.is-reach-up .map-arrow {
+  fill: var(--c-database);
+}
+
+/* ── legend ────────────────────────────────────────────────────────────── */
+.map__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.map__legenditem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.map__legendmain {
+  width: 16px;
+  height: 0;
+  border-top: 2px solid var(--c-backend);
+}
+/* ── nav (bottom-right, like archify's diagram-nav) ────────────────────── */
+.map__nav {
+  position: absolute;
+  right: var(--sp-md);
+  bottom: var(--sp-md);
+  z-index: 8;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  background: color-mix(in srgb, var(--mask) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+}
+.map__nav button,
+.map__nav a {
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--r-precise);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--chrome);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--motion),
+    border-color var(--motion);
+}
+.map__nav button:hover,
+.map__nav a:hover {
+  background: var(--hover);
+  border-color: var(--border);
+}
+.map__nav button[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.map__nav button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.map__nav button:focus-visible,
+.map__nav a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── delivered-map frame (Docs embeds) ─────────────────────────────────── */
+.mapframe {
+  margin: 1.2em 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  overflow: hidden;
+  background: var(--mask);
+}
+.mapframe iframe {
+  display: block;
+  width: 100%;
+  height: 520px;
+  border: 0;
+  background: var(--canvas);
+}
+.mapframe__caption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--chrome);
+  font-size: 0.6875rem;
+  color: var(--muted);
+}
+.mapframe__caption a {
+  margin-left: auto;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mapframe__caption a:hover {
+  text-decoration: underline;
+}
+.mapframe--missing {
+  padding: 10px 12px;
+  font-family: var(--chrome);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map__svg,
+  .map-node__box,
+  .map-edge path {
+    transition: none;
+  }
+}

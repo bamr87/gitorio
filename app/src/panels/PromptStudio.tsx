@@ -7,6 +7,7 @@ import { useFactoryStore } from '../state/store';
 import { splitPrompt, joinPrompt } from '../prompts/frontmatter';
 import { lintPrompt, lintPasses } from '../prompts/lint';
 import { diffLines } from '../prompts/diff';
+import { PageHeader } from '../ui/primitives';
 
 const MARK: Record<string, string> = { error: '✗', warning: '⚠', info: 'ℹ' };
 
@@ -65,8 +66,13 @@ export function PromptStudio() {
 
   return (
     <div className="tabpane promptstudio">
+      <PageHeader
+        title="Prompt Studio"
+        subtitle="The agents’ operating instructions live in the repo at .factory/prompts/ — reviewable, versioned, hot-editable without recompiling."
+        live={loading || saving}
+      />
       <div className="ps">
-        <aside className="ps__library">
+        <aside className="ps__library panel">
           <div className="ps__libhead">
             <span className="panel__eyebrow">Prompts</span>
             <button type="button" className="btn btn--small" onClick={() => void refresh()}>↻</button>
@@ -104,7 +110,7 @@ export function PromptStudio() {
           </div>
         </aside>
 
-        <section className="ps__editor">
+        <section className="ps__editor panel">
           {!selectedPath ? (
             <p className="tabpane__empty">Select a prompt to edit its frontmatter and body. Edits ship as a PR (or a direct commit).</p>
           ) : (

@@ -10,6 +10,8 @@ GitFactory is a **factory builder for GitHub automation**. You drag *machines* o
 
 The frontend is fully static — it deploys to GitHub Pages with no backend. GitHub itself is the database (your blueprint lives in the repo), the event bus (Actions triggers), and the compute layer (Actions runners).
 
+::map gitorio-factory-1 This repository's own issue-triage line, as the map archify delivers for it — lanes are roles, the guard lane is the actor check the compiled YAML really carries.
+
 ## The core idea
 
 Instead of hand-writing YAML, you describe *what* should happen as a graph:
