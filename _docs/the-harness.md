@@ -44,7 +44,9 @@ A tripped wire is an **attention item, not an action** — the loops that own ea
 
 Every assembly line compiles to a **lane** in the `fleet/v1` vocabulary — the `fleet.manifest.yml` the hub and the `wtd` tooling read: an id (the workflow file's name), a kind, the harness that runs it, its triggers, the kill switch that guards it, the tokens it uses, and its guardrails (never merges, opens pull requests, writable paths). The same card appears in the Blueprint passport on the floor, in a workflow's passport under Fleet Observe, and on the Harness tab.
 
-::map docs-gardener The Docs Gardener line — a guide, a rate limiter, a default-OFF switch, and one pull request per run ::map demo--fleet The demo fleet that the demo hub, acme/hub, presents
+::map docs-gardener The Docs Gardener line — a guide, a rate limiter, a default-OFF switch, and one pull request per run
+
+::map demo--fleet The demo fleet that the demo hub, acme/hub, presents
 
 ## Where to go next
 
