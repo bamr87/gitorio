@@ -1,0 +1,90 @@
+[
+  {
+    "scheme": "dark",
+    "kpis": "1 / 6\nTrip wires tripped\n84.6%\nCompletion rate (floor 80)\n76.3%\nEffectiveness (floor 70)\n3\nStanding failures"
+  },
+  {
+    "scheme": "dark",
+    "errors": [],
+    "api": [],
+    "failures": [],
+    "shots": [
+      {
+        "name": "harness-hub",
+        "contained": true
+      },
+      {
+        "name": "harness-hub-full",
+        "contained": true
+      },
+      {
+        "name": "harness-live",
+        "contained": true
+      },
+      {
+        "name": "harness-readiness",
+        "contained": true
+      },
+      {
+        "name": "harness-lanes",
+        "contained": true
+      },
+      {
+        "name": "observe-lane",
+        "contained": true
+      },
+      {
+        "name": "blueprint-lanes",
+        "contained": true
+      },
+      {
+        "name": "settings-hub",
+        "contained": true
+      }
+    ]
+  },
+  {
+    "scheme": "light",
+    "kpis": "1 / 6\nTrip wires tripped\n84.6%\nCompletion rate (floor 80)\n76.3%\nEffectiveness (floor 70)\n3\nStanding failures"
+  },
+  {
+    "scheme": "light",
+    "errors": [],
+    "api": [],
+    "failures": [],
+    "shots": [
+      {
+        "name": "harness-hub",
+        "contained": true
+      },
+      {
+        "name": "harness-hub-full",
+        "contained": true
+      },
+      {
+        "name": "harness-live",
+        "contained": true
+      },
+      {
+        "name": "harness-readiness",
+        "contained": true
+      },
+      {
+        "name": "harness-lanes",
+        "contained": true
+      },
+      {
+        "name": "observe-lane",
+        "contained": true
+      },
+      {
+        "name": "blueprint-lanes",
+        "contained": true
+      },
+      {
+        "name": "settings-hub",
+        "contained": true
+      }
+    ]
+  }
+]

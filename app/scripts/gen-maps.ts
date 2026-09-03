@@ -126,6 +126,21 @@ async function collectJobs(): Promise<MapJob[]> {
 const sha = (v: unknown) =>
   createHash('sha256').update(JSON.stringify(v)).digest('hex').slice(0, 12);
 
+/**
+ * The app's index of delivered maps (specs/013, FR-7): slug → type/source/hash, sorted so the
+ * file is byte-stable. `app/src/map/manifest.ts` imports it at build time to decide where an
+ * "Open delivered map" link may point; `--check` covers it like every other file here.
+ */
+function writeManifest(jobs: MapJob[], dir: string) {
+  const maps = [...jobs]
+    .map((j) => ({ slug: j.slug, type: j.type, source: j.source, hash: j.hash }))
+    .sort((a, b) => a.slug.localeCompare(b.slug));
+  writeFileSync(
+    join(dir, 'manifest.json'),
+    `${JSON.stringify({ generatedBy: 'GITFACTORY gen-maps', archify: archifyCommit, maps }, null, 2)}\n`,
+  );
+}
+
 function listFiles(dir: string): string[] {
   return existsSync(dir)
     ? readdirSync(dir)
@@ -142,6 +157,7 @@ async function main() {
   if (CHECK) {
     const tmp = mkdtempSync(join(tmpdir(), 'gf-maps-'));
     for (const job of jobs) renderJob(job, tmp);
+    writeManifest(jobs, tmp);
     const expected = listFiles(tmp);
     const actual = listFiles(OUT);
     const drift: string[] = [];
@@ -166,6 +182,8 @@ async function main() {
     renderJob(job, OUT);
     console.log(`wrote maps/${job.slug}.html (${job.type}, ${job.source})`);
   }
+  writeManifest(jobs, OUT);
+  console.log('wrote maps/manifest.json');
   writeFileSync(
     join(OUT, 'README.md'),
     '# Generated maps\n\nEvery file here is written by `cd app && npm run maps` (ADR-034). Do not edit — change the blueprint, the fixtures, or `app/src/archify/ir.ts` and regenerate.\n',

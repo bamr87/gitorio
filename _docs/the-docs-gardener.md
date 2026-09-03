@@ -8,6 +8,8 @@ order: 5
 
 The pages in this collection aren't static — they're tended by a factory. The **Docs Gardener** is a daily assembly line, built in GitFactory, that keeps the docs accurate and clear over time.
 
+::map docs-gardener The Docs Gardener line: schedule and plan-first manual lever → kill switch → rate limiter → agent → one pull request.
+
 ## How it runs
 
 Each morning the line fires on a schedule (a manual run is available too, as a dry run unless you tick *apply*). It sits behind the `DOCS_GARDENER_ENABLED` kill switch and a rate limiter, so it can neither run without your consent nor run away.

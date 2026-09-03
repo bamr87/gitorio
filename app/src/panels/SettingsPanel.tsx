@@ -1,9 +1,11 @@
 import './settings.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConnectDialog } from './ConnectDialog';
 import { useGithubStore } from '../state/github';
 import { useSettingsStore } from '../state/settings';
+import { DEFAULT_HUB, useHubStore } from '../state/hub';
 import { repoSlug, type PermState } from '../github/types';
+import { PageHeader, Panel } from '../ui/primitives';
 
 const PERM_MARK: Record<PermState, string> = { ok: '✓', missing: '✗', unknown: '?' };
 const PERM_ROWS: [
@@ -42,9 +44,13 @@ export function SettingsPanel() {
 
   return (
     <div className="tabpane settingspane">
+      <PageHeader
+        title="Settings"
+        subtitle="Connections and preferences. The token lives in sessionStorage only; everything here is harmless to persist."
+      />
       <div className="settings">
         {/* ── Session ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Session</div>
           {login ? (
             <>
@@ -89,10 +95,10 @@ export function SettingsPanel() {
               </button>
             </>
           )}
-        </section>
+        </Panel>
 
         {/* ── Connections ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Connections</div>
           {recentRepos.length === 0 ? (
             <p className="settings__note">
@@ -135,10 +141,11 @@ export function SettingsPanel() {
               ))}
             </div>
           )}
-        </section>
+          <HubField />
+        </Panel>
 
         {/* ── Preferences ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Preferences</div>
           <div className="field">
             <span className="field__label">Theme</span>
@@ -221,10 +228,10 @@ export function SettingsPanel() {
             </select>
             <span className="field__help">Prefilled on new Claude-agent machines.</span>
           </label>
-        </section>
+        </Panel>
 
         {/* ── Maintenance ── */}
-        <section className="settings__sec">
+        <Panel className="settings__sec">
           <div className="panel__eyebrow">Maintenance</div>
           <div className="settings__radios">
             <button
@@ -246,9 +253,50 @@ export function SettingsPanel() {
               Reset preferences
             </button>
           </div>
-        </section>
+        </Panel>
       </div>
       {connectOpen && <ConnectDialog onClose={() => setConnectOpen(false)} />}
     </div>
+  );
+}
+
+/** The hub the Harness tab reads (specs/014, FR-4): a slug only, persisted; never a token. */
+function HubField() {
+  const hubSlug = useHubStore((s) => s.hubSlug);
+  const setHubSlug = useHubStore((s) => s.setHubSlug);
+  const [draft, setDraft] = useState(hubSlug);
+  const [bad, setBad] = useState(false);
+  useEffect(() => setDraft(hubSlug), [hubSlug]);
+  const commit = () => {
+    const ok = setHubSlug(draft.trim() || DEFAULT_HUB);
+    setBad(!ok);
+  };
+  return (
+    <label className="field settings__hub">
+      <span className="field__label">Hub — the site that presents the harness</span>
+      <input
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit();
+        }}
+        placeholder={DEFAULT_HUB}
+        spellCheck={false}
+        aria-invalid={bad || undefined}
+        aria-label="Hub repository"
+      />
+      <span className="field__help">
+        {bad ? (
+          'Expected owner/repo.'
+        ) : (
+          <>
+            The Harness tab reads this repo’s committed <code>_data/*.yml</code> and{' '}
+            <code>fleet.manifest.yml</code> — read-only; the slug persists, never a token. Default{' '}
+            <code>{DEFAULT_HUB}</code>.
+          </>
+        )}
+      </span>
+    </label>
   );
 }

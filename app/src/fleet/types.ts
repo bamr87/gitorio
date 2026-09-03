@@ -5,6 +5,7 @@
 // machine types. Nothing here writes to the target repo.
 
 import type { RepoRef } from '../github/types';
+import type { FleetLane, FleetManifest } from '../harness/lanes';
 
 /** Coarse classification of what a workflow writes. */
 export type SinkKind =
@@ -51,6 +52,8 @@ export interface ImportedWorkflow {
   crossRepoTargets: string[];
   /** a `*_ENABLED`-style kill-switch variable, if the workflow gates on one. */
   gate?: string;
+  /** The `fleet/v1` lane the repo's committed `fleet.manifest.yml` records for this file (specs/014). */
+  lane?: FleetLane;
 }
 
 export type FleetEdgeKind = 'workflow_run' | 'cross_repo';
@@ -73,6 +76,8 @@ export interface Fleet {
   edges: FleetEdge[];
   /** non-fatal parse notes (e.g. a workflow whose YAML could not be parsed). */
   warnings: string[];
+  /** The repo's committed `fleet.manifest.yml` — the hub's interchange contract — when it has one. */
+  manifest?: FleetManifest | null;
 }
 
 /** Stable canvas node id for an external repo target. */

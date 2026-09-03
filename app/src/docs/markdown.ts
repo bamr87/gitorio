@@ -17,7 +17,9 @@ export type Block =
   | { t: 'list'; ordered: boolean; items: Span[][] }
   | { t: 'code'; lang: string; text: string }
   | { t: 'quote'; spans: Span[] }
-  | { t: 'hr' };
+  | { t: 'hr' }
+  /** `::map <slug> [caption]` — a delivered archify map embedded as a figure (specs/013). */
+  | { t: 'map'; slug: string; caption: string };
 
 // Inline tokens, tried in priority order: code span, bold, link, italic. Non-global; we
 // re-scan from each match's end. Code first so `*`/`_` inside backticks stays literal.
@@ -59,6 +61,7 @@ const HR = /^(?:---|\*\*\*|___)\s*$/;
 const UL = /^\s*[-*+]\s+(.*)$/;
 const OL = /^\s*\d+\.\s+(.*)$/;
 const QUOTE = /^>\s?(.*)$/;
+const MAP = /^::map\s+([A-Za-z0-9][A-Za-z0-9_-]*)(?:\s+(.+?))?\s*$/;
 
 /** Parse Markdown text into a block AST. */
 export function parseMarkdown(md: string): Block[] {
@@ -90,6 +93,15 @@ export function parseMarkdown(md: string): Block[] {
 
     if (HR.test(line.trim())) {
       blocks.push({ t: 'hr' });
+      i++;
+      continue;
+    }
+
+    // `::map <slug> [caption]` — one line, its own block; the slug is validated against
+    // the delivered-map manifest by the renderer, never fetched from an arbitrary URL.
+    const mapDirective = MAP.exec(line.trim());
+    if (mapDirective) {
+      blocks.push({ t: 'map', slug: mapDirective[1], caption: (mapDirective[2] ?? '').trim() });
       i++;
       continue;
     }
@@ -136,7 +148,8 @@ export function parseMarkdown(md: string): Block[] {
       !HR.test(lines[i].trim()) &&
       !UL.test(lines[i]) &&
       !OL.test(lines[i]) &&
-      !QUOTE.test(lines[i])
+      !QUOTE.test(lines[i]) &&
+      !MAP.test(lines[i].trim())
     ) {
       buf.push(lines[i].trim());
       i++;

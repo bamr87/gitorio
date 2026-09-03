@@ -7,6 +7,8 @@ import './docs.css';
 import { useMemo, useState } from 'react';
 import { loadDocs } from '../docs/load';
 import { parseMarkdown, type Block, type Span } from '../docs/markdown';
+import { DiagramFrame } from '../map/DiagramFrame';
+import { PageHeader } from '../ui/primitives';
 
 function Inline({ spans }: { spans: Span[] }) {
   return (
@@ -55,6 +57,8 @@ function Markdown({ md }: { md: string }) {
             return <blockquote key={i}><Inline spans={b.spans} /></blockquote>;
           case 'hr':
             return <hr key={i} />;
+          case 'map':
+            return <DiagramFrame key={i} slug={b.slug} caption={b.caption || undefined} />;
           default:
             return null;
         }
@@ -81,9 +85,13 @@ export function DocsView() {
 
   return (
     <div className="tabpane docspane">
+      <PageHeader
+        title="Docs"
+        subtitle="The docs collection this factory tends — rendered from _docs/ and served on GitHub Pages, with the delivered maps embedded where the prose points at a line."
+      />
       <div className="docs">
-        <nav className="docs__nav" aria-label="Docs">
-          <div className="panel__eyebrow">Docs collection</div>
+        <nav className="docs__nav panel" aria-label="Docs">
+          <span className="eyebrow">Docs collection</span>
           <ul>
             {docs.map((d) => (
               <li key={d.slug}>
@@ -102,7 +110,7 @@ export function DocsView() {
             improves these daily.
           </p>
         </nav>
-        <article className="docs__body">
+        <article className="docs__body panel">
           {active && (
             <>
               <header className="docs__head">

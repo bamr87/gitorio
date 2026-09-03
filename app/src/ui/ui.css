@@ -1,0 +1,694 @@
+/* The Evidence Console chrome grammar (specs/013-archify-console). Every value is a theme
+   token or a DESIGN.md constant; no colour literal lives here (theme.test.ts). */
+
+/* ── page header (archify .header-row) ─────────────────────────────────── */
+.pagehead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--sp-lg);
+}
+.pagehead__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  flex-wrap: wrap;
+}
+.pagehead__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.pagehead__title {
+  margin: 0;
+  font-family: var(--chrome);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.pagehead__sub {
+  margin: 0 0 0 calc(12px + var(--sp-md));
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  max-width: 72ch;
+}
+.pagehead__ctl {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pulse {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.pulse.is-live {
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse.is-live {
+    animation: none;
+  }
+}
+
+/* ── panel (archify diagram-panel) ─────────────────────────────────────── */
+.panel {
+  background: var(--mask);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  padding: var(--sp-xl);
+  min-width: 0;
+}
+.panel--flush {
+  padding: 0;
+  overflow: hidden;
+}
+.panel__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-md);
+  margin-bottom: var(--sp-md);
+}
+.panel--flush .panel__head {
+  padding: var(--sp-md) var(--sp-lg) 0;
+}
+.panel__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.panel__title {
+  margin: 0;
+  font-family: var(--chrome);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.panel__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.panel__body {
+  min-width: 0;
+}
+.panel--security {
+  border-color: color-mix(in srgb, var(--c-security) 55%, var(--border));
+}
+.panel--backend {
+  border-color: color-mix(in srgb, var(--c-backend) 55%, var(--border));
+}
+.panel--accent {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+@media (max-width: 720px) {
+  .panel {
+    padding: var(--sp-lg);
+  }
+}
+
+/* ── cards (archify .cards / .card) ────────────────────────────────────── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--sp-md);
+}
+.card {
+  background: var(--mask);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  padding: var(--sp-lg);
+  min-width: 0;
+}
+.card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-sm);
+}
+.card__title {
+  margin: 0;
+  font-family: var(--chrome);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.card__num {
+  display: block;
+  font-family: var(--chrome);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.card__num--alarm {
+  color: var(--danger);
+}
+.card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ── the label role: eyebrow ───────────────────────────────────────────── */
+.eyebrow {
+  display: inline-block;
+  font-family: var(--chrome);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  line-height: 1.35;
+}
+
+/* ── kbd (viewer shortcut hints) ───────────────────────────────────────── */
+.kbd {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 0.35em;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--r-precise);
+  background: var(--canvas);
+  color: var(--muted);
+  font-family: var(--chrome);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* ── search-field recipe ───────────────────────────────────────────────── */
+.search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0.42rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  background: var(--canvas);
+  color: var(--muted);
+  transition:
+    border-color var(--motion),
+    box-shadow var(--motion);
+}
+.search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.search__icon {
+  flex-shrink: 0;
+}
+.search__input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--chrome);
+  font-size: 0.75rem;
+}
+.search__input::placeholder {
+  color: var(--dim);
+}
+
+/* ── evidence beacon ───────────────────────────────────────────────────── */
+.beacon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 14px;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: var(--r-pill);
+  background: var(--mask);
+  font-family: var(--chrome);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+.beacon--ok {
+  color: var(--ok);
+}
+.beacon--warn {
+  color: var(--warn);
+}
+.beacon--bad {
+  color: var(--danger);
+}
+.beacon--idle {
+  color: var(--dim);
+}
+
+/* ── the centred page container (archify .container) ──────────────────── */
+.container {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-lg);
+  min-width: 0;
+}
+.container--narrow {
+  max-width: 960px;
+}
+
+/* ── shared tone swatch (legends, finder rows, cards) ──────────────────── */
+.tone-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+  flex-shrink: 0;
+}
+.tone-dot--frontend {
+  color: var(--c-frontend);
+}
+.tone-dot--backend {
+  color: var(--c-backend);
+}
+.tone-dot--database {
+  color: var(--c-database);
+}
+.tone-dot--cloud {
+  color: var(--c-cloud);
+}
+.tone-dot--security {
+  color: var(--c-security);
+}
+.tone-dot--messagebus {
+  color: var(--c-messagebus);
+}
+.tone-dot--external {
+  color: var(--c-external);
+}
+
+/* ── finder (archify's node-finder) ────────────────────────────────────── */
+.finder {
+  position: absolute;
+  top: var(--sp-md);
+  left: var(--sp-md);
+  z-index: 24;
+  display: flex;
+  flex-direction: column;
+  width: min(22rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: var(--mask);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.75rem;
+}
+.finder__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0.6rem 0.75rem 0.3rem;
+}
+.finder__head strong {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+.finder__close,
+.passport__x {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-precise);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 5px;
+}
+.finder__close:hover,
+.passport__x:hover {
+  color: var(--ink);
+  border-color: var(--border);
+}
+.finder__close:focus-visible,
+.passport__x:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.finder__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0.75rem 0.4rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  background: var(--canvas);
+  color: var(--muted);
+}
+.finder__search:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.finder__input {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+.finder__results {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.finder__result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.2rem 0.75rem;
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion);
+}
+.finder__result.is-active,
+.finder__result:hover {
+  background: var(--hover);
+}
+.finder__result:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.finder__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.finder__label small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.finder__meta {
+  color: var(--muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+  text-align: right;
+}
+.finder__meta code {
+  color: var(--dim);
+  margin-left: 6px;
+}
+.finder__empty,
+.finder__status {
+  margin: 0;
+  padding: 0.4rem 0.75rem 0.6rem;
+  color: var(--dim);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+}
+.finder__empty {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+/* ── the Semantic Passport (archify's focus-chip) ──────────────────────── */
+.passport {
+  position: absolute;
+  top: var(--sp-md);
+  right: var(--sp-md);
+  z-index: 12;
+  width: min(22rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+  border: 1px solid var(--accent);
+  border-radius: 0.85rem;
+  background: var(--mask);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.6875rem;
+  padding: 0.75rem 0.85rem 0.85rem;
+}
+.passport[data-tone='backend'] {
+  border-color: var(--c-backend);
+}
+.passport[data-tone='security'] {
+  border-color: var(--c-security);
+}
+.passport[data-tone='database'] {
+  border-color: var(--c-database);
+}
+.passport[data-tone='cloud'] {
+  border-color: var(--c-cloud);
+}
+.passport[data-tone='messagebus'] {
+  border-color: var(--c-messagebus);
+}
+.passport[data-tone='external'] {
+  border-color: var(--c-external);
+}
+.passport--docked {
+  position: static;
+  width: 100%;
+  max-height: none;
+  box-shadow: none;
+}
+.passport__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.passport__copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.passport__eyebrow,
+.passport__label {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.passport__label {
+  margin-bottom: 5px;
+}
+.passport__title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.passport__detail {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.passport__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+}
+.passport__id {
+  color: var(--dim);
+  font-size: 0.625rem;
+  overflow-wrap: anywhere;
+}
+.passport__actions {
+  display: flex;
+  gap: 4px;
+}
+.passport__section {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.passport__section--action {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.passport__reach {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.passport__reachbtns {
+  display: flex;
+  gap: 6px;
+}
+.passport__reachbtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  background: var(--canvas);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--motion),
+    background-color var(--motion);
+}
+.passport__reachbtn strong {
+  font-size: 0.8rem;
+}
+.passport__reachbtn:hover {
+  border-color: var(--muted);
+}
+.passport__reachbtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.passport__reachbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.passport__reachbtn--up[aria-pressed='true'] {
+  border-color: var(--c-database);
+  color: var(--c-database);
+  background: color-mix(in srgb, var(--c-database) 12%, var(--canvas));
+}
+.passport__reachbtn--down[aria-pressed='true'] {
+  border-color: var(--c-backend);
+  color: var(--c-backend);
+  background: color-mix(in srgb, var(--c-backend) 12%, var(--canvas));
+}
+.passport__receipt {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.04em;
+}
+.passport__rel {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin: 4px 0;
+}
+.passport__relkey {
+  min-width: 48px;
+  color: var(--dim);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.passport__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.passport__facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 10px;
+}
+.passport__fact {
+  display: contents;
+}
+.passport__fact dt {
+  color: var(--dim);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding-top: 2px;
+}
+.passport__fact dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+.passport__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.passport__list li {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-left: 2px solid var(--border);
+  background: var(--canvas);
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+}
+.passport__list--ok li {
+  border-left-color: var(--ok);
+}
+.passport__list--warn li {
+  border-left-color: var(--warn);
+}
+.passport__list--bad li {
+  border-left-color: var(--danger);
+}
+.passport__note {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.passport__note--warning {
+  color: var(--warn);
+}
+.passport__note--error {
+  color: var(--danger);
+}
+.passport code {
+  color: var(--accent);
+  font-size: 0.68rem;
+}

@@ -51,6 +51,7 @@ HR = re.compile(r"^\s{0,3}([-*_])(\s*\1){2,}\s*$")      # ---, ***, ___ thematic
 INDENT_CODE = re.compile(r"^(\t| {4,})")                # 4-space / tab indented code
 SETEXT = re.compile(r"^\s{0,3}(=+|-+)\s*$")             # === or --- heading underline
 HARD_BREAK = re.compile(r"(\s{2,}|\\)$")                # trailing "  " or "\" -> <br>
+DIRECTIVE = re.compile(r"^\s{0,3}::[A-Za-z][A-Za-z0-9_-]*(\s|$)")  # ::map <slug> — a one-line block directive (the Docs tab)
 
 
 def starts_atomic(line: str) -> bool:
@@ -67,6 +68,7 @@ def starts_atomic(line: str) -> bool:
         or INDENT_CODE.match(line)
         or FENCE.match(line)
         or "|" in line  # any table row (leading-pipe or not) — safe to leave alone
+        or DIRECTIVE.match(line) is not None  # two ::map lines in a row are two embeds, never one paragraph
     )
 
 

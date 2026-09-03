@@ -399,6 +399,11 @@ const GRID = {
   origin: [40, 48] as [number, number],
 };
 
+/** The architecture-IR component id of one workflow — shared with the in-app map so a passport can find its workflow (specs/013). */
+export function fleetComponentId(repo: string, workflowSlug: string): string {
+  return safeId(`${safeId(repo)}--${workflowSlug}`);
+}
+
 function componentTypeForWorkflow(w: Fleet['workflows'][number]): ComponentType {
   if (w.hasAgent) return 'backend';
   if (w.sinks.includes('dispatch') || w.sinks.includes('cross_repo_issue')) return 'messagebus';
@@ -455,7 +460,7 @@ export function toArchitectureIR(
     const idFor = new Map<string, string>();
     const startRow = row;
     kept.forEach((w, i) => {
-      const id = safeId(`${prefix}--${w.slug}`);
+      const id = fleetComponentId(slug, w.slug);
       idFor.set(w.path, id);
       const trig = [...new Set(w.triggers.map((t) => t.kind))].join(', ');
       components.push({

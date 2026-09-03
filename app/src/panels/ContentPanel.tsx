@@ -10,6 +10,7 @@ import { useContentStore } from '../state/content';
 import { useGithubStore } from '../state/github';
 import { DemoInvite } from './DemoBanner';
 import { slugId, starvedKinds, type BacklogPriority, type BacklogStatus } from '../content/model';
+import { PageHeader, Panel } from '../ui/primitives';
 
 const MODELS = ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'];
 const PRIORITIES: BacklogPriority[] = ['low', 'normal', 'high'];
@@ -57,23 +58,19 @@ export function ContentPanel() {
   return (
     <div className="tabpane contentpane">
       <div className="content">
-        <header className="content__head">
-          <div>
-            <h2 className="content__title">Content factory</h2>
-            <p className="content__sub">
-              The headless-CMS cockpit — configure the writer, curate its queue, and arm the autonomous lines.
-            </p>
-          </div>
-          <div className="content__headctl">
-            <label className="content__mode">
-              <input type="checkbox" checked={mode === 'pr'} onChange={(e) => setMode(e.target.checked ? 'pr' : 'commit')} />
-              Save as PR
-            </label>
-            <button type="button" className="btn btn--small" onClick={() => void refresh()} disabled={loading}>
-              {loading ? '…' : '↻ Refresh'}
-            </button>
-          </div>
-        </header>
+        <PageHeader
+          title="Content factory"
+          subtitle="The headless-CMS cockpit — configure the writer, curate its queue, and arm the autonomous lines."
+          live={loading}
+        >
+          <label className="content__mode">
+            <input type="checkbox" checked={mode === 'pr'} onChange={(e) => setMode(e.target.checked ? 'pr' : 'commit')} />
+            Save as PR
+          </label>
+          <button type="button" className="btn btn--small" onClick={() => void refresh()} disabled={loading}>
+            {loading ? '…' : '↻ Refresh'}
+          </button>
+        </PageHeader>
 
         {error && <div className="content__error" role="alert">{error}</div>}
         {prUrl && (
@@ -84,7 +81,7 @@ export function ContentPanel() {
         )}
 
         {/* ── Kill switches ── */}
-        <section className="content__sec">
+        <Panel className="content__sec">
           <div className="panel__eyebrow">Kill switches — arm the autonomous lines</div>
           {switches.length === 0 ? (
             <p className="content__note">
@@ -116,10 +113,10 @@ export function ContentPanel() {
             A switch flips a repo <b>variable</b> — it takes effect on the next run with no redeploy. Default-OFF:
             an unset switch keeps the line idle.
           </p>
-        </section>
+        </Panel>
 
         {/* ── Central config ── */}
-        <section className="content__sec">
+        <Panel className="content__sec">
           <div className="panel__eyebrow">Central config · <code>.factory/config.yml</code></div>
           <div className="content__grid">
             <label className="field">
@@ -226,10 +223,10 @@ export function ContentPanel() {
           <button type="button" className="btn" onClick={() => void saveConfig()} disabled={saving}>
             {saving ? 'Saving…' : configSha ? 'Save config' : 'Create config'}
           </button>
-        </section>
+        </Panel>
 
         {/* ── Backlog ── */}
-        <section className="content__sec">
+        <Panel className="content__sec">
           <div className="panel__eyebrow">
             Content backlog · <code>.factory/backlog.yml</code>
             {starved.length > 0 && (
@@ -278,7 +275,7 @@ export function ContentPanel() {
               {saving ? 'Saving…' : backlogSha ? 'Save backlog' : 'Create backlog'}
             </button>
           </div>
-        </section>
+        </Panel>
       </div>
     </div>
   );

@@ -35,6 +35,7 @@ import {
   DEMO_BACKLOG_YML,
   DEMO_BLUEPRINT,
   DEMO_CONFIG_YML,
+  DEMO_HUB,
   DEMO_LEDGER_JSON,
   DEMO_LOGIN,
   DEMO_PLAIN_WORKFLOWS,
@@ -186,6 +187,8 @@ interface RepoState {
   runs: FactoryRun[];
   /** Branches created this session, plus the default. */
   branches: Set<string>;
+  /** Files whose generators are lazy chunks (the hub's tree, a repo's compiled manifest) land on first read — one shared seeding, so concurrent reads all wait for it. */
+  seeding: Promise<void> | null;
   nextIssue: number;
   nextPr: number;
 }
@@ -229,6 +232,7 @@ export function createDemoClient(opts: DemoClientOptions = {}): DemoClient {
       const known = isDemoRepo(slug);
       st = {
         files: known ? initialFiles(slug) : new Map(),
+        seeding: null,
         variables: known ? DEMO_VARIABLES[slug].map((v) => ({ ...v })) : [],
         secrets: new Set(known ? ['CLAUDE_CODE_OAUTH_TOKEN'] : []),
         workflows: known ? demoWorkflows(slug) : [],
@@ -240,6 +244,33 @@ export function createDemoClient(opts: DemoClientOptions = {}): DemoClient {
       states.set(slug, st);
     }
     return st;
+  };
+
+  /**
+   * Two generators are lazy chunks and run on first touch, never on entry: the demo hub's tree
+   * (the harness engine) and the fleet/v1 manifest GitFactory compiles for a blueprint-bearing
+   * repo (specs/014) — what the hub would read for it. Session writes are never overwritten.
+   */
+  const seedFiles = async (st: RepoState, slug: string): Promise<void> => {
+    if (slug === DEMO_HUB) {
+      const { demoHubFiles } = await import('./hub');
+      for (const [path, body] of demoHubFiles(clock())) {
+        if (!st.files.has(path)) st.files.set(path, body);
+      }
+    }
+    const blueprint = isDemoRepo(slug) ? demoBlueprintFor(slug) : null;
+    if (blueprint && !st.files.has('fleet.manifest.yml')) {
+      const { toFleetManifestYaml } = await import('../harness/manifest-yaml');
+      st.files.set('fleet.manifest.yml', toFleetManifestYaml(blueprint, slug));
+    }
+  };
+
+  /** The repo's files, seeded once; parallel reads (a fleet import, a hub refresh) share the wait. */
+  const filesOf = async (repo: RepoRef): Promise<Map<string, string>> => {
+    const st = stateOf(repo);
+    if (!st.seeding) st.seeding = seedFiles(st, repoSlug(repo));
+    await st.seeding;
+    return st.files;
   };
 
   const client: DemoClient = {
@@ -265,7 +296,7 @@ export function createDemoClient(opts: DemoClientOptions = {}): DemoClient {
     },
 
     async getFile(repo: RepoRef, path: string): Promise<RepoFile | null> {
-      const content = stateOf(repo).files.get(path);
+      const content = (await filesOf(repo)).get(path);
       if (content === undefined) return null;
       return { path, content, sha: fakeSha(path, content) };
     },
@@ -273,7 +304,7 @@ export function createDemoClient(opts: DemoClientOptions = {}): DemoClient {
     async listDir(repo: RepoRef, path: string): Promise<RepoDirEntry[]> {
       const prefix = path.replace(/\/$/, '');
       const seen = new Map<string, RepoDirEntry>();
-      for (const [p, content] of stateOf(repo).files) {
+      for (const [p, content] of await filesOf(repo)) {
         if (prefix && !p.startsWith(`${prefix}/`)) continue;
         const rest = prefix ? p.slice(prefix.length + 1) : p;
         const cut = rest.indexOf('/');
@@ -291,12 +322,12 @@ export function createDemoClient(opts: DemoClientOptions = {}): DemoClient {
     },
 
     async putFile(repo: RepoRef, path: string, content: string, message: string): Promise<void> {
-      stateOf(repo).files.set(path, content);
+      (await filesOf(repo)).set(path, content);
       record('file', `${repoSlug(repo)} · ${path} — ${message}`);
     },
 
     async deleteFile(repo: RepoRef, path: string, _sha: string, message: string): Promise<void> {
-      stateOf(repo).files.delete(path);
+      (await filesOf(repo)).delete(path);
       record('file', `${repoSlug(repo)} · deleted ${path} — ${message}`);
     },
 

@@ -92,3 +92,22 @@ describe('frontmatter + doc parsing', () => {
     expect(sorted.map((x) => x.slug)).toEqual(['c', 'a', 'b']); // ordered first (1,2), then unordered by title
   });
 });
+
+describe('::map directive (specs/013 FR-7)', () => {
+  it('parses a slug with and without a caption into its own block', () => {
+    const blocks = parseMarkdown('intro\n\n::map gitorio-factory-1 The dogfood line\n\n::map docs-gardener\nafter');
+    expect(blocks).toEqual([
+      { t: 'para', spans: [{ t: 'text', v: 'intro' }] },
+      { t: 'map', slug: 'gitorio-factory-1', caption: 'The dogfood line' },
+      { t: 'map', slug: 'docs-gardener', caption: '' },
+      { t: 'para', spans: [{ t: 'text', v: 'after' }] },
+    ]);
+  });
+
+  it('leaves a malformed directive as prose', () => {
+    const blocks = parseMarkdown('::map\n::map !bad-slug');
+    expect(blocks.every((b) => b.t === 'para')).toBe(true);
+    // A caption may carry punctuation; the slug may not.
+    expect(parseMarkdown('::map ok Reads: lanes, guard!')[0]).toEqual({ t: 'map', slug: 'ok', caption: 'Reads: lanes, guard!' });
+  });
+});

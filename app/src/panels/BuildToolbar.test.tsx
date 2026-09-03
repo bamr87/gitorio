@@ -11,6 +11,8 @@ const props = {
   onTemplates: noop, onImportFile: noop, onImportString: noop, onExport: noop,
   onCopyString: noop, onDeploy: noop, canDeploy: false, loggedIn: false,
   showTelemetry: false, onToggleTelemetry: noop,
+  mode: 'floor' as const, onMode: noop, finderOpen: false, onFinder: noop,
+  passportOpen: false, onPassport: noop,
 };
 
 beforeEach(() => {
@@ -44,5 +46,28 @@ describe('BuildToolbar', () => {
     expect((screen.getByRole('button', { name: '↶' }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: /Deploy/ }));
     expect(onDeploy).toHaveBeenCalled();
+  });
+});
+
+describe('BuildToolbar — console controls (specs/013 FR-5)', () => {
+  it('offers Floor | Map, the Machine Finder on the floor only, and the blueprint passport', () => {
+    const onMode = vi.fn();
+    const onFinder = vi.fn();
+    const onPassport = vi.fn();
+    const { rerender } = render(
+      <BuildToolbar {...props} onMode={onMode} onFinder={onFinder} onPassport={onPassport} />,
+    );
+    const floor = screen.getByRole('button', { name: /Floor/ });
+    const map = screen.getByRole('button', { name: /Map/ });
+    expect(floor.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(map);
+    expect(onMode).toHaveBeenCalledWith('map');
+    fireEvent.click(screen.getByRole('button', { name: /\+ Machine/ }));
+    expect(onFinder).toHaveBeenCalled();
+    fireEvent.click(screen.getByTitle(/Blueprint passport/));
+    expect(onPassport).toHaveBeenCalled();
+    rerender(<BuildToolbar {...props} mode="map" onMode={onMode} />);
+    expect(screen.queryByRole('button', { name: /\+ Machine/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /Map/ }).getAttribute('aria-pressed')).toBe('true');
   });
 });

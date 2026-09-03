@@ -15,8 +15,9 @@ import { parseRepo } from '../github/types';
 import { useFactoryStore } from '../state/store';
 import { useFleetOpsStore } from '../state/fleetops';
 import { useGithubStore } from '../state/github';
+import { useHubStore } from '../state/hub';
 import { createDemoClient, demoBlueprintFor, type DemoClient } from './client';
-import { DEMO_PRIMARY, DEMO_REPOS, type Clock } from './fixtures';
+import { DEMO_HUB, DEMO_PRIMARY, DEMO_REPOS, type Clock } from './fixtures';
 
 /** The live demo client, or null when the app is in its ordinary state. */
 let active: DemoClient | null = null;
@@ -71,6 +72,8 @@ export function enterDemoMode(opts: EnterDemoOptions = {}): Promise<DemoClient> 
 
   // Seed the roster with all three demo repos so Fleet Command has a fleet to scan.
   useFleetOpsStore.getState().addRepos(DEMO_REPOS.join(' '));
+  // The Harness tab reads the demo hub (specs/014): a session-only override, never persisted.
+  useHubStore.getState().setHubSlug(DEMO_HUB, { persist: false });
 
   return client.preflight(repo).then((preflight) => {
     if (active === client) useGithubStore.setState({ preflight });
@@ -88,6 +91,7 @@ export function exitDemoMode(): void {
   useGithubStore.getState().disconnect();
   const fleetOps = useFleetOpsStore.getState();
   for (const slug of DEMO_REPOS) fleetOps.removeRepo(slug);
+  useHubStore.getState().restorePersisted();
 }
 
 /** Does this URL ask for the demo? (`?demo=1`, or `#demo`.) */
