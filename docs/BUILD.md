@@ -2,9 +2,7 @@
 
 The canonical answer to "how do I build this, and where does the output go?"
 
-This page exists so that automated consumers — a repeat-build reproducibility
-harness, a non-determinism audit, a cross-entry-point differential test — have a
-single place to read the build contract instead of each re-deriving it.
+This page exists so that automated consumers — a repeat-build reproducibility harness, a non-determinism audit, a cross-entry-point differential test — have a single place to read the build contract instead of each re-deriving it.
 
 > **Status of this document.** Everything below is sourced from
 > [`README.md`](../README.md) and the repository's top-level layout. Sections
@@ -22,10 +20,7 @@ single place to read the build contract instead of each re-deriving it.
 - Alternatively, **Docker** — see [§5](#5-container-equivalent-invocations). No
   local Node install is required in that path.
 
-`app/` is **the only npm project in the repository** (README § *Quickstart* and
-§ *Repository layout*). There is no root-level `package.json` in the top-level
-listing. Any `npm` command below therefore runs with `app/` as its working
-directory.
+`app/` is **the only npm project in the repository** (README § *Quickstart* and § *Repository layout*). There is no root-level `package.json` in the top-level listing. Any `npm` command below therefore runs with `app/` as its working directory.
 
 ---
 
@@ -55,25 +50,21 @@ The full documented script surface, all run from `app/`:
 | `npm run lint` | ESLint | *(nothing)* |
 | `npm run build` | Typecheck + production build | **`app/dist`** |
 
-*(Source: README § Quickstart (development). These names and descriptions have
-not been cross-checked against `app/package.json` — see [§7](#7-open-questions).)*
+*(Source: README § Quickstart (development). These names and descriptions have not been cross-checked against `app/package.json` — see [§7](#7-open-questions).)*
 
 ---
 
 ## 3. Output-tree layout
 
-There are **two distinct pipelines** in this repository that produce output, and
-reproducibility work needs to be explicit about which one it means.
+There are **two distinct pipelines** in this repository that produce output, and reproducibility work needs to be explicit about which one it means.
 
 ### 3.1 The site build → `app/dist`
 
-`npm run build` produces `app/dist`. This is the static frontend that gets
-published. It is the tree a repeat-build comparison should diff.
+`npm run build` produces `app/dist`. This is the static frontend that gets published. It is the tree a repeat-build comparison should diff.
 
 ### 3.2 The blueprint compile pipeline → workflow YAML
 
-The application compiles blueprints into GitHub Actions workflows. Compiled
-output lands in two places, both documented in the README § *Repository layout*:
+The application compiles blueprints into GitHub Actions workflows. Compiled output lands in two places, both documented in the README § *Repository layout*:
 
 | Path | Nature |
 | --- | --- |
@@ -88,9 +79,7 @@ The corresponding **inputs** are:
 | `examples/` (excluding `compiled/`) | Example blueprints — source. |
 | `schema/blueprint.schema.json` | The blueprint contract; drift-guarded against the machine registry. |
 
-See [`GENERATED-FILES.md`](GENERATED-FILES.md) for the authoritative
-source-vs-generated distinction; this table summarises it and defers to it on any
-conflict.
+See [`GENERATED-FILES.md`](GENERATED-FILES.md) for the authoritative source-vs-generated distinction; this table summarises it and defers to it on any conflict.
 
 ---
 
@@ -100,12 +89,9 @@ Documented ways to invoke a build or a compile:
 
 1. **`npm run build`** from `app/` — the site build (§2).
 2. **The in-app Compile button** — "press **Compile** to see the generated
-   workflows" (README § *Quickstart*). This is the interactive path through the
-   blueprint compiler in `app/src/compiler/`.
+workflows" (README § *Quickstart*). This is the interactive path through the blueprint compiler in `app/src/compiler/`.
 3. **`docker compose run --rm dev npm run build`** — the same npm script inside a
-   container (§5). This is a wrapper around (1), not an independent
-   implementation, but it is a distinct invocation surface and therefore a
-   legitimate subject for a differential test.
+container (§5). This is a wrapper around (1), not an independent implementation, but it is a distinct invocation surface and therefore a legitimate subject for a differential test.
 
 > **Open question — entry-point enumeration is incomplete.** The presence of
 > checked-in compiled output under `.github/workflows/factory--*.yml` and
@@ -131,14 +117,9 @@ docker compose --profile preview up --build   # production build via nginx → h
 docker compose down                           # stop everything
 ```
 
-The working tree is mounted into the `dev` container, so edits hot-reload;
-`VITE_USE_POLLING=true` keeps HMR reliable across the macOS ↔ container boundary.
-(README § *Run with Docker*.)
+The working tree is mounted into the `dev` container, so edits hot-reload; `VITE_USE_POLLING=true` keeps HMR reliable across the macOS ↔ container boundary. (README § *Run with Docker*.)
 
-Because the tree is bind-mounted, `docker compose run --rm dev npm run build`
-writes to the **same** `app/dist` on the host as the local build does. A harness
-that wants to compare host and container builds must therefore move or copy the
-first result out of the way before running the second — see [§6](#6-building-the-same-input-into-two-trees).
+Because the tree is bind-mounted, `docker compose run --rm dev npm run build` writes to the **same** `app/dist` on the host as the local build does. A harness that wants to compare host and container builds must therefore move or copy the first result out of the way before running the second — see [§6](#6-building-the-same-input-into-two-trees).
 
 ---
 
@@ -170,15 +151,13 @@ first result out of the way before running the second — see [§6](#6-building-
 
 ## 7. Artifacts vs. incidental paths
 
-Reproducibility comparisons should use an **allow-list**, not an ignore-list.
-Ignore-lists drift as new caches appear; an allow-list does not.
+Reproducibility comparisons should use an **allow-list**, not an ignore-list. Ignore-lists drift as new caches appear; an allow-list does not.
 
 **Compare exactly this:**
 
 - `app/dist` — the entire tree, for the site build.
 - `.github/workflows/factory--*.yml` and `examples/compiled/` — for the compile
-  pipeline (see the open question in §4 about how to regenerate them
-  non-interactively).
+pipeline (see the open question in §4 about how to regenerate them non-interactively).
 
 **Everything else is out of scope for a build-reproducibility diff**, including:
 
@@ -196,15 +175,12 @@ Ignore-lists drift as new caches appear; an allow-list does not.
 
 ## 8. Open questions
 
-A maintainer with pipeline knowledge should resolve these; each one blocks
-downstream automation.
+A maintainer with pipeline knowledge should resolve these; each one blocks downstream automation.
 
 1. **Output-directory mechanism (§6).** Is there a flag, env var, or config knob
-   that redirects the build output? If not, is `mv` the sanctioned workaround?
-   *Blocks: the repeat-build reproducibility harness.*
+that redirects the build output? If not, is `mv` the sanctioned workaround? *Blocks: the repeat-build reproducibility harness.*
 2. **Non-interactive compile entry point (§4).** What regenerates
-   `.github/workflows/factory--*.yml` and `examples/compiled/`? A script, a
-   workflow, a test? *Blocks: the cross-entry-point differential test.*
+`.github/workflows/factory--*.yml` and `examples/compiled/`? A script, a workflow, a test? *Blocks: the cross-entry-point differential test.*
 3. **Script-definition drift (§2).** The script table is transcribed from the
    README, not from `app/package.json`. Someone should confirm the two agree.
 4. **Cache and log paths (§7).** Worth enumerating if any consumer ever needs an
