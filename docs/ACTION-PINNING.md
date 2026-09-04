@@ -1,15 +1,12 @@
 # Action pinning policy
 
-Every third-party GitHub Action used in this repository's workflows must be
-pinned to a **full 40-character commit SHA**, with the human-readable version
-kept next to it in a trailing comment:
+Every third-party GitHub Action used in this repository's workflows must be pinned to a **full 40-character commit SHA**, with the human-readable version kept next to it in a trailing comment:
 
 ```yaml
 - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 ```
 
-A CI gate named **`action-pin-check`** enforces this. If you add or edit a
-workflow step and the gate fails, this page is the fix.
+A CI gate named **`action-pin-check`** enforces this. If you add or edit a workflow step and the gate fails, this page is the fix.
 
 > **Note for maintainers:** this document was written from the gate's stated
 > contract. The exact script path, the allowlist file format, and the
@@ -18,19 +15,11 @@ workflow step and the gate fails, this page is the fix.
 
 ## Why SHAs and not tags
 
-A git tag is a mutable pointer. Whoever controls an action's repository can
-move `v4` — or even `v4.2.2` — to point at different code tomorrow, and every
-workflow that references the tag silently starts running that new code. Our
-workflows run Claude Code agents with write-scoped tokens against real
-repositories, so "whatever `v4` means today" is not an acceptable input.
+A git tag is a mutable pointer. Whoever controls an action's repository can move `v4` — or even `v4.2.2` — to point at different code tomorrow, and every workflow that references the tag silently starts running that new code. Our workflows run Claude Code agents with write-scoped tokens against real repositories, so "whatever `v4` means today" is not an acceptable input.
 
-A commit SHA is content-addressed and immutable. Pinning to one means an
-upgrade is a reviewable diff in this repository rather than an event that
-happens to us.
+A commit SHA is content-addressed and immutable. Pinning to one means an upgrade is a reviewable diff in this repository rather than an event that happens to us.
 
-The trailing `# vX.Y.Z` comment is not decoration: it is the only thing that
-makes a wall of hex readable to a human reviewer, and it is what tooling such
-as Dependabot reads and rewrites when it proposes a bump.
+The trailing `# vX.Y.Z` comment is not decoration: it is the only thing that makes a wall of hex readable to a human reviewer, and it is what tooling such as Dependabot reads and rewrites when it proposes a bump.
 
 ## The required format
 
@@ -46,11 +35,9 @@ Rules:
 - **A version comment on the same line.** Use the tag the SHA corresponds to,
   verbatim (`# v4.2.2`, not `# 4.2.2` or `# latest`).
 - The comment must describe the SHA you actually pinned. A comment that says
-  `# v4.2.2` next to the SHA of `v4.1.0` is worse than no comment at all,
-  because reviewers will trust it.
+`# v4.2.2` next to the SHA of `v4.1.0` is worse than no comment at all, because reviewers will trust it.
 
-Subpath actions follow the same shape — the SHA belongs to the repository, not
-the subdirectory:
+Subpath actions follow the same shape — the SHA belongs to the repository, not the subdirectory:
 
 ```yaml
 - uses: owner/repo/sub/action@<40-char-sha> # v1.3.0
@@ -60,13 +47,9 @@ the subdirectory:
 
 ### 1. Pick the release you want
 
-Go to the action's releases page and choose a specific tag — for example
-`v4.2.2`. Prefer an exact patch tag over a floating major (`v4`), since you are
-about to record what it resolved to and future readers will want to know.
+Go to the action's releases page and choose a specific tag — for example `v4.2.2`. Prefer an exact patch tag over a floating major (`v4`), since you are about to record what it resolved to and future readers will want to know.
 
-While you are there, do the due diligence that pinning cannot do for you: is
-this action maintained, does it need the permissions you are about to grant it,
-and is there a first-party or already-pinned alternative already in this repo?
+While you are there, do the due diligence that pinning cannot do for you: is this action maintained, does it need the permissions you are about to grant it, and is there a first-party or already-pinned alternative already in this repo?
 
 ### 2. Resolve the tag to a commit SHA
 
@@ -74,25 +57,20 @@ and is there a first-party or already-pinned alternative already in this repo?
 git ls-remote https://github.com/owner/repo refs/tags/vX.Y.Z^{}
 ```
 
-The `^{}` suffix **dereferences** the tag. Most action repositories publish
-annotated tags, and without `^{}` you get the SHA of the tag object itself
-rather than the commit it points at — which will not match what Actions
-resolves and is a genuinely confusing failure mode. Worked example:
+The `^{}` suffix **dereferences** the tag. Most action repositories publish annotated tags, and without `^{}` you get the SHA of the tag object itself rather than the commit it points at — which will not match what Actions resolves and is a genuinely confusing failure mode. Worked example:
 
 ```console
 $ git ls-remote https://github.com/actions/checkout refs/tags/v4.2.2^{}
 11bd71901bbe5b1630ceea73d27597364c9af683	refs/tags/v4.2.2^{}
 ```
 
-If that command prints nothing, the tag is lightweight (it points directly at a
-commit). Re-run without the dereference and use that SHA:
+If that command prints nothing, the tag is lightweight (it points directly at a commit). Re-run without the dereference and use that SHA:
 
 ```bash
 git ls-remote https://github.com/owner/repo refs/tags/vX.Y.Z
 ```
 
-An empty result from both means the tag does not exist — check the spelling and
-whether the project prefixes tags with `v`.
+An empty result from both means the tag does not exist — check the spelling and whether the project prefixes tags with `v`.
 
 ### 3. Write the pin
 
@@ -103,15 +81,13 @@ steps:
 
 ### 4. Re-run the gate
 
-Push and let `action-pin-check` run on the pull request. To catch it earlier,
-run the checker locally before pushing:
+Push and let `action-pin-check` run on the pull request. To catch it earlier, run the checker locally before pushing:
 
 ```bash
 ./scripts/check-action-pins.sh
 ```
 
-(If that path has moved, look for the step that invokes the pin checker in
-`.github/workflows/` and run the same command.)
+(If that path has moved, look for the step that invokes the pin checker in `.github/workflows/` and run the same command.)
 
 ## Updating an existing pin
 
@@ -126,25 +102,16 @@ A pin whose SHA moved but whose comment did not is a review-blocking error.
 
 ## Generated workflow files
 
-The compiled `factory--*.yml` workflows in `.github/workflows/` carry a
-`GENERATED BY GITFACTORY` header and must never be hand-edited — see
-[`GENERATED-FILES.md`](GENERATED-FILES.md). If a pin needs to change in one of
-those files, change it at the source (the compiler / blueprint that emits the
-step) and recompile. Hand-fixing a generated file will pass the gate exactly
-once, until the next compile reverts it.
+The compiled `factory--*.yml` workflows in `.github/workflows/` carry a `GENERATED BY GITFACTORY` header and must never be hand-edited — see [`GENERATED-FILES.md`](GENERATED-FILES.md). If a pin needs to change in one of those files, change it at the source (the compiler / blueprint that emits the step) and recompile. Hand-fixing a generated file will pass the gate exactly once, until the next compile reverts it.
 
 ## The allowlist
 
-`.github/action-pin-allowlist.txt` exempts specific references from the gate.
-It is an escape hatch, not a convenience: every entry is a step whose code can
-change without a diff in this repository, so treat adding one as a security
-decision that needs a reviewer's agreement.
+`.github/action-pin-allowlist.txt` exempts specific references from the gate. It is an escape hatch, not a convenience: every entry is a step whose code can change without a diff in this repository, so treat adding one as a security decision that needs a reviewer's agreement.
 
 **Legitimate reasons to add an entry**
 
 - **Local actions.** A step that references an action by path inside this
-  repository (`uses: ./.github/actions/...`) has no external SHA to pin — the
-  code already lives at the commit under review.
+repository (`uses: ./.github/actions/...`) has no external SHA to pin — the code already lives at the commit under review.
 - **The action publishes no usable tags or SHAs** to resolve against, and no
   maintained pinnable alternative exists. Say so in the comment.
 - **A short-lived, documented exception** — for example an action being
@@ -160,10 +127,7 @@ decision that needs a reviewer's agreement.
 - "The workflow is only manually triggered." It still runs with this
   repository's credentials.
 
-**Format.** One entry per line, with a `#` comment on the same line or
-immediately above stating *why* the exemption exists and *who* to ask about
-removing it. Match the surrounding style of the file rather than inventing a
-new one. Blank lines and full-line comments are fine.
+**Format.** One entry per line, with a `#` comment on the same line or immediately above stating *why* the exemption exists and *who* to ask about removing it. Match the surrounding style of the file rather than inventing a new one. Blank lines and full-line comments are fine.
 
 ```
 # owner/repo — no tagged releases upstream; revisit if they start tagging (@maintainer)
