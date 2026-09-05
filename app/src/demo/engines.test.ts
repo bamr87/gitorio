@@ -4,7 +4,7 @@
 // scan through `facts`/`metrics`/`audit` — over the demo client and assert real output.
 // If the demo ever grew its own rendering path, the assertions here would stop matching.
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { compile } from '../compiler/compile';
 import { auditRepo } from '../fleet/audit';
 import { importFleetDeep } from '../fleet/import';
@@ -18,8 +18,29 @@ import { enterDemoMode, exitDemoMode } from './seed';
 const clock = () => Date.parse('2026-08-22T09:00:00Z');
 const STOREFRONT = parseRepo('acme/storefront')!;
 
+// Freeze the suite's clock to the same instant the fixtures are generated from.
+//
+// The failure mode this prevents: `enterDemoMode({ clock })` dates the whole run
+// history off `clock()` (demo/client.ts), but the scan runs through the module-level
+// `useFleetOpsStore`, built as `createFleetOpsStore(localStorage)` with no `now` —
+// so it defaults to the WALL clock (fleetops.ts:232-237). The metrics engine then
+// windows on that wall clock (`cutoffMs = nowIso - 14d`, fleet/metrics.ts:141), the
+// fixed fixtures slide out of their own window, and this file goes red on a DATE
+// rather than on a change. It has done so twice; the same scar is recorded at
+// fleetops.ts:232-237 and pinned as `NOW` in fleetops.test.ts:40-43.
+//
+// Demo mode seeds the singleton (demo/seed.ts:74), so the existing `now` seam is not
+// reachable from here by constructing a local store — freezing `Date` is what makes
+// the store observe the fixtures' instant. Fake `Date` ONLY: these tests await
+// `enterDemoMode`/`scanFleet`, and faking timers wholesale can hang them.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(clock());
+});
+
 afterEach(() => {
   exitDemoMode();
+  vi.useRealTimers();
 });
 
 describe('the demo blueprint through the real compiler (AC-2)', () => {
@@ -118,5 +139,28 @@ describe('the demo fleet through the real Fleet Ops engines (AC-3)', () => {
     expect(st.totals!.runs).toBeGreaterThan(0);
     expect(st.fleetMetrics.some((m) => m.failure > 0)).toBe(true);
     expect(st.fleetMetrics.some((m) => m.reworkRuns > 0)).toBe(true);
+  });
+
+  it('scans with the same clock the fixtures were generated from', async () => {
+    // The invariant, asserted at the CAUSE. Everything above is a downstream count,
+    // so when the clocks drift apart those assertions fail two weeks late and blame
+    // the metrics engine. A third recurrence must fail here instead.
+    await enterDemoMode({ clock });
+    await useFleetOpsStore.getState().scanFleet();
+
+    // The singleton is built with the default `now` (`new Date().toISOString()`),
+    // so this IS the `nowIso` that `scanFleet` hands to `deriveViews` and on to
+    // `computeWorkflowMetrics`. If the freeze above is ever removed, this is the
+    // assertion that goes red — immediately, and on the right line.
+    expect(new Date().toISOString()).toBe(new Date(clock()).toISOString());
+
+    // ...and therefore the fixtures sit inside the window that `now` defines,
+    // rather than having aged out of it.
+    const { snapshots, windowDays } = useFleetOpsStore.getState();
+    const createdMs = Object.values(snapshots)
+      .filter((s) => s.status === 'ready')
+      .flatMap((s) => s.runs.map((r) => Date.parse(r.createdAt)));
+    expect(createdMs.length).toBeGreaterThan(0);
+    expect(Math.max(...createdMs)).toBeGreaterThanOrEqual(clock() - windowDays * 86_400_000);
   });
 });
