@@ -34,5 +34,5 @@ jobs:
             2. [sink.comment s2] Post exactly one comment on issue #${{ github.event.issue.number }} that summarizes the triage decision in 3 lines and links any duplicates.
           claude_args: |-
             --model claude-sonnet-4-6
-            --max-turns 8
+            --max-turns 24
             --allowedTools "Bash(gh issue view:*),Bash(gh search issues:*),Read,Glob,Grep,Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh issue comment:*)"

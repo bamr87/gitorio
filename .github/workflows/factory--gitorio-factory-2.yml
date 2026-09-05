@@ -31,5 +31,5 @@ jobs:
             1. [sink.comment s3] Post exactly one comment on the relevant issue/PR (find it via gh) that posts a gentle stale-issue nudge on each issue inactive for 30+ days (max 5 per night).
           claude_args: |-
             --model claude-sonnet-4-6
-            --max-turns 12
+            --max-turns 30
             --allowedTools "Bash(gh issue list:*),Bash(gh search issues:*),Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),Read,Glob,Grep,Bash(gh issue comment:*),Bash(gh pr comment:*)"
