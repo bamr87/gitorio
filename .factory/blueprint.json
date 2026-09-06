@@ -25,7 +25,7 @@
       "config": {
         "promptRef": ".factory/prompts/triage.md",
         "model": "claude-sonnet-4-6",
-        "maxTurns": 8
+        "maxTurns": 16
       }
     },
     {
