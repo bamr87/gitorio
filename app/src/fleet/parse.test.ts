@@ -24,6 +24,26 @@ jobs:
         run: gh pr create --title "Daily drop" --body "See changes"
 `;
 
+/** The same lane after round 2 of the harmonization: the hub's composite by reference. */
+const CONTENT_FACTORY_HUB = CONTENT_FACTORY.replace(
+  'uses: ./.github/actions/claude-run',
+  'uses: bamr87/bamr87/.github/actions/claude-run@main',
+);
+
+/** A caller of the hub's reusable ai-lane — nothing in its body says "claude". */
+const AI_LANE_CALLER = `name: nightly-review
+on:
+  schedule:
+    - cron: '17 3 * * *'
+jobs:
+  lane:
+    uses: bamr87/bamr87/.github/workflows/ai-lane.yml@main
+    with:
+      lane: nightly-review
+      agent: reviewer
+      prompt: Review the open pull requests.
+`;
+
 /** Non-agent housekeeping workflow that fires after `pipeline` completes. */
 const AUTO_MERGE = `name: auto-merge
 on:
@@ -65,6 +85,23 @@ describe('parseWorkflow — content-factory shape', () => {
     expect(wf.triggers).toHaveLength(2);
     expect(wf.triggers).toContainEqual({ kind: 'schedule', detail: '0 9 * * *' });
     expect(wf.triggers).toContainEqual({ kind: 'workflow_dispatch' });
+  });
+
+  it('records the hub reference when the runner is consumed by reference', () => {
+    const local = parseWorkflow('.github/workflows/content-factory.yml', CONTENT_FACTORY);
+    expect(local.agent?.runner).toBe('claude-run');
+    expect(local.agent?.runnerRef).toBeUndefined();
+
+    const hub = parseWorkflow('.github/workflows/content-factory.yml', CONTENT_FACTORY_HUB);
+    expect(hub.agent?.runner).toBe('claude-run');
+    expect(hub.agent?.runnerRef).toBe('bamr87/bamr87/.github/actions/claude-run@main');
+    expect(hub.agent?.agentName).toBe('grow-lifehacker');
+
+    const lane = parseWorkflow('.github/workflows/nightly-review.yml', AI_LANE_CALLER);
+    expect(lane.hasAgent).toBe(true);
+    expect(lane.agent?.runner).toBe('claude-run');
+    expect(lane.agent?.runnerRef).toBe('bamr87/bamr87/.github/workflows/ai-lane.yml@main');
+    expect(lane.agent?.agentName).toBe('reviewer');
   });
 
   it('detects the claude-run agent with role, model, and tools', () => {

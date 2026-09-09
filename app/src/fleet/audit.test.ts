@@ -75,6 +75,7 @@ describe('AUDIT_RULES', () => {
     expect(sevOf['kill-switch']).toBe('fail');
     expect(sevOf['loop-safety']).toBe('fail');
     expect(sevOf['auth-oauth-first']).toBe('warn');
+    expect(sevOf['vendored-runner']).toBe('warn');
     expect(sevOf['pin-branch']).toBe('warn');
     expect(sevOf['standard-trio']).toBe('warn');
     expect(sevOf['pin-sha']).toBe('info');
@@ -97,6 +98,36 @@ describe('auth-oauth-first', () => {
 
     const ok = auditWorkflow(makeFacts({ ai: aiIn('oauth-first') }));
     expect(ofRule(ok, 'auth-oauth-first')).toHaveLength(0);
+  });
+});
+
+describe('vendored-runner', () => {
+  it('warns on a local copy of the fleet runner and passes the hub reference', () => {
+    const vendored = auditWorkflow(
+      makeFacts({ ai: { ...aiIn('oauth-first'), runners: ['claude-run'], vendoredRunner: true, hubRunner: null } }),
+    );
+    const hit = ofRule(vendored, 'vendored-runner');
+    expect(hit).toHaveLength(1);
+    expect(hit[0].severity).toBe('warn');
+    expect(hit[0].message).toContain('LOCAL copy');
+    expect(hit[0].fix).toContain('bamr87/bamr87/.github/actions/claude-run@main');
+
+    const byRef = auditWorkflow(
+      makeFacts({
+        ai: {
+          ...aiIn('oauth-first'),
+          runners: ['claude-run'],
+          vendoredRunner: false,
+          hubRunner: 'bamr87/bamr87/.github/actions/claude-run@main',
+        },
+      }),
+    );
+    expect(ofRule(byRef, 'vendored-runner')).toHaveLength(0);
+  });
+
+  it('does not apply to claude-code-action lines (a different runtime, not a copy of ours)', () => {
+    const findings = auditWorkflow(makeFacts({ ai: aiIn('oauth-first') }));
+    expect(ofRule(findings, 'vendored-runner')).toHaveLength(0);
   });
 });
 

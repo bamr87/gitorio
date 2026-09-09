@@ -91,7 +91,12 @@ export function ObserveMap({ fleet }: { fleet: Fleet }) {
         kind: 'facts',
         title: 'Agent',
         rows: [
-          { label: 'runner', value: RUNNER_WORD[w.agent.runner] },
+          {
+            label: 'runner',
+            value: w.agent.runnerRef
+              ? `fleet claude-run by reference (${w.agent.runnerRef})`
+              : RUNNER_WORD[w.agent.runner],
+          },
           ...(w.agent.agentName ? [{ label: 'role', value: w.agent.agentName }] : []),
           ...(w.agent.model ? [{ label: 'model', value: w.agent.model }] : []),
           ...(w.agent.tools ? [{ label: 'tools', value: w.agent.tools }] : []),

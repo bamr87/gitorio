@@ -198,6 +198,27 @@ const RULES: readonly AuditRule[] = [
 
   wfRule(
     {
+      id: 'vendored-runner',
+      title: 'Fleet runner by reference',
+      severity: 'warn',
+      standard:
+        "AI lines run the fleet's claude-run from the hub by reference (uses: bamr87/bamr87/.github/actions/claude-run@main, or the reusable ai-lane.yml) — never a local copy of the runner.",
+    },
+    (f) => f.ai.present && (f.ai.runners.includes('claude-run') || f.ai.runners.includes('run-sh')),
+    (f) =>
+      f.ai.vendoredRunner === true
+        ? [
+            {
+              message:
+                'runs a LOCAL copy of the fleet runner (./.github/actions/claude-run or scripts/ai/run.sh) — the fleet consumes it from the hub by reference, so this copy drifts on its own',
+              fix: "Replace the local step with uses: bamr87/bamr87/.github/actions/claude-run@main (identical inputs) and delete the copy; the hub's templates/ai-runner/README.md lists the consumer-owned companions that stay (_data/ai.yml, scripts/ai/usage.rb, api_call.rb).",
+            },
+          ]
+        : [],
+  ),
+
+  wfRule(
+    {
       id: 'kill-switch',
       title: 'Kill switch on scheduled AI',
       severity: 'fail',

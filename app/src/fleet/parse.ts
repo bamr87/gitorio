@@ -149,7 +149,14 @@ function firstCapture(text: string, patterns: RegExp[]): string | undefined {
 /** Detect the AI runner + its role/model/tools, or undefined if the workflow runs none. */
 function detectAgent(text: string): AgentInfo | undefined {
   let runner: AgentInfo['runner'] | undefined;
-  if (text.includes('./.github/actions/claude-run') || text.includes('actions/claude-run')) {
+  let runnerRef: string | undefined;
+  // The fleet runner by reference (the hub's composite, or the reusable ai-lane that
+  // wraps it) — a caller of the lane says nothing else that looks like AI.
+  const hub = /(?<![\w./])([\w.-]+\/[\w.-]+\/\.github\/(?:actions\/claude-run|workflows\/ai-lane\.yml)@[^\s'"#]+)/.exec(text);
+  if (hub) {
+    runner = 'claude-run';
+    runnerRef = hub[1];
+  } else if (text.includes('./.github/actions/claude-run') || text.includes('actions/claude-run')) {
     runner = 'claude-run';
   } else if (text.includes('anthropics/claude-code-action')) {
     runner = 'claude-code-action';
@@ -159,6 +166,7 @@ function detectAgent(text: string): AgentInfo | undefined {
   if (!runner) return undefined;
 
   const agent: AgentInfo = { runner };
+  if (runnerRef) agent.runnerRef = runnerRef;
   const agentName = firstCapture(text, [
     /agent:\s*['"]?([A-Za-z0-9_-]+)/,
     /--agent\s+([A-Za-z0-9_-]+)/,
