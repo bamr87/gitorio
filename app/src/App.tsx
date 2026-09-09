@@ -23,6 +23,8 @@ import { useGithubStore } from './state/github';
 import { useTelemetryStore } from './state/telemetry';
 import { useUiStore, type AppView } from './state/ui';
 import { useHubStore } from './state/hub';
+import { useFleetOpsStore } from './state/fleetops';
+import { parseDeepLink } from './state/deeplink';
 import { applyTheme, useSettingsStore, type ThemePref } from './state/settings';
 import { demoRequested, enterDemoMode, isDemoActive } from './demo/seed';
 import { repoSlug } from './github/types';
@@ -149,13 +151,15 @@ export default function App() {
     } else {
       restore();
     }
-    // Deep links (specs/014, FR-9): the hub links here with `?tab=harness&hub=owner/repo`.
-    // A hub named in the URL is a session-only override — Settings is where the default changes.
-    const params = new URLSearchParams(window.location.search);
-    const hub = params.get('hub');
-    if (hub) useHubStore.getState().setHubSlug(hub, { persist: false });
-    const tab = params.get('tab');
-    if (tab && VIEW_IDS.has(tab)) setView(tab as AppView);
+    // Deep links (specs/014, FR-9; ADR-038): the hub links here with `?tab=harness&hub=owner/repo`;
+    // a fleet is shared as `?tab=fleet&roster=owner/a,owner/b`. A hub named in the URL is a
+    // session-only override — Settings is where the default changes. A roster named in the URL
+    // is ADDED to the persisted roster (idempotent), so the link is the instance an operator
+    // bookmarks and nothing else a browser remembered is lost.
+    const link = parseDeepLink(window.location.search);
+    if (link.hub) useHubStore.getState().setHubSlug(link.hub, { persist: false });
+    if (link.roster.length > 0) useFleetOpsStore.getState().addRepos(link.roster.join(' '));
+    if (link.tab && VIEW_IDS.has(link.tab)) setView(link.tab as AppView);
   }, [restore, setView]);
 
   // The Machine Finder docks open while the floor is empty (specs/013 FR-5) — a first visit
