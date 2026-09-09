@@ -35,6 +35,12 @@ export interface AgentInfo {
   model?: string;
   /** --allowedTools string, when discoverable. */
   tools?: string;
+  /**
+   * The `uses:` reference when the runner is the FLEET's, consumed by reference from
+   * the hub (`owner/repo/.github/actions/claude-run@ref`, or the reusable
+   * `…/workflows/ai-lane.yml@ref`). Absent for a local copy or a marketplace action.
+   */
+  runnerRef?: string;
 }
 
 /** One workflow file, reverse-imported. Node id on the canvas === `path`. */
@@ -182,6 +188,17 @@ export interface AiFacts {
   authMode: AuthMode;
   /** Named agent roles (`agent: x` / `--agent x`). */
   agents: string[];
+  /**
+   * The fleet runner consumed BY REFERENCE — the `owner/repo/.github/actions/claude-run@ref`
+   * (or `…/.github/workflows/ai-lane.yml@ref`) `uses:` reference, when one is present.
+   * The hub's `ai-runner` kit is the fleet's one copy; this is how a repo says it uses it.
+   */
+  hubRunner?: string | null;
+  /**
+   * A LOCAL copy of the fleet runner is invoked (`./.github/actions/claude-run` or
+   * `scripts/ai/run.sh`) — the vendoring the hub kit retired; drift waiting to happen.
+   */
+  vendoredRunner?: boolean;
 }
 
 /** Everything the cockpit knows about one workflow file. */

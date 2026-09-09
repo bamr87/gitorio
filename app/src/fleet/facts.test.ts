@@ -127,6 +127,11 @@ describe('extractFacts — zm issue-autopilot.yml', () => {
     expect(f.ai.present).toBe(true);
     expect(f.ai.runners).toContain('claude-run');
   });
+
+  it('reads the local composite as a VENDORED copy of the fleet runner, not the hub reference', () => {
+    expect(f.ai.vendoredRunner).toBe(true);
+    expect(f.ai.hubRunner).toBeNull();
+  });
 });
 
 describe('extractFacts — zm ui-audit.yml (weekly sweep + agent review)', () => {
@@ -863,5 +868,75 @@ describe('classifyArchetype — the agentic-engine cost-center archetypes (direc
     expect(classifyArchetype(prGate, '')).toBe('pr-gate');
     const ciGate = signals({ triggers: [{ kind: 'push' }, { kind: 'pull_request' }] });
     expect(classifyArchetype(ciGate, '')).toBe('ci-gate');
+  });
+});
+
+// ── the fleet runner by reference (hub kit ai-runner, round 2 of the harmonization) ──
+
+/** lifehacker.dev content-factory after bamr87/lifehacker.dev#645: the hub's composite by reference. */
+const lhHubRunner = `name: content-factory
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+jobs:
+  generate:
+    if: vars.CONTENT_FACTORY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: \${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      # the old shape was: uses: ./.github/actions/claude-run
+      - name: Grow (universal AI runner)
+        uses: bamr87/bamr87/.github/actions/claude-run@main
+        with:
+          agent: grow-lifehacker
+          prompt: Produce ONE piece and open ONE pull request.
+          tools: "Bash,Read,Write,Edit,Grep,Glob"
+`;
+
+/** A caller of the hub's reusable ai-lane: no model, no CLI, no "claude" anywhere in its body. */
+const aiLaneCaller = `name: nightly-review
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  lane:
+    uses: bamr87/bamr87/.github/workflows/ai-lane.yml@main
+    with:
+      lane: nightly-review
+      switch: NIGHTLY_REVIEW_ENABLED
+      agent: reviewer
+      prompt: Review the open pull requests and comment.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: \${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+`;
+
+describe('extractFacts — the fleet runner consumed by reference (hub kit ai-runner)', () => {
+  it('reads the remote claude-run composite as the hub runner, not a vendored copy', () => {
+    const f = facts('content-factory.yml', lhHubRunner);
+    expect(f.ai.present).toBe(true);
+    expect(f.ai.runners).toContain('claude-run');
+    expect(f.ai.hubRunner).toBe('bamr87/bamr87/.github/actions/claude-run@main');
+    // the retired shape survives only in a comment, which never counts as an invocation
+    expect(f.ai.vendoredRunner).toBe(false);
+    expect(f.ai.agents).toEqual(['grow-lifehacker']);
+  });
+
+  it('counts a caller of the reusable ai-lane as an AI workflow (it names no model and no CLI)', () => {
+    const f = facts('nightly-review.yml', aiLaneCaller);
+    expect(f.ai.present).toBe(true);
+    expect(f.ai.runners).toEqual(['claude-run']);
+    expect(f.ai.hubRunner).toBe('bamr87/bamr87/.github/workflows/ai-lane.yml@main');
+    expect(f.ai.vendoredRunner).toBe(false);
+    expect(f.ai.authMode).toBe('oauth-first');
+    expect(f.killSwitches).toContain('NIGHTLY_REVIEW_ENABLED');
   });
 });

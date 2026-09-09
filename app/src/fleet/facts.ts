@@ -132,6 +132,11 @@ const USES_RE = /^\s*(?:-\s+)?uses:\s*['"]?([^\s'"#]+)/gm;
 // A reusable-workflow call: owner/repo/.github/workflows/<file>[@ref].
 const REUSABLE_RE = /^[\w.-]+\/[\w.-]+\/\.github\/workflows\/[^@\s]+/;
 
+// The fleet runner by reference: the hub's claude-run composite or its reusable
+// ai-lane, `owner/repo/.github/(actions/claude-run|workflows/ai-lane.yml)@ref`.
+const HUB_RUNNER_RE =
+  /(?<![\w./])([\w.-]+\/[\w.-]+\/\.github\/(?:actions\/claude-run|workflows\/ai-lane\.yml)@[^\s'"#]+)/;
+
 /** Classify how one `uses:` reference is pinned. */
 function actionUseOf(uses: string): ActionUse {
   if (uses.startsWith('./')) return { action: uses, ref: null, pin: 'local' };
@@ -349,6 +354,15 @@ function aiFactsOf(yamlText: string): AiFacts {
   if (/agentic_validate\.py/.test(cmd) || (/@anthropic-ai\/claude-code/.test(cmd) && bareClaudeCli)) {
     runners.push('agentic-engine');
   }
+  // The fleet's ONE runner, consumed by reference from the hub (kit `ai-runner`):
+  // the remote composite, or the reusable lane that wraps it. A caller of the
+  // reusable lane names no model, no CLI and no `claude` anywhere, so without this
+  // it would read as a non-AI workflow. Two path segments before `.github/` keep a
+  // local `./.github/actions/claude-run` from matching; the `@ref` is required.
+  const hub = HUB_RUNNER_RE.exec(cmd);
+  if (hub && !runners.includes('claude-run')) runners.push('claude-run');
+  const vendoredRunner =
+    /uses:\s*['"]?\.\/\.github\/actions\/claude-run\b/.test(cmd) || /scripts\/ai\/run\.sh/.test(cmd);
 
   const models = [
     ...uniqueCaptures(yamlText, /--model[= ]([\w.-]+)/g),
@@ -376,6 +390,8 @@ function aiFactsOf(yamlText: string): AiFacts {
     maxCostUsd: costs.length > 0 ? Math.max(...costs) : null,
     authMode,
     agents,
+    hubRunner: hub ? hub[1] : null,
+    vendoredRunner,
   };
 }
 
@@ -580,9 +596,15 @@ export function extractFacts(path: string, yamlText: string): WorkflowFacts {
 
   // governance.
   const varsUsed = uniqueCaptures(yamlText, /vars\.([A-Za-z0-9_]+)/g);
-  const killSwitches = uniqueCaptures(yamlText, /vars\.([A-Z][A-Z0-9_]*)/g).filter((v) =>
-    KILL_SWITCH_SUFFIXES.some((s) => v.endsWith(s)),
-  );
+  // A caller of the hub's reusable ai-lane hands its switch over as the `switch:`
+  // input (the lane evaluates vars[inputs.switch]); the variable is never spelled
+  // `vars.X` in the caller, so read the input too or the lane looks ungated.
+  const killSwitches = [
+    ...uniqueCaptures(yamlText, /vars\.([A-Z][A-Z0-9_]*)/g),
+    ...(HUB_RUNNER_RE.test(commandLines(yamlText))
+      ? uniqueCaptures(yamlText, /^\s*switch:\s*['"]?([A-Z][A-Z0-9_]*)/gm)
+      : []),
+  ].filter((v, i, all) => KILL_SWITCH_SUFFIXES.some((s) => v.endsWith(s)) && all.indexOf(v) === i);
   const secretsUsed = uniqueCaptures(yamlText, /secrets\.([A-Za-z0-9_]+)/g).filter(
     (s) => s !== 'GITHUB_TOKEN',
   );
