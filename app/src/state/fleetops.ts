@@ -227,6 +227,11 @@ export interface FleetOpsState extends DerivedViews {
   setWorkflowEnabledById: (slug: string, workflowId: number, enabled: boolean) => Promise<void>;
   /** Load one run's jobs (with steps) into the snapshot's `jobsByRun` cache. */
   loadRunJobs: (slug: string, runId: number) => Promise<void>;
+  /**
+   * Pin (or, with null, release) the clock the metrics window is measured from. Demo mode
+   * pins it to the fixture clock so a dated fixture fleet never rots out of the window.
+   */
+  setClock: (clock: (() => string) | null) => void;
 }
 
 export function createFleetOpsStore(
@@ -234,8 +239,10 @@ export function createFleetOpsStore(
   // Injectable clock. Every other engine here takes its `now` (see metrics.ts
   // `opts.nowIso`); this is the one place that used to read the wall clock, which
   // is why a dated-fixture test rotted out of the metrics window and went red.
-  now: () => string = () => new Date().toISOString(),
+  defaultNow: () => string = () => new Date().toISOString(),
 ) {
+  let clock = defaultNow;
+  const now = (): string => clock();
   const persist = (state: Pick<FleetOpsState, 'roster' | 'hubSlug' | 'windowDays'>) => {
     try {
       storage?.setItem(
@@ -508,6 +515,10 @@ export function createFleetOpsStore(
       );
     },
 
+    setClock: (next) => {
+      clock = next ?? defaultNow;
+      set({ ...deriveViews(get().snapshots, get().windowDays, now()) });
+    },
     loadRunJobs: async (slug, runId) => {
       const { client } = useGithubStore.getState();
       if (!client) {

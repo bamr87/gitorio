@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -24,6 +25,10 @@ export default defineConfig(({ command, mode }) => {
     // VITE_BASE is set by the Pages deploy workflow to "/<repo-name>/".
     base: env.VITE_BASE ?? '/',
     plugins: [react()],
+    test: {
+      // A working Web Storage on every Node the CI matrix runs (see vitest.setup.ts).
+      setupFiles: ['./vitest.setup.ts'],
+    },
     server: {
       host: true, // bind 0.0.0.0 so the dev server is reachable from a container / the LAN
       port: 5173,

@@ -70,8 +70,12 @@ export function enterDemoMode(opts: EnterDemoOptions = {}): Promise<DemoClient> 
     if (bp) useFactoryStore.getState().loadBlueprint(structuredClone(bp));
   }
 
-  // Seed the roster with all three demo repos so Fleet Command has a fleet to scan.
-  useFleetOpsStore.getState().addRepos(DEMO_REPOS.join(' '));
+  // Seed the roster with all three demo repos so Fleet Command has a fleet to scan, and
+  // measure its metrics window from the SAME clock the fixtures were generated against —
+  // otherwise a pinned fixture fleet rots out of the 14-day window as the wall clock moves.
+  const fleetOps = useFleetOpsStore.getState();
+  fleetOps.addRepos(DEMO_REPOS.join(' '));
+  fleetOps.setClock(opts.clock ? () => new Date(opts.clock!()).toISOString() : null);
   // The Harness tab reads the demo hub (specs/014): a session-only override, never persisted.
   useHubStore.getState().setHubSlug(DEMO_HUB, { persist: false });
 
@@ -91,6 +95,7 @@ export function exitDemoMode(): void {
   useGithubStore.getState().disconnect();
   const fleetOps = useFleetOpsStore.getState();
   for (const slug of DEMO_REPOS) fleetOps.removeRepo(slug);
+  fleetOps.setClock(null);
   useHubStore.getState().restorePersisted();
 }
 
