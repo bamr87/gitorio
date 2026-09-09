@@ -64,13 +64,13 @@ docker compose down                          # stop everything
 
 Your working tree is mounted into the `dev` container, so edits hot-reload (`VITE_USE_POLLING=true` keeps HMR reliable across the macOS ↔ container boundary).
 
-### Debugging in VS Code
+### Running and debugging in VS Code
 
-`.vscode/launch.json` ships ready-to-run configs (press **F5**):
+The `.vscode/` folder follows the fleet convention (see [`.vscode/README.md`](.vscode/README.md)): **Terminal → Run Task** runs things, **F5** debugs them.
 
-- **Debug in Chrome (Docker dev)** — starts the dev server in Docker, then opens Chrome with source-mapped breakpoints.
-- **Debug in Chrome (npm dev)** — same, using local Node instead of Docker.
-- **Vitest: all tests** / **Vitest: current file** — breakpoint-debug the test suite.
+- Tasks: `Serve` (Docker) / `Serve (host)`, `Stop`, `Build`, `Verify` (lint → vitest → build, as CI), `Test`, `Lint`, `Typecheck`, `Preview: production (nginx)`.
+- **Debug: app in Edge (Docker :5173)** — starts the dev server in Docker, then opens Edge with source-mapped breakpoints; the **(host :5173)** variant uses local Node.
+- **Debug: Vitest (all)** / **Debug: Vitest (current file)** — breakpoint-debug the test suite.
 
 ## Repository layout
 
