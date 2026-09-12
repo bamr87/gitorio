@@ -1,65 +1,67 @@
+// gitorio · .vscode/launch.json — fleet-vscode/v1 · 2026-09-09. Convention + vocabulary: .vscode/README.md.
 {
-  // Debug/dev/test launch configs for the GitFactory frontend (app/).
-  // Docs: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      // F5: start the dev server IN DOCKER, then open Chrome attached to it.
-      "type": "chrome",
+      "name": "Debug: app in Edge (Docker :5173)",
+      "type": "msedge",
       "request": "launch",
-      "name": "Debug in Chrome (Docker dev)",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}/app",
       "sourceMaps": true,
-      "preLaunchTask": "vite: dev (docker)",
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+      "preLaunchTask": "Serve",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ]
     },
     {
-      // Same, but run the dev server with local Node instead of Docker.
-      "type": "chrome",
+      "name": "Debug: app in Edge (host :5173)",
+      "type": "msedge",
       "request": "launch",
-      "name": "Debug in Chrome (npm dev)",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}/app",
       "sourceMaps": true,
-      "preLaunchTask": "vite: dev (npm)",
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+      "preLaunchTask": "Serve (host)",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ]
     },
     {
-      // Attach to a dev server you already started (e.g. `docker compose up dev`).
-      "type": "chrome",
-      "request": "launch",
-      "name": "Chrome (attach to running :5173)",
-      "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/app",
-      "sourceMaps": true,
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
-    },
-    {
-      // Debug the whole vitest suite (breakpoints in tests + source).
+      "name": "Debug: Vitest (all)",
       "type": "node",
       "request": "launch",
-      "name": "Vitest: all tests",
       "cwd": "${workspaceFolder}/app",
       "program": "${workspaceFolder}/app/node_modules/vitest/vitest.mjs",
-      "args": ["run", "--no-file-parallelism"],
+      "args": [
+        "run",
+        "--no-file-parallelism"
+      ],
       "autoAttachChildProcesses": true,
       "smartStep": true,
       "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     },
     {
-      // Debug just the test file open in the editor.
+      "name": "Debug: Vitest (current file)",
       "type": "node",
       "request": "launch",
-      "name": "Vitest: current file",
       "cwd": "${workspaceFolder}/app",
       "program": "${workspaceFolder}/app/node_modules/vitest/vitest.mjs",
-      "args": ["run", "--no-file-parallelism", "${file}"],
+      "args": [
+        "run",
+        "--no-file-parallelism",
+        "${file}"
+      ],
       "autoAttachChildProcesses": true,
       "smartStep": true,
       "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": [
+        "<node_internals>/**"
+      ]
     }
   ]
 }

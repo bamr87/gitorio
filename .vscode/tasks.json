@@ -1,70 +1,160 @@
+// gitorio · .vscode/tasks.json — fleet-vscode/v1 · 2026-09-09. Convention + vocabulary: .vscode/README.md.
 {
   "version": "2.0.0",
   "tasks": [
     {
-      // Starts the dev server in Docker; the launch config waits for "Local: http…".
-      "label": "vite: dev (docker)",
+      "label": "Serve",
+      "detail": "Docker. The Vite dev server (app/) on http://localhost:5173. Runs until Stop.",
       "type": "shell",
       "command": "docker compose up dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "isBackground": true,
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
       "problemMatcher": {
-        "owner": "vite",
-        "pattern": { "regexp": "^\\s*(ERROR)\\s+(.*)$", "severity": 1, "message": 2 },
+        "owner": "serve",
+        "pattern": {
+          "regexp": "^(never-matches)$",
+          "message": 1
+        },
         "background": {
           "activeOnStart": true,
           "beginsPattern": ".",
-          "endsPattern": "Local:\\s+https?://"
+          "endsPattern": "Local:\\s+https?://|Container \\S+\\s+Running"
         }
       }
     },
     {
-      "label": "vite: dev (npm)",
+      "label": "Serve (host)",
+      "detail": "Host node. The same Vite dev server with local Node (npm install first).",
       "type": "shell",
       "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/app"
+      },
       "isBackground": true,
-      "options": { "cwd": "${workspaceFolder}/app" },
-      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
       "problemMatcher": {
-        "owner": "vite",
-        "pattern": { "regexp": "^\\s*(ERROR)\\s+(.*)$", "severity": 1, "message": 2 },
+        "owner": "serve",
+        "pattern": {
+          "regexp": "^(never-matches)$",
+          "message": 1
+        },
         "background": {
           "activeOnStart": true,
           "beginsPattern": ".",
-          "endsPattern": "Local:\\s+https?://"
+          "endsPattern": "Local:\\s+https?://|Container \\S+\\s+Running"
         }
       }
     },
     {
-      "label": "test",
+      "label": "Stop",
+      "detail": "Stops and removes the Docker stack (docker compose down).",
       "type": "shell",
-      "command": "npm test",
-      "options": { "cwd": "${workspaceFolder}/app" },
-      "group": { "kind": "test", "isDefault": true },
+      "command": "docker compose down",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": []
     },
     {
-      "label": "typecheck",
-      "type": "shell",
-      "command": "npm run typecheck",
-      "options": { "cwd": "${workspaceFolder}/app" },
-      "problemMatcher": ["$tsc"]
-    },
-    {
-      "label": "build",
+      "label": "Build",
+      "detail": "Host node. typecheck + production build to app/dist.",
       "type": "shell",
       "command": "npm run build",
-      "options": { "cwd": "${workspaceFolder}/app" },
-      "group": { "kind": "build", "isDefault": true },
-      "problemMatcher": ["$tsc"]
+      "options": {
+        "cwd": "${workspaceFolder}/app"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     },
     {
-      "label": "docker: preview (nginx)",
+      "label": "Verify",
+      "detail": "Host node. lint → vitest → build, in ci.yml's order.",
+      "type": "shell",
+      "command": "npm run lint && npm test && npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}/app"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Test",
+      "detail": "Host node. vitest (the compiler invariant tests).",
+      "type": "shell",
+      "command": "npm test",
+      "options": {
+        "cwd": "${workspaceFolder}/app"
+      },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Lint",
+      "detail": "Host node. eslint.",
+      "type": "shell",
+      "command": "npm run lint",
+      "options": {
+        "cwd": "${workspaceFolder}/app"
+      },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Typecheck",
+      "detail": "Host node. tsc --noEmit.",
+      "type": "shell",
+      "command": "npm run typecheck",
+      "options": {
+        "cwd": "${workspaceFolder}/app"
+      },
+      "problemMatcher": [
+        "$tsc"
+      ],
+      "group": "test"
+    },
+    {
+      "label": "Preview: production (nginx)",
+      "detail": "Docker. Builds the prod image and serves it on http://localhost:8080.",
       "type": "shell",
       "command": "docker compose --profile preview up --build preview",
-      "options": { "cwd": "${workspaceFolder}" },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": []
+    },
+    {
+      "label": "Claude: session",
+      "detail": "Interactive Claude Code in this repo with its .claude/agents + skills, on your logged-in credentials. House rules still apply: branch from main, open a PR, a human merges.",
+      "type": "shell",
+      "command": "claude",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "focus": true
+      }
     }
   ]
 }
