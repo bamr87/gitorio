@@ -93,7 +93,7 @@
       "config": {
         "promptRef": ".factory/prompts/nightly-gardener.md",
         "model": "claude-sonnet-4-6",
-        "maxTurns": 12
+        "maxTurns": 24
       }
     },
     {
