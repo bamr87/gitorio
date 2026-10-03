@@ -134,6 +134,38 @@ const WRITING_SINKS = new Set(['sink.comment', 'sink.create_issue', 'sink.label'
 // Terminal sinks close/merge the entity — they emit no new comment/issue/PR event, so a
 // line whose only action is terminal can never retrigger itself and needs no bot loop-guard.
 const TERMINAL_SINKS = new Set(['sink.merge_pr']);
+
+// ── agents never merge (ADR-039) ──
+// The house rule is "agents open draft PRs; humans (or a deterministic label-gated line,
+// ADR-027) merge". ADR-015 showed a prose guardrail on a merge grant loses to a plausible
+// agent reason often enough to be unsafe, so the compiler refuses the grant itself: any
+// `--allowedTools` entry that lets the agent run a merge — `gh pr merge`, a blanket prefix
+// of it (`gh`, `gh pr`), the REST/GraphQL merge surface via `gh api`, or `git merge`.
+const MERGE_COMMANDS = [
+  ['gh', 'pr', 'merge'],
+  ['git', 'merge'],
+];
+/** True when an `--allowedTools` entry would let the agent merge (or is a blanket grant that could). */
+export function grantsMerge(tool: string): boolean {
+  if (tool.trim() === 'Bash') return true; // blanket Bash — never emitted, refused if it ever is
+  const m = /^Bash\((.*?)(?::\*)?\)$/.exec(tool.trim());
+  if (!m) return false;
+  const cmd = m[1].trim();
+  const tokens = cmd.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  for (const merge of MERGE_COMMANDS) {
+    const n = Math.min(tokens.length, merge.length);
+    // a prefix of a merge command (`gh`, `gh pr`) grants it; so does the command itself (+ args)
+    if (tokens.slice(0, n).every((t, i) => t === merge[i])) return true;
+  }
+  // `gh api`: the PR merge endpoint (PUT …/pulls/N/merge), branch merges (…/merges), and
+  // GraphQL (mergePullRequest / enablePullRequestAutoMerge) — or `gh api` with no endpoint.
+  if (tokens[0] === 'gh' && tokens[1] === 'api') {
+    if (tokens.length === 2) return true;
+    if (tokens[2] === 'graphql' || /\/merges?(?=$|[\s/?])/i.test(cmd)) return true;
+  }
+  return false;
+}
 const LOOPY_TRIGGERS = new Set([
   'trigger.comment',
   'trigger.issue_opened',
@@ -293,13 +325,9 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
       const hint = s(c.titleHint);
       return `[sink.cross_repo_issue ${sink.id}] File one issue in ${target}: \`GH_TOKEN=$${secret} gh issue create --repo ${target}${hint ? ` --title "${hint}: …"` : ''}\` carrying your findings. The default GITHUB_TOKEN cannot write to other repos — authenticate with the scoped token in \`$${secret}\`. Search first (\`GH_TOKEN=$${secret} gh issue list --repo ${target}\`) and update an existing open issue instead of duplicating.`;
     }
-    case 'sink.merge_pr': {
-      const when = s(c.when, 'auto') === 'now' ? 'Merge it immediately' : 'Enable auto-merge (merges once required checks pass)';
-      // Policy lives in the operating instructions, NOT in agent discretion. The earlier
-      // wording ("only merge when your assessment says it is safe") let a live agent
-      // override a hold-label with its own green-CI reasoning (ADR-015).
-      return `[sink.merge_pr ${sink.id}] ${when} on ${entityExpr} with \`gh pr merge --${s(c.method, 'squash')}${s(c.when, 'auto') === 'now' ? '' : ' --auto'}\`. Merge ONLY pull requests the operating instructions explicitly permit — their guardrails override your own judgment: if they say hold, you hold, even when your assessment says merging is safe. Never merge if unsure.`;
-    }
+    // sink.merge_pr has NO obligation template, on purpose: agents never merge (ADR-039).
+    // A merge downstream of an agent is refused before obligations are written; the merge
+    // belongs on its own deterministic, label-gated line (ADR-027).
     default:
       return `[${sink.type} ${sink.id}] (no obligation template)`;
   }
@@ -348,8 +376,8 @@ function toolsFor(sinkType: string, prContext: boolean): string[] {
     case 'sink.commit_files':
       // Edit files then commit + push directly (the obligation says to change + commit files).
       return ['Read', 'Glob', 'Grep', 'Edit', 'Write', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git push:*)'];
-    case 'sink.merge_pr':
-      return ['Bash(gh pr merge:*)'];
+    // sink.merge_pr grants nothing: agents never merge (ADR-039) — a merge downstream of an
+    // agent is a compile error, and a merge grant reached any other way is refused too.
     case 'sink.cross_repo_issue':
       return ['Bash(gh issue create:*)', 'Bash(gh issue list:*)'];
     // sink.repository_dispatch grants nothing here: its grant must carry the exact
@@ -608,8 +636,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     // Safety: an unscoped merge on a raw pull_request trigger would merge every matching PR.
     const hasMerge = sinks.some((n) => n.type === 'sink.merge_pr');
     // A DETERMINISTIC merge reads the PR number from the event, so it needs a PR-bearing
-    // trigger. An agent-obligated merge is fine on any line — the agent finds the PR itself
-    // (e.g. the survey-mode Dependency Warden merging what it vets safe).
+    // trigger. An agent-obligated merge is never fine (ADR-039) — refused in the agent block.
     if (deterministic.some((n) => n.type === 'sink.merge_pr') && !hasPr && !hasWorkflowRun) {
       diags.push({
         level: 'error',
@@ -776,6 +803,22 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     }
 
     if (agent) {
+      // Agents never merge (ADR-039). A merge sink downstream of an agent would become a
+      // merge obligation + a `gh pr merge` grant restrained only by prompt prose — the
+      // ADR-015 incident shape. Refuse the line; the merge belongs on its own label-gated
+      // line (trigger.pr_opened fireOn: labeled → sink.merge_pr, ADR-027).
+      const obligatedMerges = obligated.filter((n) => n.type === 'sink.merge_pr');
+      if (obligatedMerges.length) {
+        for (const m of obligatedMerges) {
+          diags.push({
+            level: 'error',
+            nodeId: m.id,
+            message: `REFUSED: agents never merge — Merge PR (${m.id}) is downstream of Claude agent (${agent.id}), which would grant it \`gh pr merge\`. Have the agent label/comment instead and put the merge on its own label-gated line (PR trigger "fireOn: labeled" → Merge PR, ADR-027).`,
+          });
+        }
+        workflows.push({ filename, yaml: '', diagnostics: diags });
+        return;
+      }
       const isFeedback = agent.type === FEEDBACK;
       const promptRef = s(agent.config.promptRef, isFeedback ? '.factory/prompts/loop-tuner.md' : '');
       if (!promptRef && !isFeedback) {
@@ -913,6 +956,19 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         if (sink.type === 'sink.repository_dispatch') {
           tools.add(`Bash(gh api repos/${s(sink.config.targetRepo, 'OWNER/NAME')}/dispatches:*)`);
         }
+      }
+
+      // Belt and braces for ADR-039: whatever path produced it (a declared check such as
+      // `gh pr merge 12`, a blanket `gh`, a `gh api …/merge`), a merge-capable grant is refused.
+      const mergeGrants = [...tools].filter(grantsMerge);
+      if (mergeGrants.length) {
+        diags.push({
+          level: 'error',
+          nodeId: agent.id,
+          message: `REFUSED: agents never merge — Claude agent (${agent.id}) would be granted a merge-capable tool (${mergeGrants.join(', ')}). Remove it; merges belong on a deterministic label-gated line (ADR-027).`,
+        });
+        workflows.push({ filename, yaml: '', diagnostics: diags });
+        return;
       }
 
       const model = s(agent.config.model, isFeedback ? 'claude-opus-4-8' : 'claude-sonnet-4-6');

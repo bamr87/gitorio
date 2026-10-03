@@ -13,6 +13,8 @@
         "label": "Main path",
         "focus": [
           "wm",
+          "wg",
+          "wr",
           "wa",
           "ws1"
         ],
@@ -52,6 +54,10 @@
       "label": "Triggers"
     },
     {
+      "id": "policy",
+      "label": "Gates & limits"
+    },
+    {
       "id": "agent",
       "label": "Processing"
     },
@@ -62,6 +68,8 @@
   ],
   "mainPath": [
     "wm",
+    "wg",
+    "wr",
     "wa",
     "ws1"
   ],
@@ -79,12 +87,28 @@
       "col": 1,
       "type": "external",
       "label": "Schedule",
-      "sublabel": "0 6 * * 1"
+      "sublabel": "23 6 * * 1"
+    },
+    {
+      "id": "wg",
+      "lane": "policy",
+      "col": 1,
+      "type": "security",
+      "label": "Kill switch",
+      "sublabel": "DEPENDENCY_WARDEN…"
+    },
+    {
+      "id": "wr",
+      "lane": "policy",
+      "col": 3,
+      "type": "security",
+      "label": "Rate limit",
+      "sublabel": "3/day"
     },
     {
       "id": "wa",
       "lane": "agent",
-      "col": 1,
+      "col": 3,
       "type": "backend",
       "label": "Claude agent",
       "sublabel": "dependency-warden"
@@ -92,37 +116,42 @@
     {
       "id": "ws1",
       "lane": "sinks",
-      "col": 2,
+      "col": 4,
       "type": "frontend",
       "label": "Comment"
     },
     {
       "id": "ws2",
       "lane": "sinks",
-      "col": 3,
-      "type": "frontend",
-      "label": "Label"
-    },
-    {
-      "id": "ws3",
-      "lane": "sinks",
       "col": 5,
       "type": "frontend",
-      "label": "Merge PR"
+      "label": "Label"
     }
   ],
   "edges": [
     {
       "id": "e-e6",
       "from": "wm",
-      "to": "wa",
+      "to": "wg",
       "role": "main"
     },
     {
       "id": "e-e7",
       "from": "wc",
-      "to": "wa",
+      "to": "wg",
       "role": "branch"
+    },
+    {
+      "id": "e-e13",
+      "from": "wg",
+      "to": "wr",
+      "role": "main"
+    },
+    {
+      "id": "e-e14",
+      "from": "wr",
+      "to": "wa",
+      "role": "main"
     },
     {
       "id": "e-e8",
@@ -134,12 +163,6 @@
       "id": "e-e9",
       "from": "wa",
       "to": "ws2",
-      "role": "branch"
-    },
-    {
-      "id": "e-e10",
-      "from": "wa",
-      "to": "ws3",
       "role": "branch"
     }
   ]

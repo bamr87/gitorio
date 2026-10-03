@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assemblyLines, compile, PINNED_ACTIONS } from './compile';
+import { assemblyLines, compile, grantsMerge, PINNED_ACTIONS } from './compile';
 import type { Blueprint } from '../blueprint/types';
 
 const node = (id: string, type: string, config: Record<string, unknown> = {}) => ({
@@ -306,8 +306,13 @@ describe('compile: merge_pr sink + dependabot metadata (auto-merge low-risk)', (
     }).workflows[0];
     expect(unscoped.diagnostics.some((d) => d.level === 'warning' && /act on every PR/.test(d.message))).toBe(true);
   });
+});
 
-  it('allows an agent-obligated merge on a survey line (no PR entity) — the agent supplies the PR', () => {
+describe('agents never merge (ADR-039): an agent merge obligation or merge grant is a compile error', () => {
+  const refused = (wf: { yaml: string; diagnostics: { level: string; message: string }[] }) =>
+    wf.yaml === '' && wf.diagnostics.some((d) => d.level === 'error' && /REFUSED: agents never merge/.test(d.message));
+
+  it('refuses a survey-mode warden with a merge sink downstream (the old Factory 3 shape)', () => {
     const warden = compile({
       version: 1,
       meta: { name: 'Warden Automerge' },
@@ -320,14 +325,14 @@ describe('compile: merge_pr sink + dependabot metadata (auto-merge low-risk)', (
       ],
       edges: [edge('e1', 'm', 'a'), edge('e2', 'c', 'a'), edge('e3', 'a', 'lb'), edge('e4', 'a', 'mg')],
     }).workflows[0];
-    expect(warden.diagnostics.some((d) => d.level === 'error')).toBe(false);
-    expect(warden.yaml).toContain('[sink.merge_pr mg]');
-    expect(warden.yaml).toContain('Bash(gh pr merge:*)');
-    expect(warden.yaml).toContain('contents: write');
-    expect(warden.yaml).not.toContain("sender.type != 'Bot'");
+    expect(refused(warden)).toBe(true);
+    const err = warden.diagnostics.find((d) => d.level === 'error')!;
+    expect(err.nodeId).toBe('mg');
+    expect(err.message).toContain('label-gated line');
+    expect(warden.yaml).not.toContain('gh pr merge');
   });
 
-  it('agent-obligated merge_pr grants gh pr merge as a scoped tool', () => {
+  it('refuses an agent-obligated merge on a PR-bearing (workflow_run) line too — no prose guardrail can make it safe (ADR-015)', () => {
     const judged = compile({
       version: 1,
       meta: { name: 'Judged Automerge' },
@@ -338,26 +343,70 @@ describe('compile: merge_pr sink + dependabot metadata (auto-merge low-risk)', (
       ],
       edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
     }).workflows[0];
-    expect(judged.yaml).toContain('Bash(gh pr merge:*)');
-    expect(judged.yaml).toContain('[sink.merge_pr s]');
+    expect(refused(judged)).toBe(true);
+    expect(judged.yaml).not.toContain('Bash(gh pr merge:*)');
+    expect(judged.yaml).not.toContain('[sink.merge_pr s]');
   });
 
-  it('merge obligation defers to operating-instruction guardrails, not agent discretion (ADR-015 regression)', () => {
-    // Live incident: "only merge when your assessment says it is safe" let the agent
-    // override a dep:needs-review hold with its own green-CI reasoning. The obligation
-    // must subordinate the agent's judgment to the operating instructions.
-    const judged = compile({
+  it('refuses a merge reached through a verification check (the grant ceiling is derived from config)', () => {
+    for (const check of ['gh pr merge 12 --squash', 'gh', 'gh pr', 'gh api repos/o/r/pulls/1/merge', 'gh api graphql', 'git merge origin/main']) {
+      const wf = compile({
+        version: 1,
+        meta: { name: 'Sneaky Checks' },
+        nodes: [
+          node('t', 'trigger.cron', { cron: '17 3 * * *' }),
+          node('a', 'agent.claude', { promptRef: 'p.md', checks: check }),
+          node('c', 'sink.comment', { instruction: 'report' }),
+        ],
+        edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'c')],
+      }).workflows[0];
+      expect(refused(wf), check).toBe(true);
+      expect(wf.diagnostics.find((d) => d.level === 'error')!.nodeId).toBe('a');
+    }
+  });
+
+  it('grantsMerge: flags merge-capable grants, leaves the ordinary grant vocabulary alone', () => {
+    for (const t of ['Bash(gh pr merge:*)', 'Bash(gh:*)', 'Bash(gh pr:*)', 'Bash(git:*)', 'Bash(git merge:*)', 'Bash', 'Bash(gh api:*)', 'Bash(gh api repos/o/r/pulls/3/merge:*)', 'Bash(gh api repos/o/r/merges:*)']) {
+      expect(grantsMerge(t), t).toBe(true);
+    }
+    for (const t of [
+      'Read', 'Edit', 'Bash(gh pr list:*)', 'Bash(gh pr view:*)', 'Bash(gh pr checks:*)', 'Bash(gh pr edit:*)',
+      'Bash(gh pr create:*)', 'Bash(gh issue edit:*)', 'Bash(git push:*)', 'Bash(git merge-base:*)',
+      'Bash(gh api repos/o/r/dispatches:*)', 'Bash(python3 tools/spec_validator.py:*)',
+    ]) {
+      expect(grantsMerge(t), t).toBe(false);
+    }
+  });
+
+  it('the label-gated deterministic merge line (ADR-027) still compiles clean — no agent in the merge path', () => {
+    const wf = compile({
       version: 1,
-      meta: { name: 'Judged Automerge' },
+      meta: { name: 'Human Gated Merge' },
       nodes: [
-        node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
-        node('a', 'agent.claude', { promptRef: 'p.md' }),
-        node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+        node('t', 'trigger.pr_opened', { fireOn: 'labeled', label: 'dep:merge-approved' }),
+        node('g', 'gate.enablement', { variable: 'DEPENDENCY_MERGE_ENABLED' }),
+        node('f', 'filter.condition', { expression: "github.event.sender.type != 'Bot'" }),
+        node('m', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
       ],
-      edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
+      edges: [edge('e1', 't', 'g'), edge('e2', 'g', 'f'), edge('e3', 'f', 'm')],
     }).workflows[0];
-    expect(judged.yaml).toContain('guardrails override your own judgment');
-    expect(judged.yaml).not.toContain('Only merge when your assessment');
+    expect(wf.diagnostics.filter((d) => d.level === 'error')).toHaveLength(0);
+    expect(wf.yaml).toContain('gh pr merge "$NUMBER" --squash --auto');
+    expect(wf.yaml).not.toContain('claude-code-action');
+    expect(wf.yaml).toContain("github.event.label.name == 'dep:merge-approved'");
+    expect(wf.yaml).toContain("github.event.sender.type != 'Bot'");
+    expect(wf.yaml).toContain('ENABLED: ${{ vars.DEPENDENCY_MERGE_ENABLED }}');
+  });
+
+  it('the dogfooded .factory/blueprint.json compiles with no agent holding a merge grant', async () => {
+    const fs = await import('node:fs');
+    const bp = JSON.parse(fs.readFileSync(new URL('../../../.factory/blueprint.json', import.meta.url), 'utf-8')) as Blueprint;
+    const { workflows } = compile(bp);
+    for (const wf of workflows) {
+      expect(wf.diagnostics.filter((d) => d.level === 'error'), wf.filename).toHaveLength(0);
+      const grant = /--allowedTools "([^"]*)"/.exec(wf.yaml)?.[1];
+      if (grant) expect(grant.split(',').filter(grantsMerge), wf.filename).toEqual([]);
+    }
   });
 });
 
@@ -727,18 +776,16 @@ describe('prompt/grant coherence: an agent ordered to read its promptRef can rea
       }),
       node('ws1', 'sink.comment', { instruction: 'posts a merge-risk verdict on the open dependency PR' }),
       node('ws2', 'sink.label', { labels: '' }),
-      node('ws3', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
     ],
     edges: [
       edge('e1', 'm', 'wa'),
       edge('e2', 'c', 'wa'),
       edge('e3', 'wa', 'ws1'),
       edge('e4', 'wa', 'ws2'),
-      edge('e5', 'wa', 'ws3'),
     ],
   };
 
-  it('grants Read/Glob/Grep to a comment/label/merge_pr warden (the starvation regression)', () => {
+  it('grants Read/Glob/Grep to a comment/label warden (the starvation regression)', () => {
     const { yaml } = compile(factory3).workflows[0];
     expect(yaml).toContain('Read and follow the operating instructions in .factory/prompts/dependency-warden.md');
     expect(yaml).toContain('Read');
@@ -753,8 +800,7 @@ describe('prompt/grant coherence: an agent ordered to read its promptRef can rea
         'Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),' +
         'Read,Glob,Grep,' +
         'Bash(gh issue comment:*),Bash(gh pr comment:*),' +
-        'Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh pr edit:*),' +
-        'Bash(gh pr merge:*)"',
+        'Bash(gh label list:*),Bash(gh issue edit:*),Bash(gh pr edit:*)"',
     );
   });
 
@@ -765,7 +811,8 @@ describe('prompt/grant coherence: an agent ordered to read its promptRef can rea
 
   it('widens no write surface: the added grants are read-only', () => {
     const { yaml } = compile(factory3).workflows[0];
-    // The warden already had merge via its own sink; nothing new that writes appears.
+    // Nothing that writes beyond the comment/label sinks appears — and never a merge (ADR-039).
+    expect(yaml).not.toContain('Bash(gh pr merge:*)');
     expect(yaml).not.toContain('Bash(gh pr create:*)');
     expect(yaml).not.toContain('Bash(git push:*)');
     expect(yaml).not.toContain('Edit,Write');
@@ -774,7 +821,7 @@ describe('prompt/grant coherence: an agent ordered to read its promptRef can rea
   // The invariant, asserted directly, so prompt and grant cannot drift apart again:
   // if the emitted prompt orders a read, the emitted grant contains Read.
   const shapes: Array<[string, Blueprint]> = [
-    ['comment/label/merge_pr warden (survey)', factory3],
+    ['comment/label warden (survey)', factory3],
     [
       'cron → comment only (the nightly gardener shape)',
       {
@@ -790,14 +837,14 @@ describe('prompt/grant coherence: an agent ordered to read its promptRef can rea
     ],
     ['issue_opened → label + comment (the triage shape)', triageLine],
     [
-      'workflow_run → merge_pr',
+      'workflow_run → comment',
       {
         version: 1,
-        meta: { name: 'Judged Automerge' },
+        meta: { name: 'CI Reporter' },
         nodes: [
           node('t', 'trigger.workflow_run', { workflow: 'CI', conclusion: 'success' }),
           node('a', 'agent.claude', { promptRef: 'p.md' }),
-          node('s', 'sink.merge_pr', { method: 'squash', when: 'auto' }),
+          node('s', 'sink.comment', { instruction: 'summarizes the CI result' }),
         ],
         edges: [edge('e1', 't', 'a'), edge('e2', 'a', 's')],
       },
@@ -1040,7 +1087,7 @@ describe('SHA-pinned actions mode (ADR-026): meta.pinActions pins every emitted 
         node('t', 'trigger.pr_opened'),
         node('dm', 'processor.dependabot_meta', { allowed: 'patch' }),
         node('a', 'agent.claude', { promptRef: '.factory/prompts/warden.md' }),
-        node('m', 'sink.merge_pr', { method: 'squash' }),
+        node('m', 'sink.comment', { instruction: 'records the verdict' }),
       ],
       edges: [edge('e1', 't', 'dm'), edge('e2', 'dm', 'a'), edge('e3', 'a', 'm')],
     };

@@ -548,7 +548,7 @@ export const MACHINES: MachineDef[] = [
     label: 'Merge PR',
     icon: '✅',
     blurb:
-      'Merges the pull request (grants contents + pull-requests: write). "auto" merges only once required checks pass. Scope it with a Filter or Dependabot-metadata — never merge untrusted PRs blindly.',
+      'Merges the pull request (grants contents + pull-requests: write). "auto" merges only once required checks pass. Deterministic only: wiring it downstream of a Claude agent is a compile error (agents never merge, ADR-039) — gate it on a label instead (ADR-027). Scope it with a Filter or Dependabot-metadata — never merge untrusted PRs blindly.',
     fields: [
       { key: 'method', label: 'Merge method', kind: 'select', options: ['squash', 'merge', 'rebase'] },
       { key: 'when', label: 'When', kind: 'select', options: ['auto', 'now'] },

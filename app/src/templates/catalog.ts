@@ -105,19 +105,18 @@ export const TEMPLATES: FactoryTemplate[] = [
     id: 'dependency-warden',
     name: 'Dependency Warden',
     icon: '🛡',
-    blurb: 'Weekly + on-demand: review open Dependabot PRs, comment a verdict, label, and auto-merge the safe ones.',
+    blurb: 'Weekly + on-demand: review open Dependabot PRs, comment a verdict, and label them. It never merges (agents never merge, ADR-039) — pair it with Label-Gated Automerge so a human label lands the PR.',
     blueprint: {
       version: 1,
-      meta: { name: 'Dependency Warden', description: 'Review + auto-merge low-risk dependency updates.' },
+      meta: { name: 'Dependency Warden', description: 'Review + label dependency updates; merging stays with a human label.' },
       nodes: [
         T('wm', 'trigger.manual', 40, 120),
         T('wc', 'trigger.cron', 40, 240, { cron: '0 6 * * 1' }),
         T('wa', 'agent.claude', 340, 180, { promptRef: '.factory/prompts/dependency-warden.md', model: 'claude-opus-5', maxTurns: 25 }),
         T('cm', 'sink.comment', 660, 60, { instruction: 'records the merge-risk verdict (bump size, breaking-change check, recommendation)' }),
         T('lb', 'sink.label', 660, 200, { labels: '' }),
-        T('mg', 'sink.merge_pr', 660, 320, { method: 'squash', when: 'auto' }),
       ],
-      edges: [E('e1', 'wm', 'wa'), E('e2', 'wc', 'wa'), E('e3', 'wa', 'cm'), E('e4', 'wa', 'lb'), E('e5', 'wa', 'mg')],
+      edges: [E('e1', 'wm', 'wa'), E('e2', 'wc', 'wa'), E('e3', 'wa', 'cm'), E('e4', 'wa', 'lb')],
     },
   },
   {
