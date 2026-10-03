@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { DELIVERED_MAPS, deliveredMapFor, deliveredMapUrl, demoFleetSource } from './manifest';
 
 describe('delivered-map manifest', () => {
-  it('lists the eight dogfood + demo maps with their sources', () => {
+  it('lists the nine dogfood + demo maps with their sources', () => {
     expect(DELIVERED_MAPS.map((m) => m.slug)).toEqual([
       'demo--acme--design-system',
       'demo--acme--infra',
@@ -16,6 +16,7 @@ describe('delivered-map manifest', () => {
       'gitorio-factory-1',
       'gitorio-factory-2',
       'gitorio-factory-3',
+      'gitorio-factory-4',
     ]);
     for (const m of DELIVERED_MAPS) {
       expect(['workflow', 'architecture']).toContain(m.type);

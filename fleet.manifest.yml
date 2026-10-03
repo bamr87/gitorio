@@ -61,7 +61,7 @@ lanes:
   harness: claude-code-action
   implementation: .github/workflows/factory--gitorio-factory-2.yml
   description: 'Factory: Gitorio Factory 2'
-  switch: null
+  switch: NIGHTLY_GARDENER_ENABLED
   uses_tokens:
   - ANTHROPIC_API_KEY
   - CLAUDE_CODE_OAUTH_TOKEN
@@ -75,10 +75,24 @@ lanes:
   description: 'Factory: Gitorio Factory 3'
   triggers:
   - kind: dispatch
-  switch: null
+  switch: DEPENDENCY_WARDEN_ENABLED
   uses_tokens:
   - ANTHROPIC_API_KEY
   - CLAUDE_CODE_OAUTH_TOKEN
+  guardrails:
+    never_merges: true
+    opens_pull_requests: false
+- id: factory--gitorio-factory-4
+  kind: other
+  harness: engine
+  implementation: .github/workflows/factory--gitorio-factory-4.yml
+  description: 'Factory: Gitorio Factory 4'
+  triggers:
+  - kind: event
+    events:
+    - pull_request
+  switch: DEPENDENCY_MERGE_ENABLED
+  uses_tokens: []
   guardrails:
     never_merges: false
     opens_pull_requests: false

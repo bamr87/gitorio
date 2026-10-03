@@ -13,6 +13,8 @@
         "label": "Main path",
         "focus": [
           "t2",
+          "g2",
+          "r2",
           "a2",
           "s3"
         ],
@@ -52,6 +54,10 @@
       "label": "Triggers"
     },
     {
+      "id": "policy",
+      "label": "Gates & limits"
+    },
+    {
       "id": "agent",
       "label": "Processing"
     },
@@ -62,6 +68,8 @@
   ],
   "mainPath": [
     "t2",
+    "g2",
+    "r2",
     "a2",
     "s3"
   ],
@@ -72,12 +80,28 @@
       "col": 0,
       "type": "external",
       "label": "Schedule",
-      "sublabel": "0 3 * * *"
+      "sublabel": "17 3 * * *"
+    },
+    {
+      "id": "g2",
+      "lane": "policy",
+      "col": 1,
+      "type": "security",
+      "label": "Kill switch",
+      "sublabel": "NIGHTLY_GARDENER_…"
+    },
+    {
+      "id": "r2",
+      "lane": "policy",
+      "col": 3,
+      "type": "security",
+      "label": "Rate limit",
+      "sublabel": "2/day"
     },
     {
       "id": "a2",
       "lane": "agent",
-      "col": 1,
+      "col": 3,
       "type": "backend",
       "label": "Claude agent",
       "sublabel": "nightly-gardener"
@@ -85,7 +109,7 @@
     {
       "id": "s3",
       "lane": "sinks",
-      "col": 2,
+      "col": 4,
       "type": "frontend",
       "label": "Comment"
     }
@@ -94,6 +118,18 @@
     {
       "id": "e-e4",
       "from": "t2",
+      "to": "g2",
+      "role": "main"
+    },
+    {
+      "id": "e-e11",
+      "from": "g2",
+      "to": "r2",
+      "role": "main"
+    },
+    {
+      "id": "e-e12",
+      "from": "r2",
       "to": "a2",
       "role": "main"
     },

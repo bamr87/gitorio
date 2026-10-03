@@ -104,7 +104,7 @@ means the edit did not improve the independent signal and (on the default `onFai
 
 **Sinks** (signal green)
 - `sink.comment`, `sink.label`, `sink.create_issue`, `sink.open_pr`, `sink.commit_files`
-- `sink.merge_pr` — `gh pr merge --<method> [--auto]` (grants `contents`+`pull-requests: write`).
+- `sink.merge_pr` — `gh pr merge --<method> [--auto]` (grants `contents`+`pull-requests: write`). Deterministic only: downstream of a Claude agent it is a compile error, as is any merge-capable agent grant — agents never merge (ADR-039); gate it on a label instead (ADR-027).
 A **terminal** sink: it emits no new comment/issue/PR event, so a line whose only action is merge carries no bot loop-guard — the one way to auto-merge Dependabot's own (bot) PRs. Scope it with a Filter or Dependabot-metadata; the compiler warns on an unscoped `pull_request` merge.
 - `sink.cross_repo_issue` — files an issue in ANOTHER repo via a scoped token secret (default
 `FLEET_TOKEN`); the `GITHUB_TOKEN` can't cross repos. Kept out of `WRITING_SINKS` — writing to another repo can't retrigger this line (Fleet C, ADR-016).

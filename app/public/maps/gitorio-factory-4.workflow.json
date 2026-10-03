@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Gitorio Factory 4",
+    "subtitle": "Gitorio Factory · factory--gitorio-factory-4.yml · .factory/blueprint.json",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "animation": "trace",
+    "views": [
+      {
+        "id": "main-path",
+        "label": "Main path",
+        "focus": [
+          "mt",
+          "mg",
+          "mf",
+          "mm"
+        ],
+        "note": "Trigger to terminal output — the line as compiled."
+      },
+      {
+        "id": "loop-guard",
+        "label": "Loop guard",
+        "focus": [
+          "mt",
+          "guard-bot-actor",
+          "mm"
+        ],
+        "note": "Writes this line performs could re-emit its own trigger; the actor guard breaks the loop."
+      }
+    ],
+    "legend": {
+      "mode": "auto",
+      "entries": {
+        "external": {
+          "label": "Trigger"
+        },
+        "security": {
+          "label": "Gate / guard"
+        },
+        "backend": {
+          "label": "Agent"
+        },
+        "database": {
+          "label": "Ledger / evidence"
+        },
+        "frontend": {
+          "label": "Output"
+        },
+        "messagebus": {
+          "label": "Dispatch belt"
+        },
+        "cloud": {
+          "label": "Cross-repo"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "triggers",
+      "label": "Triggers"
+    },
+    {
+      "id": "policy",
+      "label": "Gates & limits"
+    },
+    {
+      "id": "sinks",
+      "label": "Outputs"
+    },
+    {
+      "id": "guards",
+      "label": "Guards",
+      "variant": "exception"
+    }
+  ],
+  "mainPath": [
+    "mt",
+    "mg",
+    "mf",
+    "mm"
+  ],
+  "nodes": [
+    {
+      "id": "mt",
+      "lane": "triggers",
+      "col": 0,
+      "type": "external",
+      "label": "PR opened",
+      "sublabel": "dep:merge-approved"
+    },
+    {
+      "id": "mg",
+      "lane": "policy",
+      "col": 1,
+      "type": "security",
+      "label": "Kill switch",
+      "sublabel": "DEPENDENCY_MERGE_…"
+    },
+    {
+      "id": "mf",
+      "lane": "policy",
+      "col": 3,
+      "type": "security",
+      "label": "Condition"
+    },
+    {
+      "id": "mm",
+      "lane": "sinks",
+      "col": 3,
+      "type": "frontend",
+      "label": "Merge PR"
+    },
+    {
+      "id": "guard-bot-actor",
+      "lane": "guards",
+      "col": 1,
+      "type": "security",
+      "label": "Bot guard",
+      "sublabel": "sender ≠ Bot"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-e15",
+      "from": "mt",
+      "to": "mg",
+      "role": "main"
+    },
+    {
+      "id": "e-e16",
+      "from": "mg",
+      "to": "mf",
+      "role": "main"
+    },
+    {
+      "id": "e-e17",
+      "from": "mf",
+      "to": "mm",
+      "role": "main"
+    },
+    {
+      "id": "e-guard-mt",
+      "from": "mt",
+      "to": "guard-bot-actor",
+      "label": "if",
+      "variant": "security",
+      "role": "branch"
+    }
+  ]
+}

@@ -39,12 +39,32 @@ describe('the Docs Gardener line', () => {
 });
 
 describe('the gitorio blueprint and a deterministic line', () => {
-  it('scores every agent line and flags an agent line that carries a merge sink', () => {
+  it('scores every line; no agent line carries a merge sink and every scheduled agent line is switched (ADR-039)', () => {
     const r = blueprintReadiness(readBp('.factory/blueprint.json'));
-    expect(r.lines.length).toBeGreaterThanOrEqual(3);
+    expect(r.lines.length).toBeGreaterThanOrEqual(4);
     for (const l of r.lines) expect(l.layers.length).toBe(6);
-    const warden = r.lines.find((l) => l.layers.some((x) => x.gaps.some((g) => g.includes('merge sink'))));
-    expect(warden, 'the dependency warden merges: permissions must warn').toBeTruthy();
+    const gaps = r.lines.flatMap((l) => l.layers.flatMap((x) => x.gaps));
+    expect(gaps.filter((g) => g.includes('merge sink'))).toEqual([]);
+    expect(gaps.filter((g) => g.includes('gate.enablement switch'))).toEqual([]);
+  });
+
+  it('flags an agent line that carries a merge sink', () => {
+    const bp: Blueprint = {
+      version: 1,
+      meta: { name: 'Agent Merge' },
+      nodes: [
+        { id: 't', type: 'trigger.manual', position: { x: 0, y: 0 }, config: {} },
+        { id: 'a', type: 'agent.claude', position: { x: 0, y: 0 }, config: { promptRef: 'p.md' } },
+        { id: 'm', type: 'sink.merge_pr', position: { x: 0, y: 0 }, config: {} },
+      ],
+      edges: [
+        { id: 'e1', from: { node: 't', port: 'out' }, to: { node: 'a', port: 'in' } },
+        { id: 'e2', from: { node: 'a', port: 'out' }, to: { node: 'm', port: 'in' } },
+      ],
+    };
+    const r = blueprintReadiness(bp);
+    const flagged = r.lines.find((l) => l.layers.some((x) => x.gaps.some((g) => g.includes('merge sink'))));
+    expect(flagged, 'an agent line with a merge sink: permissions must warn').toBeTruthy();
   });
 
   it('marks agent-only layers n/a on a deterministic line and says so in the checklist', () => {

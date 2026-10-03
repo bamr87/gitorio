@@ -8,7 +8,7 @@ This page is the one place that says which files in this repo the **compiler** w
 
 | Generated path | Source of truth | Regenerate with (from `app/`) |
 | --- | --- | --- |
-| `.github/workflows/factory--gitorio-factory-{1,2,3}.yml` | `.factory/blueprint.json` (+ prompts in `.factory/prompts/`) | `compile()` over the blueprint — the app's **Deploy** button, or a one-off `vite-node` script that calls `compile(bp, { blueprintPath: '.factory/blueprint.json' })` and writes each `{ filename, yaml }` |
+| `.github/workflows/factory--gitorio-factory-{1,2,3,4}.yml` | `.factory/blueprint.json` (+ prompts in `.factory/prompts/`) | `compile()` over the blueprint — the app's **Deploy** button, or a one-off `vite-node` script that calls `compile(bp, { blueprintPath: '.factory/blueprint.json' })` and writes each `{ filename, yaml }` |
 | `.github/workflows/factory--docs-gardener.yml`, `.factory/docs-gardener.blueprint.json`, `.factory/config.yml` | the `docs-gardener` gallery template in `app/src/templates/catalog.ts` + `app/src/content/model.ts` | `npx vite-node scripts/gen-docs-gardener.ts` |
 | `examples/compiled/factory--*.yml` (the golden anchors) | `examples/*.blueprint.json` | `npx vite-node scripts/regen-examples.ts` — owns the directory: stale files are removed |
 | `app/dist/` | the app source | `npm run build` — a build artifact, not committed |
