@@ -36,25 +36,25 @@
       "slug": "gitorio-factory-1",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "260a5b76"
+      "hash": "f3931cab"
     },
     {
       "slug": "gitorio-factory-2",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "260a5b76"
+      "hash": "f3931cab"
     },
     {
       "slug": "gitorio-factory-3",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "260a5b76"
+      "hash": "f3931cab"
     },
     {
       "slug": "gitorio-factory-4",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "260a5b76"
+      "hash": "f3931cab"
     }
   ]
 }
