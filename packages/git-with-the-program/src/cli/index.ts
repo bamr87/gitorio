@@ -22,6 +22,11 @@ interface CommandSpec {
 }
 
 const COMMANDS: Readonly<Record<string, CommandSpec>> = {
+  report: {
+    summary: 'Collect repository evidence and draft a lifehacker.dev campaign article',
+    seed: 'Repository reporting (separate from governance)',
+    load: () => import('./commands/report.js'),
+  },
   validate: {
     summary: 'Validate .program/*.yaml and ledger event files against schemas/ (INV-006)',
     seed: 'SEED-01',

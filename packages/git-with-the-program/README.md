@@ -102,6 +102,42 @@ hands it to Claude Code as a draft PR.
 - **Constitutional minimalism.** A twelve-assertion program gets read; a sixty-assertion one gets rubber-stamped.
 - **The observer is observed.** Judges live in `.program/`, take a bar exam on the case law, and get drift-checked against a frozen golden sample.
 
+## Repository Reporting
+
+`gwtp report` is an editorial lane for the **Git With the Program** campaign and series on lifehacker.dev. Select a local repository and a commit or branch tip; GWTP collects a bounded history sample, patches, branch/tag information, sample trends, and optional GitHub PR/issue evidence. It prepares a source-grounded brief for an AI reporter, separately from the governance judge, without changing the source repository, `.program/`, or ledger.
+
+Install dependencies with `npm install` (Node 22 or newer). From this directory, prepare a bundle without making a model call:
+
+```bash
+npm run gwtp -- report --repo ../git-with-the-program --site ../lifehacker.dev \
+  --out /tmp/gwtp-report-first --ref HEAD --limit 20
+```
+
+The output directory must not already exist, its parent must exist, and it must be outside both the analyzed repository and publication site. It contains `evidence.json` and `agent-prompt.md`; keep it as the review/audit record. Only committed history is included, not local edits. GitHub access is opt-in, requires authenticated `gh`, and never guesses a repository from credential-bearing remotes:
+
+```bash
+npm run gwtp -- report --repo ../git-with-the-program --site ../lifehacker.dev \
+  --out /tmp/gwtp-report-github --ref main --since 2026-09-01 --limit 30 \
+  --github bamr87/git-with-the-program --pr 1 --issue 2
+```
+
+`--pr` and `--issue` are repeatable selectors. Without explicit numbers, `--github` collects bounded recent PR/issue context. A commit SHA can be supplied as `--ref` to study the history ending at that commit; `--limit 1` focuses on that commit. A branch name selects its reachable history, not a branch comparison. Missing forge access, shallow history, truncation and sample-only trend limitations are exposed in the evidence, not represented as complete history.
+
+After inspecting a prepared bundle for private material, invoke a fresh run with `--run` to send the evidence to lifehacker.dev's configured AI service:
+
+```bash
+npm run gwtp -- report --repo ../git-with-the-program --site ../lifehacker.dev \
+  --out /tmp/gwtp-report-draft --ref HEAD --limit 20 --run
+```
+
+This uses the site's `scripts/ai/run.sh` with its text-only API path (`AI_FORCE_API=1`). The default provider is Anthropic and requires `ANTHROPIC_API_KEY`. `--provider openai` uses `OPENAI_API_KEY` and `gpt-4.1` unless `OPENAI_MODEL` is set. Either call may incur API charges. A Claude Code OAuth login alone is not sufficient. This deliberately avoids the runner's tool-enabled agent and automatic formatting of unrelated Markdown changes; no new provider or scheduler is introduced. The AI returns a structured article or an explicit no-story reason. GWTP checks its response and citation IDs, writes `result.json`, and creates a **`published: false`** article under `pages/_posts/field-notes/` with campaign, voice, series and evidence-digest metadata. A missing credential/no-output runner is an error, not a successful draft. Existing output files are never overwritten. Neither command commits, pushes, opens a PR, or publishes.
+
+The complete AI prompt is limited to 96 KiB for compatibility with the shared runner. Oversized runs retain their prepared bundle but refuse the model call; reduce `--limit`, narrow `--since`, or select fewer PRs/issues. GitHub items are current metadata, not historical snapshots or full PR diffs, comments, reviews, or CI results. The explicit GitHub slug is operator-supplied and is not verified against the local repository.
+
+A repository can also keep its own retrospective record. IT-journey's first installment is `docs/git-archaeology/000-first-steps/` in that repository: an evidence index plus a report that separates observed Git facts from inference. That record examines the 2020-07-30 root and the five commits through 2020-07-31. It is not a governance verdict, and it does not publish the local paths found in the original commits.
+
+The brief calls for narrative reporting, technical critique, entertaining framing, source-versus-inference distinctions and conditional ownership disclosure. Repository text is untrusted data, not agent instructions. Citation checks establish that cited evidence exists, not that every interpretation is correct: a human must verify claims, redact sensitive material, generate preview art if appropriate, run the site's content gates and review before setting `published: true`. Retain the evidence bundle, especially for local-only repositories whose commits have no public source links. Campaign policy lives in lifehacker.dev's `_data/campaigns/git-with-the-program.yml`; the series landing page is `/series/git-with-the-program/`.
+
 ## Status
 
-Design complete (2026-07). Implementation not started. This package is the seed: specs, schemas, decisions, prompts, and its own constitution, ready for an agentic build.
+The TypeScript CLI implements validation, ledger, judge, distillation, program inspection, Nexus and repository reporting commands. Run `npm run gwtp -- --help` for the current command surface and `npm run ci` for the local verification suite. The specs and seed prompts retain the design and implementation history.
