@@ -38,3 +38,6 @@ export * from './amendment.js';
 export * from './render.js';
 export * from './issues.js';
 export * from './bare.js';
+// Repository upkeep (docs/spec/06-upkeep.md): the forge half of `gwtp upkeep` — reading and
+// converging description, topics, tags, releases and labels. Add-and-set only; no deletes.
+export * from './repo-host.js';

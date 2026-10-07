@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Implements: seeds/SEED-01-scaffold.md deliverable 2 (the `gwtp` command surface) and
 // CLAUDE.md's stated CLI contract: `gwtp validate` (SEED-01),
-// `gwtp ledger append|fold|replay|status` (SEED-02), and `gwtp nexus …` (ADR-0007, spec 05).
+// `gwtp ledger append|fold|replay|status` (SEED-02), `gwtp nexus …` (ADR-0007, spec 05), and
+// `gwtp upkeep …` (ADR-0008, spec 06).
 //
 // Argument parsing is node:util parseArgs — no commander, no yargs (ADR-0006 keeps the
 // dependency list small). Global flags are parsed from the tokens BEFORE the subcommand; the
@@ -50,6 +51,11 @@ const COMMANDS: Readonly<Record<string, CommandSpec>> = {
     summary: 'Inspect the normative store: assertions, precedents, scope, manifest',
     seed: 'SEED-01',
     load: () => import('./commands/program.js'),
+  },
+  upkeep: {
+    summary: 'plan | fill | check | apply | report | run — keep tags, releases, labels and repo metadata from drifting',
+    seed: 'spec 06',
+    load: () => import('./commands/upkeep.js'),
   },
 };
 

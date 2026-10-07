@@ -320,6 +320,26 @@ fetches the base branch, because it walks a commit range rather than inspecting 
 
 ---
 
+## Repository upkeep (the weekly self-maintenance run)
+
+`.github/workflows/upkeep.yml` runs `gwtp upkeep` every Monday and on demand (Actions → Upkeep →
+Run workflow). It keeps the repository's description, topics, tags, releases and labels in line
+with [`.github/upkeep.yaml`](.github/upkeep.yaml), and lists in-tree drift as a checklist in the
+job summary ([spec 06](docs/spec/06-upkeep.md)). To change what it maintains, edit the config;
+the schema is `schemas/upkeep-config.schema.json`.
+
+| Secret / variable | Effect when set | Without it |
+|---|---|---|
+| `UPKEEP_TOKEN` | Fine-grained PAT with **Administration: write** (plus Contents and Issues: write). Lets `apply` set the description and topics | Those two actions report `blocked` (the job goes red, with the remedy); tags, releases and labels still apply via `GITHUB_TOKEN` |
+| `ANTHROPIC_API_KEY` | Content slots (release summaries, topic suggestions, docs review) are authored through the Anthropic API | Falls through to the next row |
+| `CLAUDE_CODE_OAUTH_TOKEN` | The Claude Code agent authors content slots instead, and the `tend` job can open in-tree PRs | Deterministic fallbacks: changelog-only release notes, no AI topics, no docs review |
+| `vars.UPKEEP_TEND = 'true'` | The weekly run also opens a draft PR for in-tree drift | `tend` runs only when the dispatch input asks |
+
+Locally: `npx tsx src/cli/index.ts upkeep run` is a dry run against GitHub using your `gh` login;
+add `--offline` to skip the forge, `--yes` to apply.
+
+---
+
 ## Reading order for a new contributor
 
 1. [`README.md`](README.md) — what this is, in one page.

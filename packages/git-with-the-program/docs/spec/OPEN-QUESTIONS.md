@@ -1211,3 +1211,52 @@ one reader, with the fact base keeping only its aggregation? That is a SEED-04-t
 refactor and wants its own change, judged by the framework it feeds.
 **Pinned at:** `src/distill/miner.ts` → `ImportGraphSnapshot`; `src/nexus/build.ts` →
 `buildNexus`; docs/spec/05-nexus.md §8.
+
+---
+
+## Repository upkeep (spec 06, ADR-0008)
+
+Raised while building `gwtp upkeep`. Spec 06 was written in the same change; these are the
+places it chose the least-committal reading of existing law.
+
+### Q-71 — are upkeep's config and plan inside INV-006's jurisdiction?
+INV-006 covers "program and ledger artifacts". `.github/upkeep.yaml` and the upkeep plan are
+neither, yet both now have real schemas (`schemas/upkeep-config.schema.json`,
+`schemas/upkeep-plan.schema.json`). The same question Q-65 asked of the nexus.
+
+**Shipped (least-committal):** the schemas are enforced where the artifacts live: `gwtp upkeep`
+validates the config before use and every plan before writing or reading it, and
+`tests/upkeep/cli.test.ts` holds the committed config and generated plans against ajv. `gwtp
+validate` and `SCHEMA_ID` are untouched.
+**Question for ratification:** answer Q-65 and Q-71 together. If INV-006 widens to "all machine
+artifacts", both join `gwtp validate`.
+**Pinned at:** `src/cli/commands/upkeep.ts` → `loadUpkeepSchemas`; `src/core/index.ts` → `SCHEMA_ID`.
+
+### Q-72 — should `src/upkeep/**` join INV-005's scope?
+INV-005 binds only `src/core/**`. `src/upkeep` keeps the posture voluntarily: it declares a
+`RepoHostPort` and imports no forge code; `src/adapters/github/repo-host.ts` implements it. It
+does import `src/ledger/git.ts` (git CLI, not a forge) and `src/core/paths.ts`.
+
+**Shipped:** voluntary compliance, no deterministic check.
+**Question for ratification:** widen INV-005's scope to `["src/core/**", "src/upkeep/**"]` so
+the deterministic import check enforces it? That is an amendment to `.program/invariants.yaml`.
+
+### Q-73 — is the `tend` agent a "machine actor" under INV-001?
+INV-001 excludes machine actors from `.program/`. The `tend` job's agent commits on an
+`upkeep/*` branch and opens a draft PR. It is told never to touch `.program/`, and `ci.yml`'s
+INV-001 job would fail it if it did. But its PRs about *other* files are machine-authored
+changes that a human merges.
+
+**Shipped:** `tend` is opt-in (dispatch input, or `vars.UPKEEP_TEND`), drafts only, one at a
+time, never touches `.program/`.
+**Question:** is "machine-authored, human-merged" acceptable for docs/version drift, and should
+`tend` PRs carry a label the ledger can recognise as upkeep rather than development?
+
+### Q-74 — where should a backfilled tag point?
+A version present in `package.json` but never tagged could be tagged at HEAD (what the tree is
+now) or at the commit where that version was introduced (what the version shipped).
+
+**Shipped:** introduction commit (the oldest commit of the contiguous run, back from HEAD, in
+which the source file held this value). Later commits are reported as unreleased with a
+suggested bump. A shallow clone breaks the walk; the workflow checks out with `fetch-depth: 0`.
+**Pinned at:** `src/upkeep/facts.ts` → `versionIntroducedAt`.

@@ -72,7 +72,7 @@ export function repoSlug(repo: GitHubRepo): string {
 // ---------------------------------------------------------------------------
 
 export interface HttpRequest {
-  readonly method: 'GET' | 'POST';
+  readonly method: 'GET' | 'POST' | 'PATCH' | 'PUT';
   /** API-relative, no leading slash: `search/issues`, `repos/o/n/issues`. */
   readonly path: string;
   readonly query?: Readonly<Record<string, string>>;

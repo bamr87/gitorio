@@ -26,3 +26,5 @@
 **Watermark** — last SHA distilled; walks resume from here.
 **Hysteresis** — post-fire re-arm only below ~50% budget; nothing flaps.
 **Governance debt** — accumulated staleness of ignored proposals.
+**Upkeep** — keeping the repository's forge-side presentation (description, topics, tags, releases, labels, doc references) converged with `.github/upkeep.yaml`, its tree and its history. Writes the forge, never the tree; in-tree drift becomes a reviewed PR (spec 06).
+**Content slot** — a value in an upkeep plan only an author can supply (release summary, missing description, topic suggestions, stale-doc review). Carries a brief, a contract and a deterministic fallback; filled by a model or an agent, re-validated before use.

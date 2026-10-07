@@ -16,3 +16,7 @@ coverage/
 # job runs — fails outright without a lockfile. It is named here as a comment precisely because
 # a reader scanning .gitignore for "what does not get committed" is the reader most likely to
 # leave it untracked.
+
+# Repository upkeep working files (docs/spec/06-upkeep.md §3): the plan and apply outcomes are
+# per-run artifacts — the workflow uploads them; the tree never carries them.
+.gwtp/upkeep/
