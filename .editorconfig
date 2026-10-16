@@ -1,20 +1,56 @@
-# EditorConfig — consistent formatting across editors. https://editorconfig.org
+# EditorConfig is awesome: https://EditorConfig.org
+
+# top-most EditorConfig file
 root = true
 
+# Unix-style newlines with a newline ending every file
 [*]
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
+# Local override (gitorio): keep the repo's 2-space default indent for every file
+# type not set below. The hub copy sets no global indent; everything else matches
+# bamr87/bamr87/.editorconfig.
 indent_style = space
 indent_size = 2
 
-# Markdown: trailing whitespace can be a hard line break — don't strip it.
+# Markdown files
 [*.md]
+max_line_length = off
 trim_trailing_whitespace = false
 
+# YAML files
 [*.{yml,yaml}]
+indent_style = space
 indent_size = 2
 
+# JSON files
+[*.json]
+indent_style = space
+indent_size = 2
+
+# JavaScript/TypeScript
+[*.{js,jsx,ts,tsx}]
+indent_style = space
+indent_size = 2
+
+# Python
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+# Shell scripts
+[*.sh]
+indent_style = space
+indent_size = 2
+
+# Makefiles
 [Makefile]
 indent_style = tab
+
+# Package files
+[{package.json,*.lock}]
+indent_style = space
+indent_size = 2
