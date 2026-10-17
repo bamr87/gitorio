@@ -2,7 +2,7 @@
 
 > Agentic governance framework that distills git history into a core memory and scores every change for drift.
 
-[![CI](https://github.com/bamr87/git-with-the-program/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/git-with-the-program/actions/workflows/ci.yml)
+[![CI](https://github.com/bamr87/git-with-the-program/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/git-with-the-program/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/bamr87/git-with-the-program)](LICENSE)
 
 ## Overview
 
@@ -158,11 +158,11 @@ Contributions are welcome via pull request. Use [Conventional Commits](https://w
 
 ## Changelog
 
-There is no CHANGELOG.md yet; changes are tracked in the [commit history](https://github.com/bamr87/git-with-the-program/commits/main).
+Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md); the full record is in the [commit history](https://github.com/bamr87/git-with-the-program/commits/main).
 
 ## License
 
-`package.json` declares MIT, but no LICENSE file has been added yet.
+Released under the [MIT License](LICENSE).
 
 ---
 
