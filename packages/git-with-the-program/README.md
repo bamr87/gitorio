@@ -1,8 +1,21 @@
 # Git with the Program
 
+> Agentic governance framework that distills git history into a core memory and scores every change for drift.
+
+[![CI](https://github.com/bamr87/git-with-the-program/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/git-with-the-program/actions/workflows/ci.yml)
+
+## Overview
+
 **An agentic governance framework that keeps a repository's evolution in accordance with its program — and knows when the program itself should change.**
 
 Git with the Program (GWTP) distills a repo's git history and metadata into a versioned **core memory** (the *program*), then runs an evidence-accumulation loop that scores every change against it. It distinguishes four conditions — **drift**, **regression**, **obsolescence**, and **alignment** — and emits two kinds of output: **refactoring recommendations** (the code is wrong) and **reprogramming proposals** (the law is wrong). The second kind is what separates a governor from a nag.
+
+## Features
+
+- Distills git history and metadata into a versioned core memory in `.program/` (charter, invariants, trajectory, precedents, scope)
+- Scores every change as drift, regression, obsolescence or alignment
+- Emits refactoring recommendations when the code is wrong and reprogramming proposals when the program is
+- Uses the dispersion of evidence to decide whether a proposal targets the code or the program
 
 ## The one-sentence mechanics
 
@@ -49,8 +62,7 @@ Seven components, six specs, one loop:
 | Upkeep | [docs/spec/06-upkeep.md](docs/spec/06-upkeep.md) | Keeps the repo's forge-side presentation (description, topics, tags, releases, labels, doc references) from drifting: a deterministic plan, AI-authored content slots, forge-only apply, in-tree drift as reviewed PRs (ADR-0008) |
 | Vision | [docs/vision.md](docs/vision.md) | Why bidirectionality is the point, and the predictive-processing frame behind the design |
 
-## Repo layout
-
+## Project structure
 ```
 .program/          This repo's OWN program (dogfood, status: inferred — ratify it first)
 docs/vision.md     Conceptual foundation
@@ -74,10 +86,7 @@ GLOSSARY.md        The vocabulary, in one place
 
 ## Repository upkeep (self-maintaining repo)
 
-`gwtp upkeep` compares what the repository *says about itself* with what its config, tree and
-history say it should be, and converges the two
-([spec 06](docs/spec/06-upkeep.md)). It runs weekly and on demand
-([`.github/workflows/upkeep.yml`](.github/workflows/upkeep.yml)):
+`gwtp upkeep` compares what the repository *says about itself* with what its config, tree and history say it should be, and converges the two ([spec 06](docs/spec/06-upkeep.md)). It runs weekly and on demand ([`.github/workflows/upkeep.yml`](.github/workflows/upkeep.yml)):
 
 ```bash
 npx tsx src/cli/index.ts upkeep plan            # observe + report (writes .gwtp/upkeep/plan.json)
@@ -87,10 +96,7 @@ npx tsx src/cli/index.ts upkeep apply --yes     # tags, releases, labels, descri
 npx tsx src/cli/index.ts upkeep run             # all of the above as one dry run; add --yes to apply
 ```
 
-Remote drift (description, topics, tags, releases, labels) is fixed by API calls. In-tree drift
-(a version bump, a stale README line, a missing LICENSE, a doc that stopped naming a schema or
-CLI command) is never committed by the job. It becomes a checklist, and the opt-in `tend` job
-hands it to Claude Code as a draft PR.
+Remote drift (description, topics, tags, releases, labels) is fixed by API calls. In-tree drift (a version bump, a stale README line, a missing LICENSE, a doc that stopped naming a schema or CLI command) is never committed by the job. It becomes a checklist, and the opt-in `tend` job hands it to Claude Code as a draft PR.
 
 ## Design principles (the short list)
 
@@ -141,3 +147,24 @@ The brief calls for narrative reporting, technical critique, entertaining framin
 ## Status
 
 The TypeScript CLI implements validation, ledger, judge, distillation, program inspection, Nexus and repository reporting commands. Run `npm run gwtp -- --help` for the current command surface and `npm run ci` for the local verification suite. The specs and seed prompts retain the design and implementation history.
+
+## Development
+
+Full commands, conventions and gotchas for humans and AI agents live in [CLAUDE.md](CLAUDE.md).
+
+## Contributing
+
+Contributions are welcome via pull request. Use [Conventional Commits](https://www.conventionalcommits.org/) and keep the CI checks green. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow. AI agents should start with [CLAUDE.md](CLAUDE.md).
+
+## Changelog
+
+There is no CHANGELOG.md yet; changes are tracked in the [commit history](https://github.com/bamr87/git-with-the-program/commits/main).
+
+## License
+
+`package.json` declares MIT, but no LICENSE file has been added yet.
+
+---
+
+<!-- bamr87-portfolio-footer -->
+Part of the [bamr87 portfolio](https://github.com/bamr87) — browse every project on [Amr's GitHub profile](https://github.com/bamr87).
