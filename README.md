@@ -1,5 +1,11 @@
 # ⚙ GitFactory
 
+> Factorio-style factory builder for GitHub automation: blueprints compile to Actions workflows running Claude Code.
+
+[![CI](https://github.com/bamr87/gitorio/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/gitorio/actions/workflows/ci.yml) [![Live site](https://img.shields.io/badge/live-bamr87.github.io%2Fgitorio-2ea44f)](https://bamr87.github.io/gitorio/)
+
+## Overview
+
 **A Factorio-style factory builder for GitHub automation.** *(working title)*
 
 Drag machines onto a canvas. Connect them with belts. Hit **Deploy** — and your blueprint compiles into real GitHub Actions workflows where **Claude Code agents** triage issues, review PRs, garden stale threads, and commit fixes on your actual repositories.
@@ -12,6 +18,14 @@ Drag machines onto a canvas. Connect them with belts. Hit **Deploy** — and you
 ```
 
 No servers. The frontend is a static site; **GitHub is the database, the event bus, and the compute layer**. Blueprints live in your repo, prompts live in your repo, telemetry is read back from the Actions API and rendered as factory floor status.
+
+## Features
+
+- Drag-and-drop factory canvas: machines are triggers, Claude Code agents and actions, connected by belts
+- Deploy compiles a blueprint into readable GitHub Actions workflows in your repo
+- Blueprints and prompts are versioned in the repo and shareable as encoded strings
+- Factory-floor status rendered from the Actions API
+- A static frontend with no servers: GitHub is the database, event bus and compute
 
 ## Why this shape
 
@@ -34,8 +48,7 @@ The app is built on [tt-a1i/archify](https://github.com/tt-a1i/archify)'s design
 
 Open the app with **`?demo=1`** and the whole tool comes alive on a fictional three-repo fleet — canvas, prompts, telemetry, and the Fleet Ops cockpit — with no personal access token and no network calls. It is not a mock: the demo swaps in a fixture-backed client behind the same seam a real connection uses, so the compiler and the facts/metrics/audit engines run for real over the fixture data. Nothing is written to GitHub; edits live in the tab until you close it.
 
-## Quickstart (development)
-
+## Quick start (development)
 All application code lives in `app/` (the only npm project); Node 22 is pinned in `.nvmrc` (`nvm use`).
 
 ```bash
@@ -72,8 +85,7 @@ The `.vscode/` folder follows the fleet convention (see [`.vscode/README.md`](.v
 - **Debug: app in Edge (Docker :5173)** — starts the dev server in Docker, then opens Edge with source-mapped breakpoints; the **(host :5173)** variant uses local Node.
 - **Debug: Vitest (all)** / **Debug: Vitest (current file)** — breakpoint-debug the test suite.
 
-## Repository layout
-
+## Project structure
 Four of these directories hold prose. [`docs/DOCUMENTATION-MAP.md`](docs/DOCUMENTATION-MAP.md) explains the division of labour between them and answers "where does this writing go?".
 
 | Path | What lives there |
@@ -120,3 +132,24 @@ Powering a deployed factory requires a Claude auth Actions secret on the target 
 ## Status
 
 Canvas, compiler, GitHub connect, telemetry, Prompt Studio, the headless-CMS cockpit, Fleet Ops, the archify console, and harness parity with the bamr87 hub — dogfooding itself in `.factory/`. Pre-alpha; the roadmap is the product spec.
+
+## Development
+
+Full commands, conventions and gotchas for humans and AI agents live in [CLAUDE.md](CLAUDE.md).
+
+## Contributing
+
+Contributions are welcome via pull request. Use [Conventional Commits](https://www.conventionalcommits.org/) and keep the CI checks green. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow. AI agents should start with [CLAUDE.md](CLAUDE.md).
+
+## Changelog
+
+There is no CHANGELOG.md yet; changes are tracked in the [commit history](https://github.com/bamr87/gitorio/commits/main).
+
+## License
+
+No license file has been added yet, so all rights are reserved by default.
+
+---
+
+<!-- bamr87-portfolio-footer -->
+Part of the [bamr87 portfolio](https://github.com/bamr87) — browse every project on [Amr's GitHub profile](https://github.com/bamr87).
