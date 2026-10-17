@@ -2,6 +2,8 @@
 
 > Nexus Forge: a static rebuild-spec workbench (PRD, architecture, 14-step playbook) for reimplementing GitNexus.
 
+[![License](https://img.shields.io/github/license/bamr87/gitnexus)](LICENSE)
+
 ## Overview
 
 Nexus Forge is a static rebuild-specification workbench for [GitNexus](https://github.com/abhigyanpatwari/GitNexus). It collects the PRD, architecture, feature catalog, pipeline DAG, graph schema, MCP and CLI surfaces, and a 14-milestone rebuild playbook in one browsable app, to be used as the instruction set for reimplementing the engine from scratch.
@@ -51,11 +53,11 @@ Contributions are welcome via pull request. Use [Conventional Commits](https://w
 
 ## Changelog
 
-There is no CHANGELOG.md yet; changes are tracked in the [commit history](https://github.com/bamr87/gitnexus/commits/main).
+Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md); the full record is in the [commit history](https://github.com/bamr87/gitnexus/commits/main).
 
 ## License
 
-No license file has been added yet, so all rights are reserved by default.
+Released under the [MIT License](LICENSE).
 
 ---
 
