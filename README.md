@@ -2,7 +2,7 @@
 
 > Factorio-style factory builder for GitHub automation: blueprints compile to Actions workflows running Claude Code.
 
-[![CI](https://github.com/bamr87/gitorio/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/gitorio/actions/workflows/ci.yml) [![Live site](https://img.shields.io/badge/live-bamr87.github.io%2Fgitorio-2ea44f)](https://bamr87.github.io/gitorio/)
+[![CI](https://github.com/bamr87/gitorio/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/gitorio/actions/workflows/ci.yml) [![Live site](https://img.shields.io/badge/live-bamr87.github.io%2Fgitorio-2ea44f)](https://bamr87.github.io/gitorio/) [![License](https://img.shields.io/github/license/bamr87/gitorio)](LICENSE)
 
 ## Overview
 
@@ -143,11 +143,11 @@ Contributions are welcome via pull request. Use [Conventional Commits](https://w
 
 ## Changelog
 
-There is no CHANGELOG.md yet; changes are tracked in the [commit history](https://github.com/bamr87/gitorio/commits/main).
+Notable changes are recorded in [CHANGELOG.md](CHANGELOG.md); the full record is in the [commit history](https://github.com/bamr87/gitorio/commits/main).
 
 ## License
 
-No license file has been added yet, so all rights are reserved by default.
+Released under the [MIT License](LICENSE).
 
 ---
 
