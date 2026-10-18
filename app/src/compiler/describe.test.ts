@@ -17,7 +17,7 @@ describe('describeWorkflow', () => {
       meta: { name: 'Issue Triage Line' },
       nodes: [
         node('t', 'trigger.issue_opened'),
-        node('a', 'agent.claude', { promptRef: '.factory/prompts/triage.md', model: 'claude-sonnet-4-6', maxTurns: 8 }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/triage.md', model: 'claude-sonnet-5-5', maxTurns: 8 }),
         node('lb', 'sink.label', { labels: '' }),
         node('cm', 'sink.comment', { instruction: 'summarize' }),
       ],
@@ -29,7 +29,7 @@ describe('describeWorkflow', () => {
     expect(facts.permissions.issues).toBe('write');
     expect(facts.killSwitchVar).toBeNull();
     expect(facts.agent).not.toBeNull();
-    expect(facts.agent!.model).toBe('claude-sonnet-4-6');
+    expect(facts.agent!.model).toBe('claude-sonnet-5-5');
     expect(facts.agent!.maxTurns).toBe(8);
     expect(facts.agent!.promptRef).toBe('.factory/prompts/triage.md');
     expect(facts.agent!.tools).toContain('Bash(gh issue comment:*)');
@@ -45,7 +45,7 @@ describe('describeWorkflow', () => {
         node('cm', 'trigger.manual', { mode: 'plan-first' }),
         node('g', 'gate.enablement', { variable: 'DOCS_GARDENER_ENABLED' }),
         node('rl', 'rate.limiter', { maxPerDay: 2 }),
-        node('a', 'agent.claude', { promptRef: '.factory/prompts/docs-gardener.md', model: 'claude-opus-4-8' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/docs-gardener.md', model: 'claude-opus-5-5' }),
         node('pr', 'sink.open_pr', {}),
       ],
       edges: [edge('e1', 'cd', 'g'), edge('e2', 'cm', 'g'), edge('e3', 'g', 'rl'), edge('e4', 'rl', 'a'), edge('e5', 'a', 'pr')],

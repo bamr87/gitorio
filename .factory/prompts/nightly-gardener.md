@@ -1,7 +1,7 @@
 ---
 title: Nightly gardener
 version: 1
-model_hint: claude-sonnet-4-6
+model_hint: claude-sonnet-5-5
 inputs: "REPO (from workflow bootstrap prompt); runs on a schedule, no entity context"
 obligations_note: "Comment permission granted by the compiled workflow; max 5 nudges/run."
 ---

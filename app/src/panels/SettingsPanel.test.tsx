@@ -7,7 +7,7 @@ import { useSettingsStore } from '../state/settings';
 
 beforeEach(() => {
   cleanup();
-  useSettingsStore.setState({ recentRepos: ['bamr87/gitorio', 'bamr87/lifehacker.dev'], defaultDeployMode: 'pr', pollMs: 15_000, defaultModel: 'claude-sonnet-4-6' });
+  useSettingsStore.setState({ recentRepos: ['bamr87/gitorio', 'bamr87/lifehacker.dev'], defaultDeployMode: 'pr', pollMs: 15_000, defaultModel: 'claude-sonnet-5-5' });
 });
 
 describe('SettingsPanel', () => {

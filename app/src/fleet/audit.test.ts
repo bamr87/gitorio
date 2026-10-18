@@ -559,7 +559,7 @@ describe('exemplary workflow', () => {
       ai: {
         present: true,
         runners: ['claude-run'],
-        models: ['claude-sonnet-4'],
+        models: ['claude-sonnet-5-5'],
         maxTurns: 30,
         maxCostUsd: null,
         authMode: 'oauth-first',

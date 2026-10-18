@@ -49,6 +49,7 @@ import {
   type Clock,
   type DemoRepo,
 } from './fixtures';
+import { CLAUDE_MODELS } from '../models';
 
 const WF_DIR = '.github/workflows';
 
@@ -100,7 +101,7 @@ const DOCS_GARDENER_BLUEPRINT: Blueprint = {
       position: { x: 630, y: 150 },
       config: {
         promptRef: '.factory/prompts/docs-gardener.md',
-        model: 'claude-opus-5',
+        model: CLAUDE_MODELS.opus,
         maxTurns: 24,
       },
     },

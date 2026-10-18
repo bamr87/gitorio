@@ -68,7 +68,7 @@ describe('factory store: node actions + undo/redo', () => {
   it('a different field breaks coalescing (two separate undo steps)', () => {
     const agent = useFactoryStore.getState().nodes.find((n) => n.data.machineType === 'agent.claude')!;
     useFactoryStore.getState().updateNodeConfig(agent.id, 'maxTurns', 9);
-    useFactoryStore.getState().updateNodeConfig(agent.id, 'model', 'claude-opus-4-8');
+    useFactoryStore.getState().updateNodeConfig(agent.id, 'model', 'claude-opus-5-5');
     useFactoryStore.getState().undo();
     let now = useFactoryStore.getState().nodes.find((n) => n.id === agent.id)!;
     expect(now.data.config.maxTurns).toBe(9); // second step undone first

@@ -18,7 +18,7 @@ jobs:
       - uses: ./.github/actions/claude-run
         with:
           agent: grow-lifehacker
-          model: claude-sonnet-4
+          model: claude-sonnet-5-5
           tools: "Bash,Read"
       - name: Open PR
         run: gh pr create --title "Daily drop" --body "See changes"
@@ -108,7 +108,7 @@ describe('parseWorkflow — content-factory shape', () => {
     expect(wf.hasAgent).toBe(true);
     expect(wf.agent?.runner).toBe('claude-run');
     expect(wf.agent?.agentName).toBe('grow-lifehacker');
-    expect(wf.agent?.model).toBe('claude-sonnet-4');
+    expect(wf.agent?.model).toBe('claude-sonnet-5-5');
     expect(wf.agent?.tools).toBe('Bash,Read');
   });
 

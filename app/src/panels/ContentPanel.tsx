@@ -11,8 +11,9 @@ import { useGithubStore } from '../state/github';
 import { DemoInvite } from './DemoBanner';
 import { slugId, starvedKinds, type BacklogPriority, type BacklogStatus } from '../content/model';
 import { PageHeader, Panel } from '../ui/primitives';
+import { CLAUDE_MODEL_OPTIONS } from '../models';
 
-const MODELS = ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'];
+const MODELS: readonly string[] = CLAUDE_MODEL_OPTIONS;
 const PRIORITIES: BacklogPriority[] = ['low', 'normal', 'high'];
 const STATUSES: BacklogStatus[] = ['todo', 'in-progress', 'done'];
 

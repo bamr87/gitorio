@@ -17,7 +17,7 @@ describe('settings store', () => {
     expect(s.recentRepos).toEqual([]);
     expect(s.defaultDeployMode).toBe('pr');
     expect(s.pollMs).toBe(15_000);
-    expect(s.defaultModel).toBe('claude-sonnet-4-6');
+    expect(s.defaultModel).toBe('claude-sonnet-5-5');
   });
 
   it('persists slugs (never tokens) and dedupes newest-first', () => {
@@ -48,14 +48,14 @@ describe('settings store', () => {
         recentRepos: ['o/r'],
         defaultDeployMode: 'commit',
         pollMs: 30_000,
-        defaultModel: 'claude-opus-4-8',
+        defaultModel: 'claude-opus-5-5',
       }),
     });
     const s1 = createSettingsStore(good).getState();
     expect(s1.recentRepos).toEqual(['o/r']);
     expect(s1.defaultDeployMode).toBe('commit');
     expect(s1.pollMs).toBe(30_000);
-    expect(s1.defaultModel).toBe('claude-opus-4-8');
+    expect(s1.defaultModel).toBe('claude-opus-5-5');
 
     const corrupt = createSettingsStore(fakeStorage({ [SETTINGS_KEY]: '{nope' })).getState();
     expect(corrupt.defaultDeployMode).toBe('pr');

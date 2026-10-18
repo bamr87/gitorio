@@ -21,7 +21,7 @@ const triageLine: Blueprint = {
     node('t1', 'trigger.issue_opened'),
     node('a1', 'agent.claude', {
       promptRef: '.factory/prompts/triage.md',
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5-5',
       maxTurns: 8,
     }),
     node('s1', 'sink.label', { labels: '' }),
@@ -52,7 +52,7 @@ describe('compile: integrated agent line (trigger → agent → sinks)', () => {
 
   it('uses claude-code-action@v1 with prompt + claude_args (v1 interface, not deprecated inputs)', () => {
     expect(wf.yaml).toContain('anthropics/claude-code-action@v1');
-    expect(wf.yaml).toContain('--model claude-sonnet-4-6');
+    expect(wf.yaml).toContain('--model claude-sonnet-5-5');
     expect(wf.yaml).toContain('--max-turns 8');
     expect(wf.yaml).not.toContain('direct_prompt');
     expect(wf.yaml).not.toContain('allowed_tools:');
@@ -623,7 +623,7 @@ describe('processor.feedback_controller — the loop-tuner (self-improvement)', 
       node('t', 'trigger.cron', { cron: '0 6 * * 1' }),
       node('f', 'processor.feedback_controller', {
         ledgerPath: '.factory/metrics/improvements.yml',
-        model: 'claude-opus-4-8',
+        model: 'claude-opus-5-5',
         windowDays: 7,
         maxTurns: 30,
       }),
@@ -638,7 +638,7 @@ describe('processor.feedback_controller — the loop-tuner (self-improvement)', 
     expect(wf.yaml).toContain('MEASURE');
     expect(wf.yaml).toContain('.factory/metrics/improvements.yml');
     expect(wf.yaml).toContain('.factory/metrics/history.jsonl');
-    expect(wf.yaml).toContain('--model claude-opus-4-8');
+    expect(wf.yaml).toContain('--model claude-opus-5-5');
   });
 
   it('grants telemetry-read + file-edit + open-ONE-PR, and NEVER merge (no-self-merge invariant)', () => {
@@ -771,7 +771,7 @@ describe('prompt/grant coherence: an agent ordered to read its promptRef can rea
       node('c', 'trigger.cron', { cron: '0 6 * * 1' }),
       node('wa', 'agent.claude', {
         promptRef: '.factory/prompts/dependency-warden.md',
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-5-5',
         maxTurns: 25,
       }),
       node('ws1', 'sink.comment', { instruction: 'posts a merge-risk verdict on the open dependency PR' }),
@@ -1393,7 +1393,7 @@ describe('the perfection loop', () => {
           evidencePath: 'evidence/',
           artifactName: 'perfection-evidence',
         }),
-        node('a', 'agent.claude', { promptRef: '.factory/prompts/walker.md', model: 'claude-opus-5' }),
+        node('a', 'agent.claude', { promptRef: '.factory/prompts/walker.md', model: 'claude-opus-5-5' }),
         node('v', 'gate.verified_fix', {
           verifyCmd: 'python3 scripts/verify.py --fail-under-baseline',
           onFail: 'revert',

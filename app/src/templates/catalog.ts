@@ -3,6 +3,7 @@
 // Mirrors the real factories dogfooded on this repo (Dependency Warden) + seed-06 patterns.
 
 import type { Blueprint } from '../blueprint/types';
+import { CLAUDE_MODELS } from '../models';
 
 export interface FactoryTemplate {
   id: string;
@@ -62,7 +63,7 @@ export const TEMPLATES: FactoryTemplate[] = [
         }),
         T('a', 'agent.claude', 1080, 300, {
           promptRef: '.factory/prompts/perfection-walker.md',
-          model: 'claude-opus-5',
+          model: CLAUDE_MODELS.opus,
           maxTurns: 30,
         }),
         T('v', 'gate.verified_fix', 1340, 300, {
@@ -94,7 +95,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       meta: { name: 'Issue Triage Line', description: 'Label + summarize every new issue.' },
       nodes: [
         T('t', 'trigger.issue_opened', 40, 140),
-        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/triage.md', model: 'claude-opus-5', maxTurns: 8 }),
+        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/triage.md', model: CLAUDE_MODELS.opus, maxTurns: 8 }),
         T('lb', 'sink.label', 660, 60, { labels: '' }),
         T('cm', 'sink.comment', 660, 220, { instruction: 'summarizes the triage decision in 3 lines and links any duplicates' }),
       ],
@@ -112,7 +113,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       nodes: [
         T('wm', 'trigger.manual', 40, 120),
         T('wc', 'trigger.cron', 40, 240, { cron: '0 6 * * 1' }),
-        T('wa', 'agent.claude', 340, 180, { promptRef: '.factory/prompts/dependency-warden.md', model: 'claude-opus-5', maxTurns: 25 }),
+        T('wa', 'agent.claude', 340, 180, { promptRef: '.factory/prompts/dependency-warden.md', model: CLAUDE_MODELS.opus, maxTurns: 25 }),
         T('cm', 'sink.comment', 660, 60, { instruction: 'records the merge-risk verdict (bump size, breaking-change check, recommendation)' }),
         T('lb', 'sink.label', 660, 200, { labels: '' }),
       ],
@@ -129,7 +130,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       meta: { name: 'CI Failure Alarm', description: 'Diagnose CI failures and open an issue.' },
       nodes: [
         T('t', 'trigger.workflow_run', 40, 140, { workflow: 'CI', conclusion: 'failure' }),
-        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/ci-triage.md', model: 'claude-opus-5', maxTurns: 10 }),
+        T('a', 'agent.claude', 340, 140, { promptRef: '.factory/prompts/ci-triage.md', model: CLAUDE_MODELS.opus, maxTurns: 10 }),
         T('s', 'sink.create_issue', 660, 140, { titleHint: 'CI failed on main' }),
       ],
       edges: [E('e1', 't', 'a'), E('e2', 'a', 's')],
@@ -162,7 +163,7 @@ export const TEMPLATES: FactoryTemplate[] = [
       nodes: [
         T('t', 'trigger.cron', 40, 160, { cron: '0 7 * * *' }),
         T('rl', 'rate.limiter', 240, 160, { maxPerDay: 4 }),
-        T('a', 'agent.claude', 440, 160, { promptRef: '.factory/prompts/watchdog.md', model: 'claude-opus-5', maxTurns: 12 }),
+        T('a', 'agent.claude', 440, 160, { promptRef: '.factory/prompts/watchdog.md', model: CLAUDE_MODELS.opus, maxTurns: 12 }),
         T('s', 'sink.create_issue', 720, 160, { titleHint: 'Factory alarm' }),
       ],
       edges: [E('e1', 't', 'rl'), E('e2', 'rl', 'a'), E('e3', 'a', 's')],
@@ -187,14 +188,14 @@ export const TEMPLATES: FactoryTemplate[] = [
         T('cm', 'trigger.manual', 40, 200, { mode: 'plan-first' }),
         T('cg', 'gate.enablement', 240, 140, { variable: 'CONTENT_FACTORY_ENABLED' }),
         T('crl', 'rate.limiter', 430, 140, { maxPerDay: 4 }),
-        T('ca', 'agent.claude', 620, 140, { promptRef: '.factory/prompts/content-grow.md', model: 'claude-opus-5', maxTurns: 20 }),
+        T('ca', 'agent.claude', 620, 140, { promptRef: '.factory/prompts/content-grow.md', model: CLAUDE_MODELS.opus, maxTurns: 20 }),
         T('cpr', 'sink.open_pr', 860, 140, { branchHint: 'factory/content-*' }),
         // Line 2 — the feedback loop: weekly, kill-switched, tunes the factory itself.
         T('ld', 'trigger.cron', 40, 380, { cron: '23 6 * * 1' }),
         T('lg', 'gate.enablement', 300, 380, { variable: 'LOOP_TUNER_ENABLED' }),
         T('lf', 'processor.feedback_controller', 560, 380, {
           promptRef: '.factory/prompts/loop-tuner.md',
-          model: 'claude-opus-5',
+          model: CLAUDE_MODELS.opus,
           ledgerPath: '.factory/metrics/improvements.yml',
           windowDays: 7,
           maxTurns: 30,
@@ -228,7 +229,7 @@ export const TEMPLATES: FactoryTemplate[] = [
         T('dm', 'trigger.manual', 40, 210, { mode: 'plan-first' }),
         T('dg', 'gate.enablement', 250, 150, { variable: 'DOCS_GARDENER_ENABLED' }),
         T('drl', 'rate.limiter', 440, 150, { maxPerDay: 2 }),
-        T('da', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/docs-gardener.md', model: 'claude-opus-5', maxTurns: 24 }),
+        T('da', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/docs-gardener.md', model: CLAUDE_MODELS.opus, maxTurns: 24 }),
         T('dpr', 'sink.open_pr', 870, 150, { branchHint: 'factory/docs-*' }),
       ],
       edges: [
@@ -276,7 +277,7 @@ export const TEMPLATES: FactoryTemplate[] = [
         T('em', 'trigger.manual', 40, 210, { mode: 'plan-first' }),
         T('eg', 'gate.enablement', 250, 150, { variable: 'AO_SDLC_AUTOPILOT_ENABLED' }),
         T('erl', 'rate.limiter', 440, 150, { maxPerDay: 1 }),
-        T('ea', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/evolve-pilot.md', model: 'claude-opus-4-8', maxTurns: 40 }),
+        T('ea', 'agent.claude', 630, 150, { promptRef: '.factory/prompts/evolve-pilot.md', model: CLAUDE_MODELS.opus, maxTurns: 40 }),
         T('epr', 'sink.open_pr', 870, 150, { branchHint: 'factory/evolve-*' }),
       ],
       edges: [
