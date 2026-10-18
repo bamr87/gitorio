@@ -1,6 +1,6 @@
 // Tests for: src/adapters/anthropic/client.ts — the Anthropic ModelClient adapter (spec 03 §1,
 // INV-005). NETWORK-FREE: every case runs against a FAKE transport that returns canned results;
-// no real `new Anthropic()` is ever constructed. Asserts the request contract (claude-opus-4-8,
+// no real `new Anthropic()` is ever constructed. Asserts the request contract (claude-opus-5-5,
 // adaptive thinking, effort high, and NO sampling params), content-block -> text extraction, and
 // that a provider `refusal` stop_reason is surfaced on the port, not crashed on.
 
@@ -41,7 +41,7 @@ const okReply = (text: string): AnthropicMessageResult => ({
 });
 
 describe('the Anthropic request contract (claude-api provider facts)', () => {
-  it('sends claude-opus-4-8, adaptive thinking, effort high, and the user turn — verbatim', async () => {
+  it('sends claude-opus-5-5, adaptive thinking, effort high, and the user turn — verbatim', async () => {
     const { transport, calls } = fakeTransport(okReply('ok'));
     const client = anthropicModelClient({ transport });
 
@@ -49,7 +49,7 @@ describe('the Anthropic request contract (claude-api provider facts)', () => {
 
     expect(calls).toHaveLength(1);
     const req = calls[0] as AnthropicMessageParams;
-    expect(req.model).toBe('claude-opus-4-8');
+    expect(req.model).toBe('claude-opus-5-5');
     expect(req.max_tokens).toBe(DEFAULT_MAX_TOKENS);
     expect(req.system).toBe('SYSTEM PROMPT');
     expect(req.thinking).toEqual({ type: 'adaptive' });
@@ -71,10 +71,10 @@ describe('the Anthropic request contract (claude-api provider facts)', () => {
 
   it('honours a per-request maxTokens override and the seated model id', async () => {
     const { transport, calls } = fakeTransport(okReply('ok'));
-    const client = anthropicModelClient({ transport, model: 'claude-opus-4-8', maxTokens: 4096 });
+    const client = anthropicModelClient({ transport, model: 'claude-opus-5-5', maxTokens: 4096 });
     await client.complete({ system: 's', user: 'u', maxTokens: 1024 });
     expect((calls[0] as AnthropicMessageParams).max_tokens).toBe(1024);
-    expect(client.modelId).toBe('claude-opus-4-8');
+    expect(client.modelId).toBe('claude-opus-5-5');
   });
 });
 
@@ -93,14 +93,14 @@ describe('response parsing', () => {
 
   it('reads modelId from the model that actually served, and text from the blocks', async () => {
     const { transport } = fakeTransport({
-      model: 'claude-opus-4-8',
+      model: 'claude-opus-5-5',
       stop_reason: 'end_turn',
       content: [{ type: 'text', text: 'verdict: aligned' }],
     });
     const res = await anthropicModelClient({ transport }).complete({ system: 's', user: 'u' });
     expect(res.text).toBe('verdict: aligned');
     expect(res.stopReason).toBe('complete');
-    expect(res.modelId).toBe('claude-opus-4-8');
+    expect(res.modelId).toBe('claude-opus-5-5');
   });
 });
 

@@ -78,12 +78,12 @@ function counting(verdict: Verdict = ALIGNED): { judge: Judge; calls: () => numb
 const DETERMINISTIC: JudgeRef = { kind: 'deterministic', id: unwrap(parseJudgeId('import-boundary')) };
 const MODEL: JudgeRef = {
   kind: 'model',
-  id: unwrap(parseJudgeId('claude-opus-4-8')),
+  id: unwrap(parseJudgeId('claude-opus-5-5')),
   prompt: unwrap(parsePromptHash(`sha256:${'a'.repeat(64)}`)),
 };
 const MODEL_REPROMPTED: JudgeRef = {
   kind: 'model',
-  id: unwrap(parseJudgeId('claude-opus-4-8')),
+  id: unwrap(parseJudgeId('claude-opus-5-5')),
   prompt: unwrap(parsePromptHash(`sha256:${'b'.repeat(64)}`)),
 };
 

@@ -79,7 +79,7 @@ type CannedReply = Partial<Pick<ModelResponse, 'text' | 'stopReason' | 'modelId'
 /** A fake ModelClient that hands back canned replies in order and records each request. */
 function fakeModel(
   replies: readonly CannedReply[],
-  modelId = 'claude-opus-4-8',
+  modelId = 'claude-opus-5-5',
 ): { client: ModelClient; calls: ModelRequest[] } {
   const calls: ModelRequest[] = [];
   let i = 0;
@@ -279,12 +279,12 @@ describe('a model refusal yields an abstain with a clear rationale — no crash,
 // ---------------------------------------------------------------------------
 
 describe('judge identity is the model id plus the prompt-file hash (spec 03 §6)', () => {
-  const { client } = fakeModel([], 'claude-opus-4-8');
+  const { client } = fakeModel([], 'claude-opus-5-5');
 
   it('stamps {kind: model, id, prompt: sha256:…}', () => {
     const ref = modelInvariantJudgeRef(client, SHIPPED_PROMPT);
     expect(ref.kind).toBe('model');
-    expect(ref.id).toBe('claude-opus-4-8');
+    expect(ref.id).toBe('claude-opus-5-5');
     expect(ref.prompt).toMatch(/^sha256:[a-f0-9]{64}$/);
   });
 

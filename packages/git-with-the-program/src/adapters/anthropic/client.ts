@@ -4,7 +4,7 @@
 // Anthropic ModelClient adapter — the ONLY file that loads `@anthropic-ai/sdk`.
 //
 // It implements the provider-agnostic ModelClient PORT declared in src/core/model.ts: it shapes
-// the request for claude-opus-4-8 (adaptive thinking, effort high, NO sampling params), parses
+// the request for claude-opus-5-5 (adaptive thinking, effort high, NO sampling params), parses
 // the reply's content blocks into text, and maps the provider stop_reason onto the port's
 // normalized union. Everything is injectable behind a one-method transport seam, so
 // request-shaping and response-parsing are unit-tested against a FAKE transport returning canned
@@ -24,7 +24,7 @@ import type { ModelClient, ModelRequest, ModelResponse, ModelStopReason } from '
 // ---------------------------------------------------------------------------
 
 /** The seated model id. Exact string, no date suffix. */
-export const DEFAULT_JUDGE_MODEL = 'claude-opus-4-8';
+export const DEFAULT_JUDGE_MODEL = 'claude-opus-5-5';
 
 /** Output cap for one ruling. A YAML verdict is tiny; 4096 is ample and bounds cost. */
 export const DEFAULT_MAX_TOKENS = 4096;
@@ -46,7 +46,7 @@ export interface AnthropicMessageResult {
 
 /**
  * The EXACT request this adapter sends. Adaptive thinking + effort high; NO temperature / top_p /
- * top_k / budget_tokens (all 400 on claude-opus-4-8), and no field where any of them could ride.
+ * top_k / budget_tokens (all 400 on claude-opus-5-5), and no field where any of them could ride.
  */
 export interface AnthropicMessageParams {
   readonly model: string;

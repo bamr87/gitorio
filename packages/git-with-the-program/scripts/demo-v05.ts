@@ -76,7 +76,7 @@ export const REPO_ROOT: string = resolve(HERE, '..');
 // ═══════════════════════════════════════════════════════════════════════════════════════════
 
 /** The seated model id (claude-api reference). Exact string, no date suffix; the bench never calls it. */
-export const JUDGE_MODEL = 'claude-opus-4-8';
+export const JUDGE_MODEL = 'claude-opus-5-5';
 
 /** The SHIPPED invariant-judge prompt, read read-only. Its sha256 is half the judge's identity. */
 export const SHIPPED_PROMPT: string = readFileSync(

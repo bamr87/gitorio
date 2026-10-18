@@ -105,7 +105,7 @@ const CORPUS: readonly BarExamCase[] = [
 
 const CANDIDATE: JudgeSeat = {
   id: unwrap(parseJudgeId('invariant-judge')),
-  model: 'claude-opus-4-8',
+  model: 'claude-opus-5-5',
   prompt: unwrap(parsePromptHash(`sha256:${'a'.repeat(64)}`)),
 };
 
@@ -204,7 +204,7 @@ describe('seating produces a PROPOSED manifest diff and never writes .program/ (
     expect(proposal.diff).toContain('+++ b/.program/manifest.yaml');
     expect(proposal.diff).toMatch(/^@@ .* @@$/m);
     expect(proposal.diff).toContain('id: invariant-judge');
-    expect(proposal.diff).toContain('model: claude-opus-4-8');
+    expect(proposal.diff).toContain('model: claude-opus-5-5');
     expect(proposal.diff).toContain(`prompt: sha256:${'a'.repeat(64)}`);
     // The added lines are additions in the diff.
     expect(proposal.diff).toMatch(/^\+.*invariant-judge/m);
@@ -216,7 +216,7 @@ describe('seating produces a PROPOSED manifest diff and never writes .program/ (
   });
 
   it('refuses to seat over an already-seated id', async () => {
-    const seated = ['schema_version: 0.1.0', 'watermark:', '  last_walked: null', '  last_epoch: e0', 'judges:', '  - id: invariant-judge', '    model: claude-opus-4-8', `    prompt: sha256:${'a'.repeat(64)}`, ''].join('\n');
+    const seated = ['schema_version: 0.1.0', 'watermark:', '  last_walked: null', '  last_epoch: e0', 'judges:', '  - id: invariant-judge', '    model: claude-opus-5-5', `    prompt: sha256:${'a'.repeat(64)}`, ''].join('\n');
     const report = await runBarExam(CANDIDATE, faithful, CORPUS);
     expect(() => proposeSeating(seated, CANDIDATE, report)).toThrow(SeatingBlockedError);
   });
