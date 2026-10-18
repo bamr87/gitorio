@@ -1,6 +1,7 @@
 // Bundled starter factory. Mirrors ../../../.factory/blueprint.json (the repo's
 // dogfood blueprint) — seed 03 replaces this with loading from the connected repo.
 import type { Blueprint } from './types';
+import { CLAUDE_MODELS } from '../models';
 
 export const EXAMPLE_BLUEPRINT: Blueprint = {
   version: 1,
@@ -16,7 +17,7 @@ export const EXAMPLE_BLUEPRINT: Blueprint = {
       id: 'a1',
       type: 'agent.claude',
       position: { x: 340, y: 140 },
-      config: { promptRef: '.factory/prompts/triage.md', model: 'claude-sonnet-4-6', maxTurns: 8 },
+      config: { promptRef: '.factory/prompts/triage.md', model: CLAUDE_MODELS.sonnet, maxTurns: 8 },
     },
     { id: 's1', type: 'sink.label', position: { x: 660, y: 60 }, config: { labels: '' } },
     {
@@ -30,7 +31,7 @@ export const EXAMPLE_BLUEPRINT: Blueprint = {
       id: 'a2',
       type: 'agent.claude',
       position: { x: 340, y: 420 },
-      config: { promptRef: '.factory/prompts/nightly-gardener.md', model: 'claude-sonnet-4-6', maxTurns: 12 },
+      config: { promptRef: '.factory/prompts/nightly-gardener.md', model: CLAUDE_MODELS.sonnet, maxTurns: 12 },
     },
     {
       id: 's3',

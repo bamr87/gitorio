@@ -6,6 +6,7 @@
 import { stringify } from 'yaml';
 import type { Blueprint, BlueprintNode } from '../blueprint/types';
 import { blueprintHash, kebab } from '../blueprint/types';
+import { CLAUDE_MODELS } from '../models';
 
 export interface Diagnostic {
   level: 'error' | 'warning' | 'info';
@@ -971,7 +972,7 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         return;
       }
 
-      const model = s(agent.config.model, isFeedback ? 'claude-opus-4-8' : 'claude-sonnet-4-6');
+      const model = s(agent.config.model, isFeedback ? CLAUDE_MODELS.opus : CLAUDE_MODELS.sonnet);
       const maxTurns = Number(agent.config.maxTurns) > 0 ? Number(agent.config.maxTurns) : isFeedback ? 30 : 8;
       const claudeArgs =
         `--model ${model}\n--max-turns ${maxTurns}` +

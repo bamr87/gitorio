@@ -4,6 +4,7 @@
 // storage; the app uses the singleton `useSettingsStore`.
 
 import { create } from 'zustand';
+import { CLAUDE_MODELS } from '../models';
 
 export interface SettingsValues {
   /** Recently connected repo slugs (owner/name), newest first. Slugs only — never tokens. */
@@ -37,7 +38,7 @@ const DEFAULTS: SettingsValues = {
   recentRepos: [],
   defaultDeployMode: 'pr',
   pollMs: 15_000,
-  defaultModel: 'claude-sonnet-4-6',
+  defaultModel: CLAUDE_MODELS.sonnet,
   theme: 'system',
 };
 

@@ -16,6 +16,7 @@
 
 import type { Blueprint } from '../blueprint/types';
 import type { FactoryRun, RepoVariable, RepoWorkflow, RunJob } from '../github/types';
+import { CLAUDE_MODELS } from '../models';
 
 /** Repos the demo roster scans. Slugs only — they are never fetched over the network. */
 export const DEMO_REPOS = ['acme/storefront', 'acme/design-system', 'acme/infra'] as const;
@@ -222,7 +223,7 @@ export const DEMO_BLUEPRINT: Blueprint = {
     T('cf-rate', 'rate.limiter', 500, 140, { maxPerDay: 3 }),
     T('cf-agent', 'agent.claude', 720, 140, {
       promptRef: '.factory/prompts/content-factory.md',
-      model: 'claude-opus-5',
+      model: CLAUDE_MODELS.opus,
       maxTurns: 24,
       checks: 'npm run lint\nnpm test',
     }),
@@ -232,7 +233,7 @@ export const DEMO_BLUEPRINT: Blueprint = {
     T('it-trigger', 'trigger.issue_opened', 40, 420),
     T('it-agent', 'agent.claude', 340, 420, {
       promptRef: '.factory/prompts/issue-triage.md',
-      model: 'claude-haiku-4-5',
+      model: CLAUDE_MODELS.haiku,
       maxTurns: 6,
     }),
     T('it-label', 'sink.label', 660, 340, { labels: '' }),
@@ -263,7 +264,7 @@ export const DEMO_BLUEPRINT: Blueprint = {
     }),
     T('pl-agent', 'agent.claude', 1220, 760, {
       promptRef: '.factory/prompts/perfection-loop.md',
-      model: 'claude-opus-5',
+      model: CLAUDE_MODELS.opus,
       maxTurns: 30,
     }),
     T('pl-verify', 'gate.verified_fix', 1460, 760, {

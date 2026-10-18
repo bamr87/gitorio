@@ -51,7 +51,7 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
   "nodes": [
     { "id": "n1", "type": "trigger.issue_opened", "position": { "x": 0, "y": 120 }, "config": {} },
     { "id": "n2", "type": "agent.claude", "position": { "x": 320, "y": 120 },
-      "config": { "promptRef": ".factory/prompts/triage.md", "model": "claude-sonnet-4-6", "maxTurns": 8 } },
+      "config": { "promptRef": ".factory/prompts/triage.md", "model": "claude-sonnet-5-5", "maxTurns": 8 } },
     { "id": "n3", "type": "sink.label", "position": { "x": 640, "y": 60 }, "config": { "labels": "" } }
   ],
   "edges": [ { "id": "e1", "from": { "node": "n1", "port": "out" }, "to": { "node": "n2", "port": "in" } } ]

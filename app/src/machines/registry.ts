@@ -1,6 +1,8 @@
 // The machine catalog. Everything renders and compiles from here.
 // Adding a machine? Use /add-machine — registry entry is step 1 of 5.
 
+import { CLAUDE_MODEL_OPTIONS, CLAUDE_MODELS } from '../models';
+
 export type MachineCategory = 'trigger' | 'processor' | 'sink';
 
 export interface FieldDef {
@@ -186,7 +188,7 @@ export const MACHINES: MachineDef[] = [
         key: 'model',
         label: 'Model',
         kind: 'select',
-        options: ['claude-opus-5', 'claude-sonnet-5', 'claude-opus-4-8', 'claude-haiku-4-5'],
+        options: [...CLAUDE_MODEL_OPTIONS],
       },
       { key: 'maxTurns', label: 'Max turns', kind: 'number', placeholder: '8' },
       {
@@ -197,8 +199,8 @@ export const MACHINES: MachineDef[] = [
         help: 'One repo-declared check command per line. Each compiles to exactly that Bash(<command>:*) grant plus a VERIFY obligation — the narrow alternative to deferring every gate to PR CI.',
       },
     ],
-    defaults: { promptRef: '.factory/prompts/triage.md', model: 'claude-opus-5', maxTurns: 8 },
-    describe: (c) => `${str(c.model, 'claude-opus-5')} · ${str(c.promptRef, 'no prompt!')}`,
+    defaults: { promptRef: '.factory/prompts/triage.md', model: CLAUDE_MODELS.opus, maxTurns: 8 },
+    describe: (c) => `${str(c.model, CLAUDE_MODELS.opus)} · ${str(c.promptRef, 'no prompt!')}`,
   },
   {
     type: 'filter.condition',
@@ -430,7 +432,7 @@ export const MACHINES: MachineDef[] = [
         key: 'model',
         label: 'Model',
         kind: 'select',
-        options: ['claude-opus-5', 'claude-sonnet-5', 'claude-opus-4-8', 'claude-haiku-4-5'],
+        options: [...CLAUDE_MODEL_OPTIONS],
       },
       {
         key: 'ledgerPath',
@@ -444,12 +446,12 @@ export const MACHINES: MachineDef[] = [
     ],
     defaults: {
       promptRef: '.factory/prompts/loop-tuner.md',
-      model: 'claude-opus-5',
+      model: CLAUDE_MODELS.opus,
       ledgerPath: '.factory/metrics/improvements.yml',
       windowDays: 7,
       maxTurns: 30,
     },
-    describe: (c) => `loop-tuner · ${str(c.model, 'claude-opus-5')} · ${Number(c.windowDays) > 0 ? Number(c.windowDays) : 7}d window`,
+    describe: (c) => `loop-tuner · ${str(c.model, CLAUDE_MODELS.opus)} · ${Number(c.windowDays) > 0 ? Number(c.windowDays) : 7}d window`,
   },
 
   // ── Sinks (signal green) ─────────────────────────────────────────────

@@ -13,7 +13,7 @@ beforeEach(() => {
   useContentStore.setState({
     loading: false, error: null, saving: false, prUrl: null, mode: 'pr',
     config: {
-      model: 'claude-opus-4-8', maxDailyRuns: 4, brandVoice: 'wry', contentPaths: ['pages/_posts/**'],
+      model: 'claude-opus-5-5', maxDailyRuns: 4, brandVoice: 'wry', contentPaths: ['pages/_posts/**'],
       docsDir: '_docs', itemsPerRun: 3,
       reviewCriteria: ['Accuracy: claims match behavior'],
       skills: [{ id: 'tech', name: 'Technical Writer', focus: 'precision' }],
@@ -35,7 +35,7 @@ describe('ContentPanel', () => {
     useGithubStore.setState({ login: 'me', repo: { owner: 'o', repo: 'r' }, client: null as never });
     render(<ContentPanel />);
     // central config
-    expect((screen.getByDisplayValue('claude-opus-4-8') as HTMLSelectElement).tagName).toBe('SELECT');
+    expect((screen.getByDisplayValue('claude-opus-5-5') as HTMLSelectElement).tagName).toBe('SELECT');
     expect(screen.getByDisplayValue('wry')).toBeTruthy();
     // backlog row
     expect(screen.getByDisplayValue('Hello world')).toBeTruthy();

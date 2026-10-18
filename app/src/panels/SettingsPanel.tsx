@@ -6,6 +6,7 @@ import { useSettingsStore } from '../state/settings';
 import { DEFAULT_HUB, useHubStore } from '../state/hub';
 import { repoSlug, type PermState } from '../github/types';
 import { PageHeader, Panel } from '../ui/primitives';
+import { CLAUDE_MODELS } from '../models';
 
 const PERM_MARK: Record<PermState, string> = { ok: '✓', missing: '✗', unknown: '?' };
 const PERM_ROWS: [
@@ -20,7 +21,7 @@ const PERM_ROWS: [
   ['secrets', 'Secrets (RW)'],
 ];
 const POLL_OPTIONS = [10_000, 15_000, 30_000, 60_000];
-const MODELS = ['claude-sonnet-4-6', 'claude-opus-4-8', 'claude-haiku-4-5-20251001'];
+const MODELS = [CLAUDE_MODELS.sonnet, CLAUDE_MODELS.opus, CLAUDE_MODELS.haiku];
 
 export function SettingsPanel() {
   const login = useGithubStore((s) => s.login);
@@ -247,7 +248,7 @@ export function SettingsPanel() {
               onClick={() => {
                 setDefaultDeployMode('pr');
                 setPollMs(15_000);
-                setDefaultModel('claude-sonnet-4-6');
+                setDefaultModel(CLAUDE_MODELS.sonnet);
               }}
             >
               Reset preferences

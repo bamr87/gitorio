@@ -8,6 +8,7 @@
 // it can and falls back to defaults — because these files are hand-editable and agent-editable.
 
 import { parse, stringify } from 'yaml';
+import { CLAUDE_MODELS } from '../models';
 
 // ── central config (.factory/config.yml) ─────────────────────────────────
 
@@ -45,7 +46,7 @@ export interface FactoryConfig {
 export const CONFIG_PATH = '.factory/config.yml';
 
 export const DEFAULT_CONFIG: FactoryConfig = {
-  model: 'claude-opus-4-8',
+  model: CLAUDE_MODELS.opus,
   maxDailyRuns: 4,
   brandVoice: '',
   contentPaths: ['pages/_posts/**'],

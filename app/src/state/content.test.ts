@@ -25,7 +25,7 @@ function fakeClient(over: Record<string, unknown> = {}) {
     login: 'me',
     getFile: vi.fn(async (_r: unknown, path: string) =>
       path.endsWith('config.yml')
-        ? { path, content: 'model: claude-sonnet-4-6\nmaxDailyRuns: 6', sha: 'c1' }
+        ? { path, content: 'model: claude-sonnet-5-5\nmaxDailyRuns: 6', sha: 'c1' }
         : { path, content: 'items:\n  - title: Draft one\n    kind: post\n    status: todo', sha: 'b1' },
     ),
     listVariables: vi.fn(async () => [{ name: 'CONTENT_FACTORY_ENABLED', value: 'false' }]),
@@ -56,7 +56,7 @@ describe('content cockpit store', () => {
     connect(fakeClient());
     await useContentStore.getState().refresh();
     const s = useContentStore.getState();
-    expect(s.config.model).toBe('claude-sonnet-4-6');
+    expect(s.config.model).toBe('claude-sonnet-5-5');
     expect(s.config.maxDailyRuns).toBe(6);
     expect(s.backlog).toHaveLength(1);
     expect(s.backlog[0].title).toBe('Draft one');

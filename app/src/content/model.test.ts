@@ -14,7 +14,7 @@ import {
 describe('FactoryConfig parse/serialize', () => {
   it('round-trips a full config incl. skills, criteria, docs settings', () => {
     const cfg: FactoryConfig = {
-      model: 'claude-sonnet-4-6',
+      model: 'claude-sonnet-5-5',
       maxDailyRuns: 6,
       brandVoice: 'wry, concise',
       contentPaths: ['a/**', 'b/**'],

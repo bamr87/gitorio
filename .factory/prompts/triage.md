@@ -1,7 +1,7 @@
 ---
 title: Issue triage operator
 version: 1
-model_hint: claude-sonnet-4-6
+model_hint: claude-sonnet-5-5
 inputs: "REPO, ISSUE_NUMBER (from workflow bootstrap prompt)"
 obligations_note: "Labels + one summary comment are granted/enforced by the compiled workflow."
 ---

@@ -78,7 +78,7 @@ const LINES: Array<{ slug: string; blueprint: Blueprint }> = [
         eg: { variable: 'BACKLOG_TRIAGE_ENABLED' },
         ea: {
           promptRef: '.factory/prompts/backlog-triage.md',
-          model: 'claude-sonnet-4-6',
+          model: 'claude-sonnet-5-5',
           maxTurns: 30,
           checks: 'python3 scripts/spec_validator.py\npython3 scripts/backlog_lint.py',
         },
@@ -97,7 +97,7 @@ const LINES: Array<{ slug: string; blueprint: Blueprint }> = [
       nodes: [
         N('t', 'trigger.issue_opened', 40, 140),
         N('g', 'gate.enablement', 250, 140, { variable: 'ISSUE_CONCIERGE_ENABLED' }),
-        N('a', 'agent.claude', 460, 140, { promptRef: '.factory/prompts/issue-concierge.md', model: 'claude-sonnet-4-6', maxTurns: 10 }),
+        N('a', 'agent.claude', 460, 140, { promptRef: '.factory/prompts/issue-concierge.md', model: 'claude-sonnet-5-5', maxTurns: 10 }),
         N('lb', 'sink.label', 730, 60, { labels: '' }),
         N('cm', 'sink.comment', 730, 220, { instruction: 'posts ONE short triage comment (kind/severity guess + where it lands in BACKLOG.md); never posts a second comment on the same issue' }),
       ],

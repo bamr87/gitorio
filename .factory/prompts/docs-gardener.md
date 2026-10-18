@@ -1,7 +1,7 @@
 ---
 title: Docs Gardener
 description: Review and improve a few docs from the collection each day, as one pull request.
-model_hint: claude-opus-4-8
+model_hint: claude-opus-5-5
 inputs: REPO
 obligations_note: Opens exactly one PR; never merges. Reads config from .factory/config.yml.
 ---
