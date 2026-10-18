@@ -160,3 +160,12 @@ jobs:
         # Override locally or here with `--range <base>..<head>` / $GWTP_INV001_RANGE.
         # Exit 0 = clean or empty range · 1 = INV-001 violated · 2 = the check could not run.
         run: npm run check:inv001
+
+  # Shared fleet gate (UPS-QA-20), pinned per UPS-WORK-10. It runs beside the
+  # repo-specific jobs above, not instead of them: standard-ci only detects
+  # root-level manifests (bamr87/bamr87#329), so it does not cover this repo's
+  # real test suite.
+  standard:
+    uses: bamr87/bamr87/.github/workflows/standard-ci.yml@v2
+    with:
+      node-version: "22"   # same Node as the engine job above
