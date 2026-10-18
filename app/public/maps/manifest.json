@@ -30,31 +30,31 @@
       "slug": "docs-gardener",
       "type": "workflow",
       "source": ".factory/docs-gardener.blueprint.json",
-      "hash": "75e191d9"
+      "hash": "0a53fccb"
     },
     {
       "slug": "gitorio-factory-1",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "f3931cab"
+      "hash": "bbaeb331"
     },
     {
       "slug": "gitorio-factory-2",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "f3931cab"
+      "hash": "bbaeb331"
     },
     {
       "slug": "gitorio-factory-3",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "f3931cab"
+      "hash": "bbaeb331"
     },
     {
       "slug": "gitorio-factory-4",
       "type": "workflow",
       "source": ".factory/blueprint.json",
-      "hash": "f3931cab"
+      "hash": "bbaeb331"
     }
   ]
 }
