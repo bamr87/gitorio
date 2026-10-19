@@ -129,6 +129,15 @@ The bootstrap-era `seeds/` (00–07) are kept as history, not as intake.
 
 Powering a deployed factory requires a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
 
+## Imported packages
+
+Two former repositories now live under `packages/`, imported with their full history, each keeping its own README, tooling and commands (run from inside the package):
+
+| Path | Was | What it is |
+|---|---|---|
+| [`packages/git-with-the-program/`](packages/git-with-the-program/) | [bamr87/git-with-the-program](https://github.com/bamr87/git-with-the-program) | Agentic governance framework that distills git history into a core memory and scores every change for drift. Its own `ci.yml` and `upkeep.yml` do not run from this path and are kept as the reference for porting; its `@claude` caller was dropped because this repository runs one at the root. |
+| [`packages/gitnexus/`](packages/gitnexus/) | [bamr87/gitnexus](https://github.com/bamr87/gitnexus) | Nexus Forge: a static rebuild-spec workbench (PRD, architecture, 14-step playbook) for reimplementing GitNexus. |
+
 ## Status
 
 Canvas, compiler, GitHub connect, telemetry, Prompt Studio, the headless-CMS cockpit, Fleet Ops, the archify console, and harness parity with the bamr87 hub — dogfooding itself in `.factory/`. Pre-alpha; the roadmap is the product spec.
