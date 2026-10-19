@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Nexus Forge">
+  <rect width="32" height="32" fill="#090b09"/>
+  <path d="M16 6 L26 16 L16 26 L6 16 Z" fill="none" stroke="#d6ff4a" stroke-width="2"/>
+  <circle cx="16" cy="6" r="3" fill="#d6ff4a"/>
+  <circle cx="26" cy="16" r="3" fill="#d6ff4a"/>
+  <circle cx="16" cy="26" r="3" fill="#d6ff4a"/>
+  <circle cx="6" cy="16" r="3" fill="#d6ff4a"/>
+</svg>
