@@ -1,0 +1,80 @@
+# Repository upkeep — docs/spec/06-upkeep.md, validated against schemas/upkeep-config.schema.json.
+#
+# What this repository's FORGE-SIDE presentation should be, and where each value comes from.
+# `gwtp upkeep plan` compares it with what GitHub and the tree actually say; the weekly
+# workflow (.github/workflows/upkeep.yml) applies the remote fixes and hands in-tree drift to a
+# reviewed PR. This file is presentation, never law: nothing here touches .program/ (INV-001).
+
+schema_version: 0.1.0
+repository: bamr87/git-with-the-program
+
+# `apply`: the scheduled run applies remote actions (tags, releases, labels, description,
+# topics). Manual runs still need `--yes`. Switch to `propose` to make every run report-only.
+mode: apply
+
+ai:
+  model: claude-opus-5-5
+  max_chars_per_file: 12000
+
+metadata:
+  # The README's opening paragraph is what a human reads first; the GitHub description follows it.
+  description: { from: readme }
+  topics:
+    include:
+      - governance
+      - git
+      - ai-agents
+      - llm
+      - code-review
+      - drift-detection
+      - event-sourcing
+      - developer-tools
+      - typescript
+    from_package_keywords: true
+    mode: merge          # never removes a topic a human added on GitHub
+    min: 10              # below this, an AI author suggests the rest (once; merge keeps them)
+  license_file: true     # package.json says MIT, so a LICENSE file must exist for GitHub to see it
+
+versioning:
+  tag_prefix: v
+  files:
+    # The first file is the source of truth; every other must agree with it.
+    - path: package.json
+      pattern: '"version"\s*:\s*"([^"]+)"'
+    - path: src/cli/index.ts
+      pattern: "export const VERSION = '([^']+)'"
+  history_depth: 300
+
+releases:
+  backfill: 3            # every one of the 3 newest semver tags has a release with notes
+  notes: ai              # an AI summary above the deterministic, identity-free changelog
+
+labels:
+  from_code: true        # gwtp-proposal, gwtp:refactor, gwtp:reprogram — what the engine files with
+  declared:
+    - name: upkeep
+      color: "0e8a16"
+      description: "Repository upkeep: drift in tags, releases, labels, metadata or doc references"
+
+# Programmatically extracted lists that a document must keep naming. When code adds a schema
+# or a CLI command and the doc does not follow, that is in-tree drift with a file to fix.
+references:
+  - id: schemas-in-readme
+    doc: README.md
+    items: { glob: "schemas/*.schema.json", capture: '^schemas/(.+)\.schema\.json$' }
+    mention: "{item}"
+  - id: specs-in-readme
+    doc: README.md
+    items: { glob: "docs/spec/0*.md" }
+    mention: "{item}"
+  - id: cli-in-claude-md
+    doc: CLAUDE.md
+    items: { file: src/cli/index.ts, pattern: '^  ([a-z]+): \{$' }
+    mention: "gwtp {item}"
+
+# An AI reviewer reads these against the facts (version, tags, tree, references) and cites any
+# line the facts contradict. Uncited or misquoted findings are discarded (spec 06 §4.2).
+docs_review:
+  files:
+    - README.md
+    - ROADMAP.md

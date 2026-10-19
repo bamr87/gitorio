@@ -1,0 +1,25 @@
+# Deliberately malformed case law, against schemas/precedent.schema.json:
+#
+#   0/id       — not ^PRE-[0-9]{3,}$
+#   0/ruling   — not one of killed | affirmed | coincidence
+#   0/evidence — empty, but minItems is 1: case law with no evidence cannot serve as a bar
+#                exam question (spec 01 §5, spec 03 §6)
+#   0/pattern  — empty string; the schema types it as a string and stops there, so this is an
+#                engine-only finding, which is the point of running both validators
+#   1          — `evidence` absent entirely
+#   2/id       — duplicate of entry 1, unexpressible in draft-07
+
+- id: PRE-7
+  pattern: ""
+  ruling: overturned
+  evidence: []
+
+- id: PRE-010
+  pattern: retry logic inline in request handlers
+  ruling: killed
+  rationale: centralized in middleware after cascade incident
+
+- id: PRE-010
+  pattern: swallow-and-log in the request path
+  ruling: killed
+  evidence: ["issue#91"]

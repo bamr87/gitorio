@@ -1,0 +1,20 @@
+# Well-formed case law: docs/spec/01-core-memory.md §5's own example, plus one entry of each
+# other ruling. `coincidence` is the tombstone that stops re-distillation resurrecting a
+# regularity the humans already declined (spec 04 §6).
+
+- id: PRE-003
+  pattern: retry logic inline in request handlers
+  ruling: killed
+  rationale: centralized in middleware after cascade incident
+  evidence: ["revert 9f2c1d", "issue#88"]
+
+- id: PRE-004
+  pattern: core/ imports a forge SDK directly
+  ruling: affirmed
+  rationale: reprogramming proposal rejected under fire; INV-005 precision rises
+  evidence: ["pr#212", adr-0001]
+
+- id: PRE-005
+  pattern: files touched together in the same commit share an owner
+  ruling: coincidence
+  evidence: ["distillation e4 candidate log"]

@@ -1,0 +1,93 @@
+# Fixture for: seeds/SEED-01-scaffold.md acceptance ("fails on a deliberately malformed
+# assertion"). Every entry below breaks a DIFFERENT rule of docs/spec/01-core-memory.md §3-§4
+# and schemas/assertion.schema.json, so tests/cli/validate.test.ts can assert on specific
+# messages rather than on a failure count.
+#
+# Nothing here is law. This file is never loaded by the engine.
+#
+# Out-of-range SEVERITY is not expressible on an assertion — severity belongs to verdicts
+# (ordinal) and events (numeric). It is exercised by invalid-verdict.yaml and
+# invalid-event.yaml instead.
+
+# 0 — id does not match ^(INV|CAND)-[0-9]{3,}$: three digits minimum.
+- id: INV-7
+  statement: Assertion ids carry at least three digits so surprise has somewhere stable to land
+  class: boundary
+  scope: ["src/**"]
+  enforcement: deterministic
+  precision: 0.5
+  budget: 1.0
+  half_life: 90d
+  status: inferred
+  provenance: [design-thread-2026-07]
+
+# 1 — no provenance at all: spec 01 §4 rule 1, "no assertion without provenance".
+- id: INV-901
+  statement: Every assertion cites the commits, PRs, issues or ADRs it rests on
+  class: convention
+  scope: ["docs/**"]
+  enforcement: judgment
+  precision: 0.5
+  budget: 2.0
+  half_life: 90d
+  status: inferred
+
+# 2 — precision above the schema's maximum, budget at the exclusive minimum.
+- id: INV-902
+  statement: The accumulator knobs live inside the bounds the schema states
+  class: behavior
+  scope: ["src/ledger/**"]
+  enforcement: hybrid
+  precision: 1.5
+  budget: 0
+  half_life: 90d
+  status: inferred
+  provenance: [adr-0005]
+
+# 3 — enforcement outside the judgment ladder, and a half_life outside ^[0-9]+(d|w|mo)$.
+- id: INV-903
+  statement: Enforcement names a rung on the judgment ladder and nothing else
+  class: interface
+  scope: ["src/judge/**"]
+  enforcement: advisory
+  precision: 0.5
+  budget: 1.0
+  half_life: 90 days
+  status: inferred
+  provenance: [docs/spec/03-judge.md]
+
+# 4 — CAND-* self-ratifying: schema allOf/0, spec 04 §4 ("distillation may only emit inferred").
+- id: CAND-904
+  statement: Distillation emits candidates, never statutes; the human is the constitutional author
+  class: dependency
+  scope: ["src/core/**"]
+  enforcement: deterministic
+  precision: 0.5
+  budget: 1.0
+  half_life: 90d
+  status: ratified
+  provenance: [docs/spec/04-distillation.md]
+
+# 5 — duplicate of entry 1's id. Unexpressible in draft-07: one document at a time.
+- id: INV-901
+  statement: Assertion ids are unique within the file or surprise accumulates against a blur
+  class: convention
+  scope: ["docs/**"]
+  enforcement: judgment
+  precision: 0.5
+  budget: 2.0
+  half_life: 90d
+  status: inferred
+  provenance: [design-thread-2026-07]
+
+# 6 — empty provenance list, which the schema catches as minItems and spec 01 §4 names.
+- id: INV-905
+  statement: An assertion without provenance is unreviewable and therefore unratifiable
+  class: boundary
+  scope: [".program/**"]
+  enforcement: deterministic
+  precision: 0.9
+  budget: 1.0
+  half_life: 365d
+  status: ratified
+  provenance: []

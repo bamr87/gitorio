@@ -1,0 +1,47 @@
+# A small fixture case-law corpus for the v0.5 bar exam ("the bench").
+#
+# spec 03 §6: "Precedents moonlight as the bar exam. Any new judge — a change to model id OR
+# prompt hash — must re-decide the settled cases in precedents.yaml and match the rulings before
+# it may sit." This is that corpus, deliberately small: ONE precedent of each of the three
+# rulings the schema admits (schemas/precedent.schema.json enum: killed | affirmed | coincidence).
+#
+# It is a TEST FIXTURE, NOT `.program/precedents.yaml`: it never enters the constitution, and a
+# candidate judge is examined against it before it may be seated (a ratified PR, spec 03 §6).
+# Conforms to schemas/precedent.schema.json (id ^PRE-[0-9]{3,}$, ruling enum, evidence minItems 1).
+#
+# The settled ruling a faithful invariant judge owes each case (paired with the sealed diff in
+# scripts/demo-v05.ts, since a precedent record carries neither a Verdict nor a severity):
+#   killed      → the banned pattern REINTRODUCED → a violation (drift / breach).
+#   affirmed    → conduct contested and the law UPHELD → still a violation (drift / grazes).
+#   coincidence → a rejected lookalike, a different mechanism → NOT a violation (aligned).
+
+- id: PRE-201
+  pattern: Forge SDK (@octokit/rest) value-imported straight into engine core, bypassing the adapter port
+  ruling: killed
+  rationale: >
+    core must reach a forge only through an adapter port (INV-005); a static value import makes
+    engine core unconditionally depend on the forge SDK to load, which is the mechanism that was
+    litigated and banned.
+  evidence:
+    - pr#12 (reverted)
+    - commit deadbeef
+
+- id: PRE-202
+  pattern: Forge SDK type-only import into engine core, argued harmless but upheld as still grazing the boundary
+  ruling: affirmed
+  rationale: >
+    a type-only import is erased at runtime and imports no value, so it was argued to be exempt;
+    the assertion was UPHELD under contest — the forge vocabulary still crosses into core and the
+    boundary is still grazed. Precision rose (spec 02 §6).
+  evidence:
+    - pr#33 (contested, assertion upheld)
+
+- id: PRE-203
+  pattern: An import whose module name merely contains "github" (github-slugger) — a lookalike, not a forge dependency
+  ruling: coincidence
+  rationale: >
+    retrieval matched on the token "github", but the mechanism differs: github-slugger turns text
+    into URL slugs and reaches no forge API. The inferred regularity was rejected at ratification —
+    a tombstone so the same lookalike is not re-litigated (spec 04 §6).
+  evidence:
+    - pr#77 (human overturned the match)

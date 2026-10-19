@@ -1,0 +1,171 @@
+# Implements: seeds/SEED-01-scaffold.md deliverables 2 and 3
+# ("wire `gwtp validate` into CI on every PR"; "a deterministic CI check enforcing INV-001").
+#
+# Three jobs, deliberately separate:
+#
+#   engine  — does the code still build, pass its tests, and does every program artifact
+#             validate against schemas/ ?  (INV-006)
+#   inv001  — did a machine actor write to .program/ in this range?  (INV-001)
+#   inv003  — does anything in the verdict branch reach the sentencing branch?  (INV-003,
+#             the deterministic half of `enforcement: hybrid`)
+#
+# They are separate because they need different checkouts and answer different questions.
+# `engine` and `inv003` only need the tree; `inv001` needs HISTORY, so it checks out with
+# `fetch-depth: 0` and fetches the base branch. A shallow clone would make the INV-001 check
+# unable to resolve its base — which the check reports as exit 2 ("could not look"), never as
+# a pass.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Read-only. Nothing in CI may write to this repository: `.program/` is human-ratified-PR-only
+# (INV-001) and the ledger ref does not exist yet (it lands with SEED-02, and gets its own
+# workflow with an explicit, narrow write grant).
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  engine:
+    name: Engine — typecheck, tests, gwtp validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@v7
+
+      - name: Use Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          # No `cache: npm` on purpose: setup-node's npm cache hard-fails when there is no
+          # lockfile, which would defeat the npm-install fallback in the next step.
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning title=No lockfile::package-lock.json is missing; falling back to npm install"
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Schema validation — gwtp validate (INV-006)
+        run: npm run validate
+
+      - name: Build, and prove the declared `gwtp` binary is the one the build produces
+        # `package.json` names `bin.gwtp`; `tsconfig.build.json` decides where tsc puts it.
+        # Those two drifted apart once already (rootDir "." emitted dist/src/cli/index.js while
+        # bin pointed at dist/cli/index.js, so the declared binary did not exist after a
+        # build). Reading the path back out of package.json and EXECUTING it is the only check
+        # that cannot drift with them.
+        run: |
+          npm run build
+          BIN=$(node -p "require('./package.json').bin.gwtp")
+          if [ ! -f "$BIN" ]; then
+            echo "::error title=bin does not exist::package.json bin.gwtp is $BIN, which npm run build did not produce"
+            echo "built files:"; find dist -name 'index.js' | sort
+            exit 1
+          fi
+          node "$BIN" --version
+          # The package must not ship its own tests or scripts.
+          for unwanted in dist/tests dist/scripts dist/src; do
+            if [ -e "$unwanted" ]; then
+              echo "::error title=build output leaked::$unwanted should not be emitted"
+              exit 1
+            fi
+          done
+
+  inv003:
+    name: INV-003 — the judge is blind (deterministic prescreen)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@v7
+
+      - name: Use Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning title=No lockfile::package-lock.json is missing; falling back to npm install"
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Check that no blind module value-imports the sentencing branch
+        # Exit 0 = clean · 1 = INV-003 prescreen violated · 2 = the check could not run.
+        # The prescreen is the DETERMINISTIC half of INV-003's `enforcement: hybrid`; the LLM
+        # half (identity flattened into free text) lands with SEED-03.
+        run: npm run check:inv003
+
+  inv001:
+    name: INV-001 — .program/ is human-ratified-PR-only
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out FULL history (the check walks a commit range)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetch the base branch so origin/<base> resolves
+        # Only on pull_request events; `github.base_ref` is empty on push.
+        # Passed through env rather than interpolated into the script: a branch name is
+        # attacker-controlled text on a fork PR.
+        if: github.base_ref != ''
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --prune --quiet origin \
+            "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+
+      - name: Use Node 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning title=No lockfile::package-lock.json is missing; falling back to npm install"
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Check that no machine actor wrote to .program/
+        # The range is derived by the script itself from the Actions environment:
+        #   pull_request -> origin/$GITHUB_BASE_REF..$GITHUB_SHA
+        #   push         -> <event.before>..$GITHUB_SHA   (read from $GITHUB_EVENT_PATH)
+        # Override locally or here with `--range <base>..<head>` / $GWTP_INV001_RANGE.
+        # Exit 0 = clean or empty range · 1 = INV-001 violated · 2 = the check could not run.
+        run: npm run check:inv001
+
+  # Shared fleet gate (UPS-QA-20), pinned per UPS-WORK-10. It runs beside the
+  # repo-specific jobs above, not instead of them: standard-ci only detects
+  # root-level manifests (bamr87/bamr87#329), so it does not cover this repo's
+  # real test suite.
+  standard:
+    uses: bamr87/bamr87/.github/workflows/standard-ci.yml@v2
+    with:
+      node-version: "22"   # same Node as the engine job above

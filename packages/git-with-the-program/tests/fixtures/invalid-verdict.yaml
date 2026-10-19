@@ -1,0 +1,17 @@
+# A deliberately malformed judge verdict. Each field breaks a different part of
+# schemas/verdict.schema.json:
+#
+#   severity   — not one of grazes | bends | breach | entrenches (ADR-0005: anchored ordinal,
+#                never a bare float, never a free-text intensity)
+#   confidence — outside [0, 1]
+#   evidence   — `src/core/http.ts` carries no line span, so it fails the citation pattern
+#                ^.+:[0-9]+(-[0-9]+)?$: no citation, no verdict (INV-004)
+#   precedent  — absent, but allOf/1 requires it when verdict = regression (spec 03 §7)
+#   rationale  — absent, but allOf/0 requires it on every violation
+
+assertion: INV-005
+verdict: regression
+severity: catastrophic
+confidence: 1.4
+evidence:
+  - src/core/http.ts

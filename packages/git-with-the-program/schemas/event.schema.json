@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gwtp/event.schema.json",
+  "title": "GWTP Ledger Observation Event",
+  "type": "object",
+  "required": ["event", "subject", "assertion", "verdict", "judge", "t"],
+  "properties": {
+    "event": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$", "description": "Content hash of canonical body; also the filename and idempotency key" },
+    "subject": {
+      "type": "object",
+      "properties": {
+        "commit": { "type": "string" },
+        "pr": { "type": "integer" },
+        "path": { "type": "string", "description": "For stale-claim events from obsolescence sweeps" },
+        "orphaned": { "type": "boolean", "description": "True when the referenced SHA was rebased away; event is retained" }
+      },
+      "anyOf": [ { "required": ["commit"] }, { "required": ["pr"] }, { "required": ["path"] } ]
+    },
+    "assertion": { "type": "string" },
+    "verdict": { "enum": ["aligned", "drift", "regression", "stale-claim", "abstain"] },
+    "severity": { "enum": [0.25, 0.5, 0.75, 1.0], "description": "Numeric mapping of anchored ordinal: grazes|bends|breach|entrenches" },
+    "precision_at": { "type": "number", "description": "Assertion precision frozen at observation time" },
+    "judge": {
+      "type": "object",
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["deterministic", "model", "panel", "human"] },
+        "id": { "type": "string" },
+        "prompt": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" }
+      }
+    },
+    "rationale": { "type": "string", "description": "Blob ref (sha256:…) to full rationale text; violations only" },
+    "t": { "type": "string", "format": "date-time", "description": "Committer time, not observation time (ADR-0004)" },
+    "supersedes": { "type": ["string", "null"], "description": "Event id this ruling supersedes; fold takes the tip of each chain" },
+    "dispersion_snapshot": { "type": "object", "description": "Present only on firing events: author_entropy, path_entropy, time_spread, compliance_ratio" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "verdict": { "enum": ["drift", "regression", "stale-claim"] } } },
+      "then": { "required": ["severity", "precision_at", "rationale"] }
+    }
+  ]
+}
