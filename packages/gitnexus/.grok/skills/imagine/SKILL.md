@@ -16,9 +16,7 @@ user-invocable: false
 
 # Imagine
 
-Grok Build uses the **split Imagine computer stack** (`grok_computer` variants).
-There is **no** consolidated `imagine_image` or `imagine_video` tool — always
-call the modality-specific name from the table below.
+Grok Build uses the **split Imagine computer stack** (`grok_computer` variants). There is **no** consolidated `imagine_image` or `imagine_video` tool — always call the modality-specific name from the table below.
 
 | Tool | Role |
 |------|------|
@@ -37,8 +35,7 @@ call the modality-specific name from the table below.
 - Edit / animate tools take that path (or paths) as input — match the live
   schema (`image`, `images`, etc.). Never invent paths.
 - Never call `imagine_image` / `imagine_video`. Asset-id helpers
-  (`imagine_create_asset` / `imagine_view_media` / `render_imagine_media`) are
-  **not** on this stack.
+(`imagine_create_asset` / `imagine_view_media` / `render_imagine_media`) are **not** on this stack.
 
 Apply this whenever you're considering or about to call any of these tools.
 
@@ -190,8 +187,7 @@ Describe, roughly in this order: **subject -> action/pose -> setting -> style ->
 - Call `render_file` with the sandbox `file_path` so the user sees the image/video in chat.
 - For your own QC and scripts, `read_file` / shell on that path.
 
-Game sprites and maps have their own pipelines — follow `generate2dsprite`,
-`video2dsprite`, and `generate2dmap` for those.
+Game sprites and maps have their own pipelines — follow `generate2dsprite`, `video2dsprite`, and `generate2dmap` for those.
 
 ## Failure modes to avoid
 

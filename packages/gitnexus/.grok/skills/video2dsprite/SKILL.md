@@ -40,11 +40,7 @@ base still → imagine_image_to_video (in-place motion) → extract frames → c
 | **Grok Build** (xAI) | **Yes** — requires an image generator + an image→video tool |
 | Codex / Claude / other agents | **No** — they lack Grok video tools. Tell the user this skill is Grok Build only and offer `$generate2dsprite` instead |
 
-**Gate on the capability, not the exact tool name.** Image generation appears
-as `imagine_text_to_image` / `imagine_image_to_image`; video as `imagine_image_to_video`
-or (legacy) `generate_video`. Use whichever pair your tool list has. Stop and
-explain only when you have no image→video tool at all. Do not fake motion with
-code-drawn frames.
+**Gate on the capability, not the exact tool name.** Image generation appears as `imagine_text_to_image` / `imagine_image_to_image`; video as `imagine_image_to_video` or (legacy) `generate_video`. Use whichever pair your tool list has. Stop and explain only when you have no image→video tool at all. Do not fake motion with code-drawn frames.
 
 This skill is an **optional denser-motion path**. It does **not** replace `$generate2dsprite`:
 
@@ -121,8 +117,7 @@ Base requirements:
 - Same art style as the rest of the project when a reference exists
 - No text, UI, watermark, or second character
 
-Copy the returned `file_path` and save as
-`<out_dir>/base/<name>-base.png`; keep the base `file_path` for the video call.
+Copy the returned `file_path` and save as `<out_dir>/base/<name>-base.png`; keep the base `file_path` for the video call.
 
 Write the exact image prompt into `prompt-used.txt`.
 
@@ -143,8 +138,7 @@ Mandatory motion constraints in the prompt:
 - Identity, costume, palette stable for the whole shot
 - Single continuous action only
 
-Copy the returned video `file_path` to
-`<out_dir>/video/<name>-<duration>s.mp4`.
+Copy the returned video `file_path` to `<out_dir>/video/<name>-<duration>s.mp4`.
 
 If video tools are unavailable, stop (platform gate).
 
@@ -232,5 +226,4 @@ Do **not** modify game code unless requested.
 - `$generate2dmap` — maps; not used here
 - `$video2dsprite` — **Grok Build exclusive** motion densification path
 - `$game-asset-core` / `$game-animation-frames` — loop/flip-test/motion laws and
-  engine-ready defaults; still use this skill’s scripts for sandbox execution
-  (magenta base + chroma), not a freeform background color
+engine-ready defaults; still use this skill’s scripts for sandbox execution (magenta base + chroma), not a freeform background color

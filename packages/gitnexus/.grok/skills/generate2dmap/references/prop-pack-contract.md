@@ -47,8 +47,7 @@ Do not mix strategy classes in one sheet. A sheet of small rocks, crates, lamps,
 - `1x4 platform strip`: non-actor left cap, middle repeat, right cap, plus one slope/corner/end variant. This is not an animation-frame format.
 - `custom_wide_pack`: several related wide props using explicit wide cells such as `768x256`, `1024x384`, or another non-square cell size.
 
-Use `3x3` by default only when the user asks for a set of compact map props and does not specify count.
-Use one-by-one, platform strips, custom wide packs, or tile/object layers instead of a square pack for hero props, wide gates, buildings, wide trees, floors, platforms, bridges, walls, long hazards, ladders, or anything that must line up exactly with collision.
+Use `3x3` by default only when the user asks for a set of compact map props and does not specify count. Use one-by-one, platform strips, custom wide packs, or tile/object layers instead of a square pack for hero props, wide gates, buildings, wide trees, floors, platforms, bridges, walls, long hazards, ladders, or anything that must line up exactly with collision.
 
 If a square pack fails because a wide/tall object touches the cell edge, do not pass it by relaxing QC and do not keep retrying the same square pack. Reclassify that object and regenerate it with one-by-one, a platform strip, a custom wide pack, or a tile/object-layer workflow.
 
@@ -108,9 +107,7 @@ Use `1x4` only for non-actor platform strips when a slope, corner, broken varian
 
 ## Extraction
 
-The extract script includes built-in solid-magenta chroma cleanup. Prefer a
-hard-key first; if fringe remains after visual QC, regenerate the sheet with a
-flatter `#FF00FF` background or tighten thresholds via the script flags.
+The extract script includes built-in solid-magenta chroma cleanup. Prefer a hard-key first; if fringe remains after visual QC, regenerate the sheet with a flatter `#FF00FF` background or tighten thresholds via the script flags.
 
 ```bash
 python3 .grok/skills/generate2dmap/scripts/extract_prop_pack.py \

@@ -61,8 +61,7 @@ Guideline-quality Tetris additionally needs: **7-bag randomizer**, **SRS rotatio
 
 ## B4. SRS rotation & wall kicks (verbatim tables)
 
-**Rotation states:** `0` = spawn, `R` = one CW from spawn, `L` = one CCW from spawn, `2` = 180°.
-When a rotation is attempted, test **5 offsets in order**; use the first that fits; if none fit, the rotation fails entirely.
+**Rotation states:** `0` = spawn, `R` = one CW from spawn, `L` = one CCW from spawn, `2` = 180°. When a rotation is attempted, test **5 offsets in order**; use the first that fits; if none fit, the rotation fails entirely.
 
 **⚠️ Coordinate convention:** these tables use **x = right positive, y = UP positive**. If your grid's row index increases *downward* (the usual case), **negate the y value** when applying kicks (a `+2` up becomes `row − 2`). Getting this sign wrong is the #1 SRS bug.
 

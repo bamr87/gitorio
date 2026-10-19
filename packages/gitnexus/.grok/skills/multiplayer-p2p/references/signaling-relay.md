@@ -1,17 +1,10 @@
 # Signaling relay and API route (create once)
 
-The relay is **yours**, not part of the kit: copy it as-is or serve the same
-`RtcPollResponse` shape from any store. Only rendezvous traffic (roster +
-SDP/ICE) passes through it; game data flows peer-to-peer.
+The relay is **yours**, not part of the kit: copy it as-is or serve the same `RtcPollResponse` shape from any store. Only rendezvous traffic (roster + SDP/ICE) passes through it; game data flows peer-to-peer.
 
 ## Schema — nothing to do by default
 
-The relay below creates its two tables on first use
-(`CREATE TABLE IF NOT EXISTS`, once per process) — nothing ships in
-`migrations/` and the template itself never touches your database. If you'd
-rather own or extend the schema (extra columns, your own migration ordering),
-copy this into one of your app migrations; `IF NOT EXISTS` makes the runtime
-ensure and your migration coexist safely:
+The relay below creates its two tables on first use (`CREATE TABLE IF NOT EXISTS`, once per process) — nothing ships in `migrations/` and the template itself never touches your database. If you'd rather own or extend the schema (extra columns, your own migration ordering), copy this into one of your app migrations; `IF NOT EXISTS` makes the runtime ensure and your migration coexist safely:
 
 ```sql
 -- CREATE TABLE IF NOT EXISTS webrtc_peers (

@@ -28,8 +28,6 @@ You are a reviewer. Rule on the one assertion below against the one change.
 
 assertion: {{assertion_id}}
 verdict: aligned | drift | regression | stale-claim | abstain
-severity: <your call>          # optional
-confidence: <0.0-1.0>
-rationale: <optional>
+severity: <your call>          # optional confidence: <0.0-1.0> rationale: <optional>
 
 Give a verdict. Citations are optional and severity need not be one of any fixed set.

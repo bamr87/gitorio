@@ -24,13 +24,7 @@ Model the car as a point/box with a **heading (yaw)**, a **forward speed**, and 
 - **Drag + rolling resistance:** each frame `speed *= (1 - drag*delta)` (and stronger when off throttle) so the car coasts to a stop. Add higher drag off-track (grass/sand) to punish going wide.
 - **Steering scales with speed, not constant:** turn rate should be low at very low speed (can't turn a parked kart much) and taper at very high speed so it isn't twitchy. A common trick: `turn = steerInput * baseTurn * clamp(speed / someSpeed, 0, 1)`. Reverse the steering sign when moving backward.
 - **Steer sign (must not invert):** full rules live in the **`controls` skill**
-  (`.grok/skills/controls/SKILL.md`) — open it for **any** vehicle, not only
-  karts. Summary: while `speed > 0` and the chase camera is behind the car,
-  **A / ← turns left**, **D / → turns right**. With
-  `forward = (-sin(yaw), 0, -cos(yaw))`, **KeyA must yield +yaw**
-  (`steer = +1` on A, then `yaw += steer * turnRate * …`). The classic bug is
-  `KeyA → steer = -1` with `yaw += steer * +rate` (A turns right). Run the
-  `controls` self-test before shipping; do **not** use FPS strafe as a steer test.
+(`.grok/skills/controls/SKILL.md`) — open it for **any** vehicle, not only karts. Summary: while `speed > 0` and the chase camera is behind the car, **A / ← turns left**, **D / → turns right**. With `forward = (-sin(yaw), 0, -cos(yaw))`, **KeyA must yield +yaw** (`steer = +1` on A, then `yaw += steer * turnRate * …`). The classic bug is `KeyA → steer = -1` with `yaw += steer * +rate` (A turns right). Run the `controls` self-test before shipping; do **not** use FPS strafe as a steer test.
 - **Apply yaw, then move along heading:** rotate the car by `turn * delta`, then translate along its forward vector by `speed * delta`. Keep a little **lateral velocity** that decays (grip) so the car feels weighty rather than on rails.
 - **Grip model (simple):** split velocity into forward and sideways components; kill most of the sideways component each frame (high grip) — reducing how much you kill it is exactly what creates drift.
 - **Keep the car on the ground:** raycast down to the track to set height/normal (handles hills/banking) rather than full suspension. Align the car's up to the surface normal for looks.
@@ -75,8 +69,7 @@ Model the car as a point/box with a **heading (yaw)**, a **forward speed**, and 
 - **Car tunnels through walls/checkpoints at speed** → swept/segment collision, not just per-frame overlap; consider fixed timestep.
 - **Steering identical at all speeds** → twitchy when fast, unturnable when slow; scale turn rate by speed and flip sign in reverse.
 - **A/D reversed while driving forward** → `steerInput` sign disagrees with the
-  `forward`/`yaw` basis; re-check the vehicle self-test (A turns left at speed > 0),
-  not the FPS D→+X strafe test.
+`forward`/`yaw` basis; re-check the vehicle self-test (A turns left at speed > 0), not the FPS D→+X strafe test.
 - **Car feels on rails or uncontrollably slidey** → tune the grip (how much lateral velocity you kill per frame); drift = temporarily reduce that.
 - **Camera stiff / nausea-inducing** → smooth (lerp/spring) both position and look-at; don't hard-parent.
 - **Movement/steer not delta-scaled** → frame-rate dependent handling.

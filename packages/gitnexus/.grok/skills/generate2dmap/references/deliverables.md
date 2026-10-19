@@ -1,7 +1,6 @@
 # Expected deliverables and validation
 
-Check the deliverable list for the pipeline you chose before calling a map
-done, then run the validation list against what you actually wrote.
+Check the deliverable list for the pipeline you chose before calling a map done, then run the validation list against what you actually wrote.
 
 For a baked raster map:
 

@@ -121,9 +121,7 @@ function radialDeadzone(x, y, dz = 0.15) {
 - **Include jump/input buffering (~120ms) + coyote time** in platformers/action templates by default — biggest feel win for cheap.
 - **Make bindings data-driven and persisted** so a rebinding screen is a small add, and auto-detect the active device to show correct button prompts.
 - **Semantic signs for move/steer/flight** are **not** defined here — open the
-  **`controls` skill** (`.grok/skills/controls/SKILL.md`) so `steer`/`roll`
-  mean player-left correctly. This file is plumbing; that skill is the sign
-  convention + mandatory A/D self-test.
+**`controls` skill** (`.grok/skills/controls/SKILL.md`) so `steer`/`roll` mean player-left correctly. This file is plumbing; that skill is the sign convention + mandatory A/D self-test.
 
 ---
 

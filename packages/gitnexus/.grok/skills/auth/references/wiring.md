@@ -1,14 +1,8 @@
 # Wiring the routes (do this once)
 
-**Live-preview popup is PRE-WIRED — do not create it.**
-`signIn` opens `/auth/popup`; the template Vite plugin
-(`authPopupPlugin` in `vite.config.ts`) serves it via `popup.server.ts`.
-**Never** add `src/routes/auth/popup.tsx` (or any React page / client OAuth at
-that path). Doing so loads the full app shell in the popup ("the app opened
-instead of Google") — that is always wrong.
+**Live-preview popup is PRE-WIRED — do not create it.** `signIn` opens `/auth/popup`; the template Vite plugin (`authPopupPlugin` in `vite.config.ts`) serves it via `popup.server.ts`. **Never** add `src/routes/auth/popup.tsx` (or any React page / client OAuth at that path). Doing so loads the full app shell in the popup ("the app opened instead of Google") — that is always wrong.
 
-**1. Mount Better Auth** — create the catch-all API route (this is what makes
-`/api/auth/*` work; the broker's OAuth callback lands here):
+**1. Mount Better Auth** — create the catch-all API route (this is what makes `/api/auth/*` work; the broker's OAuth callback lands here):
 
 ```ts
 // src/routes/api/auth/$.ts
@@ -25,10 +19,7 @@ export const Route = createFileRoute("/api/auth/$")({
 });
 ```
 
-**2. Add a sign-in page** — buttons that kick off the broker flow. Import from
-`@/lib/auth/client`. With the flag on, `authEnabled` is true in preview and
-deployed, so the buttons show and work in the live preview; the `else` branch
-shows while auth is still disabled (`VITE_AUTH_ENABLED=false`):
+**2. Add a sign-in page** — buttons that kick off the broker flow. Import from `@/lib/auth/client`. With the flag on, `authEnabled` is true in preview and deployed, so the buttons show and work in the live preview; the `else` branch shows while auth is still disabled (`VITE_AUTH_ENABLED=false`):
 
 ```tsx
 // src/routes/login.tsx
@@ -62,10 +53,6 @@ function Login() {
 }
 ```
 
-`RedirectToSignIn` sends signed-out users to `/login` by default (override with
-`<RedirectToSignIn to="/somewhere" />`). Style the page however you like — see
-the `design-ui` skill.
+`RedirectToSignIn` sends signed-out users to `/login` by default (override with `<RedirectToSignIn to="/somewhere" />`). Style the page however you like — see the `design-ui` skill.
 
-That's it — call `signIn(providerId)` from your sign-in buttons. The popup,
-bearer-token hand-off, and request attachment are all inside `src/lib/auth` +
-the Vite plugin; leave them alone.
+That's it — call `signIn(providerId)` from your sign-in buttons. The popup, bearer-token hand-off, and request attachment are all inside `src/lib/auth` + the Vite plugin; leave them alone.

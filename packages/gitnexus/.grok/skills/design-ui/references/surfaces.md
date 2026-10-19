@@ -60,8 +60,7 @@ When geometric centering looks off, align optically instead.
 
 ### Buttons with Text + Icon
 
-Use slightly less padding on the icon side to make the button feel balanced. A reliable rule of thumb is:
-`icon-side padding = text-side padding - 2px`.
+Use slightly less padding on the icon side to make the button feel balanced. A reliable rule of thumb is: `icon-side padding = text-side padding - 2px`.
 
 ```css
 /* Good — less padding on icon side */

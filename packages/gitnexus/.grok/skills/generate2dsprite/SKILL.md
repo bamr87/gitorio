@@ -15,13 +15,9 @@ user-invocable: false
 
 # Generate2dsprite
 
-Use this skill for self-contained 2D sprite or animation assets in the
-**app-builder sandbox** (TanStack Start + browser games).
+Use this skill for self-contained 2D sprite or animation assets in the **app-builder sandbox** (TanStack Start + browser games).
 
-When a larger game or playable prototype needs sprites, use this skill for the
-visible sprite assets and keep runtime/game assembly separate (wire into Phaser /
-Canvas / DOM after export). Do not replace requested sprite assets with
-code-drawn placeholders.
+When a larger game or playable prototype needs sprites, use this skill for the visible sprite assets and keep runtime/game assembly separate (wire into Phaser / Canvas / DOM after export). Do not replace requested sprite assets with code-drawn placeholders.
 
 ## App-builder / Grok environment
 
@@ -36,10 +32,7 @@ code-drawn placeholders.
 | Output home | Prefer `assets/sprites/<name>/` under `/workspace` so the app can import them |
 | Engine target | Browser: Canvas 2D, Phaser, or DOM/`<img>` — not Godot/Unity unless the user asks |
 
-Related skills: **`imagine`** (image tool usage), **`game-asset-core`** (+
-`game-animation-frames` / `game-character-consistency` for QC and engine-ready
-defaults), **`generate2dmap`** (maps/props), **`video2dsprite`** (denser motion
-via `imagine_image_to_video`), **`building-games`** (game loop / integration).
+Related skills: **`imagine`** (image tool usage), **`game-asset-core`** (+ `game-animation-frames` / `game-character-consistency` for QC and engine-ready defaults), **`generate2dmap`** (maps/props), **`video2dsprite`** (denser motion via `imagine_image_to_video`), **`building-games`** (game loop / integration).
 
 ## Parameters
 

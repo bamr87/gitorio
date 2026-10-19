@@ -15,15 +15,9 @@ user-invocable: false
 
 # Controls (player-visible signs — do not ship inverted)
 
-**Read this end-to-end before writing movement/steer/flight code** for any game
-that uses WASD, arrows, a chase camera, or a flying craft. Do **not** skip this
-and only open `racing-kart` or `fps` — those genre files assume you already
-know these signs. Inverted A/D is the most common ship-blocker in vehicle and
-flight demos.
+**Read this end-to-end before writing movement/steer/flight code** for any game that uses WASD, arrows, a chase camera, or a flying craft. Do **not** skip this and only open `racing-kart` or `fps` — those genre files assume you already know these signs. Inverted A/D is the most common ship-blocker in vehicle and flight demos.
 
-Pair with **`building-games`** (loop, camera, 3D orientation) and
-**`building-games/references/input.md`** (keydown state, gamepad, touch). This
-skill owns **what left/right/up mean to the player** and **how you prove it**.
+Pair with **`building-games`** (loop, camera, 3D orientation) and **`building-games/references/input.md`** (keydown state, gamepad, touch). This skill owns **what left/right/up mean to the player** and **how you prove it**.
 
 ---
 
@@ -34,11 +28,9 @@ skill owns **what left/right/up mean to the player** and **how you prove it**.
    - **A / ←** → nose (or bank) turns **left on screen**
    - **D / →** → nose (or bank) turns **right on screen**
 2. **Never reuse FPS strafe as vehicle steer.** FPS “D → +right vector” is
-   **position** on the ground plane. Vehicle A/D is **yaw (or roll) rate**, not
-   a strafe offset. Mixing them is the #1 cause of inverted A/D.
+**position** on the ground plane. Vehicle A/D is **yaw (or roll) rate**, not a strafe offset. Mixing them is the #1 cause of inverted A/D.
 3. **You must run a control self-test (§5) before saying done.** Screenshot-only
-   QA is not enough. If A turns right, **flip the steer/roll sign**, retest,
-   then ship — do not invent a new coordinate story.
+QA is not enough. If A turns right, **flip the steer/roll sign**, retest, then ship — do not invent a new coordinate story.
 
 ---
 
@@ -61,8 +53,7 @@ With a chase cam **behind** the craft (camera near `position - forward * dist`):
 | Nose left   | **+yaw**           | **A / ←** must produce **+yaw** (or equivalent bank-left for planes) |
 | Nose right  | **−yaw**           | **D / →** must produce **−yaw** |
 
-If your basis differs, keep **one** consistent pair — but the **player-visible**
-row above is mandatory.
+If your basis differs, keep **one** consistent pair — but the **player-visible** row above is mandatory.
 
 ---
 
@@ -107,9 +98,7 @@ if (KeyD) steer += 1;
 yaw += steer * turnRate * dt;  // A → −yaw → nose RIGHT on chase cam
 ```
 
-If you already wrote `KeyA → steer--`, either **swap the key mapping** or
-**negate once at integrate** (`yaw += -steer * …`) — then run §5. Do not flip
-twice (keys + integrate + bank mesh).
+If you already wrote `KeyA → steer--`, either **swap the key mapping** or **negate once at integrate** (`yaw += -steer * …`) — then run §5. Do not flip twice (keys + integrate + bank mesh).
 
 ### 2c. Fixed-wing flight (airplane, glider, RC plane)
 
@@ -123,8 +112,7 @@ twice (keys + integrate + bank mesh).
 
 - **A/D are not strafe** and not “ground steer with FPS signs.”
 - Apply roll in the craft’s **local forward axis** with a sign that matches
-  **bank left on A**. If the mesh banks the wrong way, flip **one** sign on the
-  roll apply (or on the A/D → roll mapping), not the whole basis.
+**bank left on A**. If the mesh banks the wrong way, flip **one** sign on the roll apply (or on the A/D → roll mapping), not the whole basis.
 - Coordinated turn: positive bank should produce a turn that matches the bank
   direction under the chase/external cam.
 
@@ -138,8 +126,7 @@ Document the scheme on a start overlay. Minimum:
 
 ### 2e. 2D side-scroller / platformer
 
-**D / →** moves **right on screen**; **A / ←** moves **left**. Gravity only
-inverted if the genre is explicitly upside-down.
+**D / →** moves **right on screen**; **A / ←** moves **left**. Gravity only inverted if the genre is explicitly upside-down.
 
 ---
 
@@ -156,8 +143,7 @@ inverted if the genre is explicitly upside-down.
 ## 4. Input plumbing (brief)
 
 - Track keys with a `Set` on `keydown`/`keyup` using **`event.code`**; clear on
-  `blur` / `visibilitychange`. Move in the game loop with **dt**, not in the
-  key handler.
+`blur` / `visibilitychange`. Move in the game loop with **dt**, not in the key handler.
 - Unify keyboard + touch + gamepad into **actions** (`throttle`, `steer`,
   `pitch`, `roll`, …). See `building-games/references/input.md`.
 - Touch: left stick = move/steer, right = actions; ≥44px targets.
@@ -183,8 +169,7 @@ If A fails: flip steer/roll sign **once**, retest both A and D.
 
 ### 5b. Minimal test interface (implement this)
 
-Expose a tiny hook so you (and automated QA) can prove signs without guessing
-private closures:
+Expose a tiny hook so you (and automated QA) can prove signs without guessing private closures:
 
 ```js
 // e.g. src/game/controlsTest.ts — dev/QA only is fine
@@ -204,16 +189,11 @@ declare global {
 }
 ```
 
-Wire `window.__controlsTest` from the game loop when `import.meta.env.DEV` or a
-`?qa=1` flag is set.
+Wire `window.__controlsTest` from the game loop when `import.meta.env.DEV` or a `?qa=1` flag is set.
 
 ### 5c. Automated smoke (run it)
 
-Drive the §5b probe with the preinstalled **`agent-browser`** CLI — that is the
-first move, not a hand-written script. **A thrown `eval` exits non-zero; a
-merely falsy one does not**, so assert by throwing. Run it as one `batch` — one
-CLI call, not one per verb — taking JSON on stdin; `--bail` stops at the first
-failing step and exits non-zero.
+Drive the §5b probe with the preinstalled **`agent-browser`** CLI — that is the first move, not a hand-written script. **A thrown `eval` exits non-zero; a merely falsy one does not**, so assert by throwing. Run it as one `batch` — one CLI call, not one per verb — taking JSON on stdin; `--bail` stops at the first failing step and exits non-zero.
 
 ```bash
 agent-browser batch --bail <<'JSON'   # find's label is case-sensitive: copy it from `snapshot -i`
@@ -230,27 +210,11 @@ agent-browser batch --bail <<'JSON'   # find's label is case-sensitive: copy it 
 JSON
 ```
 
-**Hold keys through the probe, not with `keydown`** — `agent-browser keydown`
-does not reach §4's `Set`, so a correct game reads as broken. No `setKeys` on
-your probe? Add it (§5b), or dispatch the key event yourself — the browser-QA
-reference's **Keys** note has the mechanism and the form.
+**Hold keys through the probe, not with `keydown`** — `agent-browser keydown` does not reach §4's `Set`, so a correct game reads as broken. No `setKeys` on your probe? Add it (§5b), or dispatch the key event yourself — the browser-QA reference's **Keys** note has the mechanism and the form.
 
-The hold sits **inside** one `eval`: spread across commands it lasts however
-long they take, and the ±π wrap in `Math.atan2(Math.sin(d), Math.cos(d))`
-reads a craft that turned more than π as one turning the other way. The IIFE is
-what keeps the step re-runnable — a bare `const d = …` fails the second time
-with "already declared" — and `async` is what lets the hold run in page time.
-Repeat for **D** with `'KeyD'` and both comparisons mirrored (`w > 0.05` is
-inverted, `w >= -0.05` is barely), single-quoted so the JSON needs no escapes;
-for planes assert **roll**: A ⇒ bank left.
+The hold sits **inside** one `eval`: spread across commands it lasts however long they take, and the ±π wrap in `Math.atan2(Math.sin(d), Math.cos(d))` reads a craft that turned more than π as one turning the other way. The IIFE is what keeps the step re-runnable — a bare `const d = …` fails the second time with "already declared" — and `async` is what lets the hold run in page time. Repeat for **D** with `'KeyD'` and both comparisons mirrored (`w > 0.05` is inverted, `w >= -0.05` is barely), single-quoted so the JSON needs no escapes; for planes assert **roll**: A ⇒ bank left.
 
-**`A turns RIGHT`** is the sign error: flip **one** sign and re-run.
-**`A barely turned`** is not — the craft moved the right way, just less than
-0.05 rad in 300 ms, which a boat or a heavy rover will do; raise the hold, or
-check the sim is running, and flip nothing. Any other non-zero exit — no probe,
-a wedged daemon — means the check never ran: read the message first. Read the
-browser-QA reference `AGENTS.md` links before your first flow — verbs, argument
-shapes and the fallback are there.
+**`A turns RIGHT`** is the sign error: flip **one** sign and re-run. **`A barely turned`** is not — the craft moved the right way, just less than 0.05 rad in 300 ms, which a boat or a heavy rover will do; raise the hold, or check the sim is running, and flip nothing. Any other non-zero exit — no probe, a wedged daemon — means the check never ran: read the message first. Read the browser-QA reference `AGENTS.md` links before your first flow — verbs, argument shapes and the fallback are there.
 
 ### 5d. What not to do
 

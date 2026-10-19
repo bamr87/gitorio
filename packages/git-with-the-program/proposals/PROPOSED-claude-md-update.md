@@ -1,29 +1,20 @@
 # Proposed edit to `CLAUDE.md`
 
-**Raised by:** SEED-01 remediation (agent session — adversarial-audit fixes)
-**Status:** proposed — needs a human, because `CLAUDE.md` is outside this session's write scope
-**Target:** `CLAUDE.md` (two paragraphs)
+**Raised by:** SEED-01 remediation (agent session — adversarial-audit fixes) **Status:** proposed — needs a human, because `CLAUDE.md` is outside this session's write scope **Target:** `CLAUDE.md` (two paragraphs)
 
 ---
 
 ## Why this is a proposal rather than a commit
 
-`CLAUDE.md` is on the forbidden-path list for seed sessions, alongside `README.md`,
-`ROADMAP.md` and `GLOSSARY.md`. It is also the first thing the next agent session reads, so
-leaving it stale is not cosmetic: two of its statements are now false, and one of them tells
-the next session to redo work that is already done.
+`CLAUDE.md` is on the forbidden-path list for seed sessions, alongside `README.md`, `ROADMAP.md` and `GLOSSARY.md`. It is also the first thing the next agent session reads, so leaving it stale is not cosmetic: two of its statements are now false, and one of them tells the next session to redo work that is already done.
 
-Nothing here touches `.program/` — that is a separate document
-([`PROPOSED-program-amendment.md`](PROPOSED-program-amendment.md)) with a separate ratification
-requirement (INV-001). This one is ordinary documentation drift and needs only a normal review.
+Nothing here touches `.program/` — that is a separate document ([`PROPOSED-program-amendment.md`](PROPOSED-program-amendment.md)) with a separate ratification requirement (INV-001). This one is ordinary documentation drift and needs only a normal review.
 
 ---
 
 ## Edit 1 — the stack is no longer undecided
 
-`docs/adr/0006-reference-stack.md` was flipped to `Status: Accepted` in this session, per
-SEED-01's Objective (*"Decide ADR-0006 (stack) as your first act"*). CLAUDE.md still says the
-opposite, and instructs the reader to do it again.
+`docs/adr/0006-reference-stack.md` was flipped to `Status: Accepted` in this session, per SEED-01's Objective (*"Decide ADR-0006 (stack) as your first act"*). CLAUDE.md still says the opposite, and instructs the reader to do it again.
 
 ```diff
 --- a/CLAUDE.md
@@ -35,8 +26,7 @@ opposite, and instructs the reader to do it again.
 
 ## Edit 2 — the repository-state paragraph
 
-The first paragraph of *Repository state* describes the `init` commit: no `src/`, no package
-manager, no CI, "no build/lint/test commands yet". SEED-01 created all of them.
+The first paragraph of *Repository state* describes the `init` commit: no `src/`, no package manager, no CI, "no build/lint/test commands yet". SEED-01 created all of them.
 
 ```diff
 --- a/CLAUDE.md
@@ -52,8 +42,7 @@ manager, no CI, "no build/lint/test commands yet". SEED-01 created all of them.
 
 ## Verification
 
-Both edits are documentation-only; nothing in `src/`, `scripts/` or `.github/` depends on
-CLAUDE.md's text. After applying, the claims above are checkable directly:
+Both edits are documentation-only; nothing in `src/`, `scripts/` or `.github/` depends on CLAUDE.md's text. After applying, the claims above are checkable directly:
 
 ```bash
 grep -n 'Status:' docs/adr/0006-reference-stack.md   # Accepted

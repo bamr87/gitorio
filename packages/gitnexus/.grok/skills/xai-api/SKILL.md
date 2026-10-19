@@ -15,15 +15,9 @@ user-invocable: false
 
 # xAI API (Grok)
 
-When `XAI_API_KEY` is present in the environment, this app has **real xAI API
-access** — use it for AI features instead of mocking responses or reaching for
-another provider. The same variable is injected into the **deployed** app at
-publish, so code built against it works identically in preview and production.
+When `XAI_API_KEY` is present in the environment, this app has **real xAI API access** — use it for AI features instead of mocking responses or reaching for another provider. The same variable is injected into the **deployed** app at publish, so code built against it works identically in preview and production.
 
-**The key is the app owner's personal key: every call spends their quota and
-credits.** Be deliberate about usage — see [Spend responsibly](#spend-responsibly)
-before wiring AI calls into anything that runs automatically or is open to
-visitors.
+**The key is the app owner's personal key: every call spends their quota and credits.** Be deliberate about usage — see [Spend responsibly](#spend-responsibly) before wiring AI calls into anything that runs automatically or is open to visitors.
 
 The key unlocks the **full API surface**, not just chat:
 
@@ -43,12 +37,9 @@ The key unlocks the **full API surface**, not just chat:
 |---|---|---|
 | `XAI_API_KEY` | server | Injected by the platform (preview and deploy). Never write, hardcode, or ask the user for it. |
 
-The key is **server-only**: read it with `process.env.XAI_API_KEY` inside
-`createServerFn` handlers / server code, never in client components, and never
-expose it via a `VITE_`-prefixed variable or an API response.
+The key is **server-only**: read it with `process.env.XAI_API_KEY` inside `createServerFn` handlers / server code, never in client components, and never expose it via a `VITE_`-prefixed variable or an API response.
 
-It can be **absent** (rollout-gated). Degrade gracefully — check for it and
-show a friendly "AI features are unavailable" state instead of crashing:
+It can be **absent** (rollout-gated). Degrade gracefully — check for it and show a friendly "AI features are unavailable" state instead of crashing:
 
 ```ts
 const apiKey = process.env.XAI_API_KEY;
@@ -89,15 +80,11 @@ export const askGrok = createServerFn({ method: "POST" })
   });
 ```
 
-For streaming, structured outputs, vision, or the full model list, follow
-[docs.x.ai](https://docs.x.ai) — the shapes are OpenAI-compatible.
+For streaming, structured outputs, vision, or the full model list, follow [docs.x.ai](https://docs.x.ai) — the shapes are OpenAI-compatible.
 
 ## Imagine — image & video generation (server-only)
 
-The same key drives **runtime** image/video features in the app (user avatars,
-scene art, generated content). Distinct from your build-time `imagine_text_to_image` / `imagine_image_to_image` / `imagine_image_to_video` tools (the
-`imagine` skill): use the **API** when the *running app* generates media, the
-tools when *you* create static assets while building.
+The same key drives **runtime** image/video features in the app (user avatars, scene art, generated content). Distinct from your build-time `imagine_text_to_image` / `imagine_image_to_image` / `imagine_image_to_video` tools (the `imagine` skill): use the **API** when the *running app* generates media, the tools when *you* create static assets while building.
 
 ```ts
 // POST https://api.x.ai/v1/images/generations — same auth header as chat
@@ -117,36 +104,25 @@ body: JSON.stringify({
 
 ## Voice — text-to-speech (server-only)
 
-`POST https://api.x.ai/v1/tts` turns text into spoken audio — narration,
-accessibility, character voices:
+`POST https://api.x.ai/v1/tts` turns text into spoken audio — narration, accessibility, character voices:
 
 ```ts
 // Same Authorization header; returns audio bytes (e.g. MP3)
 body: JSON.stringify({ text: data.text, voice_id: "eve" }) // eve = default voice
 ```
 
-List voices at `GET /v1/tts/voices` (custom voices supported); transcription
-(speech-to-text) is also available. Details: [docs.x.ai](https://docs.x.ai) →
-Voice API. Serve the audio to the client from your server function — never
-call the API from the browser (that would expose the key).
+List voices at `GET /v1/tts/voices` (custom voices supported); transcription (speech-to-text) is also available. Details: [docs.x.ai](https://docs.x.ai) → Voice API. Serve the audio to the client from your server function — never call the API from the browser (that would expose the key).
 
 ## Spend responsibly
 
-The key belongs to the **app owner** (the user you're building for): every
-call — including ones triggered by anonymous visitors of the deployed app —
-**spends their personal quota and credits**. Burning it on wasteful calls
-degrades or breaks every other use of their key. Be careful with usage:
+The key belongs to the **app owner** (the user you're building for): every call — including ones triggered by anonymous visitors of the deployed app — **spends their personal quota and credits**. Burning it on wasteful calls degrades or breaks every other use of their key. Be careful with usage:
 
 - **Cap output** (`max_tokens`) and keep prompts small for visitor-facing
-  features. Image, and especially video, generation cost far more per call
-  than chat.
+features. Image, and especially video, generation cost far more per call than chat.
 - **Never call the API in a loop, on every keystroke, or on page load** —
   make calls user-initiated (button press, form submit) and debounce.
 - **Cache or persist results** (see the `neon` skill) instead of regenerating
   the same content per visitor or per render.
 - **Gate expensive flows** — media generation in particular. On an app that
-  already has sign-in, put them behind `authMiddleware` (see the **`auth`
-  skill**). Sign-in is off by default, and adding the middleware without it
-  breaks the deployed app (AGENTS.md §0.5) — so on an app without accounts, cap
-  usage instead: user-initiated calls, small limits, cached results.
+already has sign-in, put them behind `authMiddleware` (see the **`auth` skill**). Sign-in is off by default, and adding the middleware without it breaks the deployed app (AGENTS.md §0.5) — so on an app without accounts, cap usage instead: user-initiated calls, small limits, cached results.
 - Don't add retry storms: on an API error, surface it; retry at most once.

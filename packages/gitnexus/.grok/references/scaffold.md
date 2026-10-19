@@ -1,10 +1,6 @@
 # First-scaffold snippets
 
-Copy-paste bodies for the four entry files `AGENTS.md` § "First scaffold"
-requires. They match the **installed** TanStack Start: `src/router.tsx` is
-resolved by a **named `getRouter` export**, and older
-`createRouter`-default-export / `app/`-directory conventions are rejected by the
-plugin.
+Copy-paste bodies for the four entry files `AGENTS.md` § "First scaffold" requires. They match the **installed** TanStack Start: `src/router.tsx` is resolved by a **named `getRouter` export**, and older `createRouter`-default-export / `app/`-directory conventions are rejected by the plugin.
 
 ```tsx
 // src/router.tsx

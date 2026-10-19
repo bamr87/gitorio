@@ -1,7 +1,6 @@
 # SEED-01 — Scaffold the engine workspace
 
-You are building **Git with the Program** (GWTP). Read, in order:
-`README.md`, `docs/vision.md`, `docs/spec/01-core-memory.md`, `docs/adr/0006-reference-stack.md`.
+You are building **Git with the Program** (GWTP). Read, in order: `README.md`, `docs/vision.md`, `docs/spec/01-core-memory.md`, `docs/adr/0006-reference-stack.md`.
 
 ## Objective
 Turn this seed package into a buildable workspace with schema validation wired into CI. Decide ADR-0006 (stack) as your first act: update its Status to Accepted with a one-paragraph justification, then scaffold accordingly.

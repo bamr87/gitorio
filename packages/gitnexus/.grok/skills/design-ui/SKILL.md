@@ -15,10 +15,7 @@ user-invocable: false
 
 # Design & UI
 
-Make interfaces that look intentional and premium, not template-generic. This is
-the single biggest quality lever in the app builder. Apply it to **DOM / overlay
-UI** — pages, chrome, HUD, menus, forms. (For a 3D game's gameplay canvas, see
-the `building-games` skill; this skill governs the DOM UI layered over it.)
+Make interfaces that look intentional and premium, not template-generic. This is the single biggest quality lever in the app builder. Apply it to **DOM / overlay UI** — pages, chrome, HUD, menus, forms. (For a 3D game's gameplay canvas, see the `building-games` skill; this skill governs the DOM UI layered over it.)
 
 **Read `references/` for depth** (loaded on demand — don't inline it all):
 - `references/refined-ui.md` — the full product-chrome/overlay design system.
@@ -34,8 +31,7 @@ the `building-games` skill; this skill governs the DOM UI layered over it.)
 Define the system once, then compose from it. **Never** sprinkle ad-hoc values.
 
 - **Tokens in CSS (Tailwind v4 is CSS-first).** Put the palette, radii, and fonts
-  in `src/styles.css` under `@theme` as CSS variables; consume them as Tailwind
-  utilities. One source of truth.
+in `src/styles.css` under `@theme` as CSS variables; consume them as Tailwind utilities. One source of truth.
   ```css
   @import "tailwindcss";
   @theme {
@@ -46,11 +42,9 @@ Define the system once, then compose from it. **Never** sprinkle ad-hoc values.
   }
   ```
 - **Use shadcn/ui components** (Radix primitives + `cva` variants + `tailwind-merge`)
-  for buttons, dialogs, dropdowns, inputs, etc. They're accessible and consistent.
-  Generate them into `src/components/ui`; style via tokens, not inline hex.
+for buttons, dialogs, dropdowns, inputs, etc. They're accessible and consistent. Generate them into `src/components/ui`; style via tokens, not inline hex.
 - **Tailwind v4 base fix — buttons need a pointer cursor.** v4's Preflight makes
-  `<button>` use `cursor: default`, which feels broken. Add this once in
-  `src/styles.css` so buttons/clickable roles show a pointer:
+`<button>` use `cursor: default`, which feels broken. Add this once in `src/styles.css` so buttons/clickable roles show a pointer:
   ```css
   @layer base {
     button:not(:disabled),
@@ -58,8 +52,7 @@ Define the system once, then compose from it. **Never** sprinkle ad-hoc values.
   }
   ```
 - **Ban ad-hoc styling:** no raw hex in JSX, no `text-white`/`bg-black` literals,
-  no arbitrary values like `p-[16px]` or `text-[13px]`. If you need a value,
-  it becomes a token or a scale step.
+no arbitrary values like `p-[16px]` or `text-[13px]`. If you need a value, it becomes a token or a scale step.
 
 ## 2. The quantified rubric (cheap rules that prevent "ugly")
 
@@ -105,10 +98,7 @@ Define the system once, then compose from it. **Never** sprinkle ad-hoc values.
 
 ## 6. Game overlays (when this pairs with `building-games`)
 
-The gameplay canvas is owned by `building-games`. This skill styles the **DOM
-overlay**: start/"click to play" screen, HUD, score, menus, pause, mobile
-controls. Keep overlay readable over the canvas (backdrop, contrast), and keep it
-out of the pointer-lock/gameplay input path.
+The gameplay canvas is owned by `building-games`. This skill styles the **DOM overlay**: start/"click to play" screen, HUD, score, menus, pause, mobile controls. Keep overlay readable over the canvas (backdrop, contrast), and keep it out of the pointer-lock/gameplay input path.
 
 ---
 

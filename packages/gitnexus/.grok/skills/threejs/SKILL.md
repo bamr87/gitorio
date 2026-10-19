@@ -15,8 +15,7 @@ user-invocable: false
 
 # Three.js (official LLM reference)
 
-This skill vendors the **official** Three.js LLM documentation pack so the agent
-can generate correct modern three.js without inventing outdated CDN/r128 APIs.
+This skill vendors the **official** Three.js LLM documentation pack so the agent can generate correct modern three.js without inventing outdated CDN/r128 APIs.
 
 ## Stack adaptation (this app builder)
 
@@ -50,8 +49,7 @@ references/llms-full.txt
 
 Source: https://threejs.org/docs/llms-full.txt (pinned copy for offline sandbox use).
 
-Contents include: modern imports, WebGLRenderer vs WebGPURenderer, TSL complete
-reference, NodeMaterial, loaders, post-processing, compute, and API tables.
+Contents include: modern imports, WebGLRenderer vs WebGPURenderer, TSL complete reference, NodeMaterial, loaders, post-processing, compute, and API tables.
 
 ## Quick defaults for this product
 

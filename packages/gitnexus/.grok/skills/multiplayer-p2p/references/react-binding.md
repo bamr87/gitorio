@@ -1,9 +1,6 @@
 # React room binding (optional — copy if it fits your app)
 
-For the common "everyone on this app plays together" shape, copy this hook to
-`src/lib/multiplayer/use-p2p-room.ts` and adapt it freely — it is yours, not
-part of the kit. It captures `room`/`name` on first render, so changing them
-later requires remounting the component (key it on the room code).
+For the common "everyone on this app plays together" shape, copy this hook to `src/lib/multiplayer/use-p2p-room.ts` and adapt it freely — it is yours, not part of the kit. It captures `room`/`name` on first render, so changing them later requires remounting the component (key it on the room code).
 
 
 ```ts
