@@ -2,8 +2,7 @@
 
 All notable changes to **WTD (What To Do)** will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
@@ -13,9 +12,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 - **The daily harness** (`wtd fleet daily`) — a once-a-day pass over the whole
-  roster, on top of the 4-hourly cycle. The per-cycle scanners ask "what is
-  broken now"; this asks "what has gone stale since yesterday", and it is the
-  only place a merge can happen:
+roster, on top of the 4-hourly cycle. The per-cycle scanners ask "what is broken now"; this asks "what has gone stale since yesterday", and it is the only place a merge can happen:
   - `wtd/fleet/docsdrift.py` — pure docs-drift assessment. Four cheap reads per
     repo (newest commit, newest commit per documentation path, commits since,
     README size) decide whether the docs still describe the code. Drift needs
@@ -40,25 +37,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   - 41 new tests (263 total) covering the gate's refusals, the drift
     thresholds, sweep idempotence, and the dispatcher's merge path.
 - Merging is **two-key and four-locked**: an Opus 5 reviewer *recommends*, pure
-  code re-verified against live GitHub state *decides*, and the approval is
-  pinned to the exact head commit the reviewer read (the merge call passes that
-  SHA, so a race between verdict and merge fails server-side instead of merging
-  unreviewed code). The locks are `--apply`, `fleet.merge.enabled`, the repo's
-  own `merge: true`, and the gate itself. `allow_fleet_authored` defaults to
-  false, so the fleet reviews but does not merge its own pull requests.
+code re-verified against live GitHub state *decides*, and the approval is pinned to the exact head commit the reviewer read (the merge call passes that SHA, so a race between verdict and merge fails server-side instead of merging unreviewed code). The locks are `--apply`, `fleet.merge.enabled`, the repo's own `merge: true`, and the gate itself. `allow_fleet_authored` defaults to false, so the fleet reviews but does not merge its own pull requests.
 
 ### Changed
 - `fleet.manifest.yml` declares `never_merges: false` for the new `fleet-daily`
-  lane, so `wtd fleet audit` now reports one critical `never-merge` finding
-  against this repository. That is deliberate: the fleet's shared convention is
-  that no lane merges its own work, this lane is the sanctioned exception, and
-  an audit that hides its own deviation is worthless. The declaration has to be
-  hand-written because the merge happens inside the installed `wtd` package —
-  a scanner reading the workflow text sees no merge command and would infer the
-  wrong thing.
+lane, so `wtd fleet audit` now reports one critical `never-merge` finding against this repository. That is deliberate: the fleet's shared convention is that no lane merges its own work, this lane is the sanctioned exception, and an audit that hides its own deviation is worthless. The declaration has to be hand-written because the merge happens inside the installed `wtd` package — a scanner reading the workflow text sees no merge command and would infer the wrong thing.
 - **Fleet harmonization layer** — a shared `fleet/v1` manifest so several
-  repositories running their own autonomous AI loops can be viewed, audited,
-  and operated through one tool:
+repositories running their own autonomous AI loops can be viewed, audited, and operated through one tool:
   - `wtd/fleet/manifest.py` — the spec: lanes (kind/harness/triggers/switch),
     a token contract, guardrails, and metering. Vocabulary is adopted from the
     prior art in the fleet rather than invented (the hub's `tokens:` shape,
@@ -82,41 +67,21 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Fixed
 - The roster's per-repo `roles:` list is now **enforced**. It was parsed and
-  validated, documented as "which roles run where", and then read by nothing:
-  `plan_cycle` resolved every item against the global registry, so a repo
-  listing `roles: [triage]` still got the reviewer, the doc-writer, and every
-  other enabled role dispatched against it — a cost and blast-radius surprise
-  for an operator who reasonably read the field as "only these agents touch
-  this repo". `plan_cycle` now narrows the registry per repository before
-  resolving, and an item no permitted role handles is reported as unroutable
-  rather than quietly handed to someone else. An empty or omitted list keeps
-  the documented "every enabled role" default, so narrowing stays opt-in, and
-  a name matching no loaded role narrows to nothing (with a warning) rather
-  than failing open. The scheduler stays pure: the mapping is passed in.
+validated, documented as "which roles run where", and then read by nothing: `plan_cycle` resolved every item against the global registry, so a repo listing `roles: [triage]` still got the reviewer, the doc-writer, and every other enabled role dispatched against it — a cost and blast-radius surprise for an operator who reasonably read the field as "only these agents touch this repo". `plan_cycle` now narrows the registry per repository before resolving, and an item no permitted role handles is reported as unroutable rather than quietly handed to someone else. An empty or omitted list keeps the documented "every enabled role" default, so narrowing stays opt-in, and a name matching no loaded role narrows to nothing (with a warning) rather than failing open. The scheduler stays pure: the mapping is passed in.
 - `GitHubClient.list_commits` passed its `path` filter through
-  `get(path, **params)`, where it collided with that method's own positional
-  argument — every path-filtered commit query raised `TypeError` instead of
-  reaching GitHub. Found by the first docs-sweep test.
+`get(path, **params)`, where it collided with that method's own positional argument — every path-filtered commit query raised `TypeError` instead of reaching GitHub. Found by the first docs-sweep test.
 - Documentation drift corrected against the tree: the README advertised 148
-  tests (the suite is 204) and both the README and `CLAUDE.md` still described
-  `mypy` as advisory, though CI has gated on it since 0.2.0.
+tests (the suite is 204) and both the README and `CLAUDE.md` still described `mypy` as advisory, though CI has gated on it since 0.2.0.
 - `docs/FLEET.md` D5 now records that dedup is **two-layered** — the local
-  queue is a cache, the GitHub marker comment is the durable record — which is
-  what lets independent harnesses share a fleet without double-posting.
-  Evidenced by the first unattended Actions cycle: a cold state cache
-  rediscovered already-completed work, dispatched six agents, and the marker
-  check refused all six writes.
+queue is a cache, the GitHub marker comment is the durable record — which is what lets independent harnesses share a fleet without double-posting. Evidenced by the first unattended Actions cycle: a cold state cache rediscovered already-completed work, dispatched six agents, and the marker check refused all six writes.
 
 ## [0.2.0] - 2026-08-19
 
-The platform release: WTD grows from a local recursive TODO engine into a
-**standalone autonomous AI agent fleet platform** for the whole SDLC.
+The platform release: WTD grows from a local recursive TODO engine into a **standalone autonomous AI agent fleet platform** for the whole SDLC.
 
 ### Added
 - **Fleet subsystem** (`wtd/fleet/`): an autonomous mechanism that discovers
-  work across a roster of GitHub repos, queues it as deduplicated work items
-  ("todos"), schedules it onto agent roles, dispatches Claude-powered runs,
-  applies guarded GitHub actions, and records everything in a run ledger.
+work across a roster of GitHub repos, queues it as deduplicated work items ("todos"), schedules it onto agent roles, dispatches Claude-powered runs, applies guarded GitHub actions, and records everything in a run ledger.
   - Deterministic discovery scanners: unlabeled issues → triage, bug-labeled
     issues → analysis, open PRs → review, standing CI failures → diagnosis,
     missing/thin READMEs → docs, opt-in weekly article cadence.
@@ -151,25 +116,20 @@ The platform release: WTD grows from a local recursive TODO engine into a
   - Automatic failover with per-lane availability probes;
     `WTD_LLM_PROVIDER=auto` is the new default.
 - **Deployment**: `Dockerfile` (both lanes preinstalled) and a default-OFF
-  scheduled GitHub Actions harness (`.github/workflows/fleet-loop.yml`,
-  gated on the `WTD_FLEET_ENABLED` repo variable, OAuth-first secrets).
+scheduled GitHub Actions harness (`.github/workflows/fleet-loop.yml`, gated on the `WTD_FLEET_ENABLED` repo variable, OAuth-first secrets).
 - **Docs**: README rewritten around the platform; `docs/FLEET.md`
   architecture + ADR-lite decisions; `env.example` reorganized.
 - **Tests**: 116 new tests (152 total) — balancer, scheduler, outcome
-  validation, discovery (mock GitHub transport), dispatcher and orchestrator
-  integration (fake provider + fake GitHub), provider router failover, role
-  registry, dashboard widget. All offline.
+validation, discovery (mock GitHub transport), dispatcher and orchestrator integration (fake provider + fake GitHub), provider router failover, role registry, dashboard widget. All offline.
 
 ### Changed
 - **Default provider flipped from Ollama to the Claude chain** (`auto`).
   Ollama and OpenAI remain as explicit opt-ins (`WTD_LLM_PROVIDER=ollama|openai`)
   and `ollama` moved from core dependencies to an extra (`pip install "wtd[ollama]"`).
 - `anthropic` SDK and `pyyaml` are now core dependencies; the dead
-  `claude-3-opus-20240229` default model was replaced by `claude-opus-5`
-  (configurable via `WTD_MODEL`).
+`claude-3-opus-20240229` default model was replaced by `claude-opus-5` (configurable via `WTD_MODEL`).
 - `WTDAgent` now routes through the provider chain with failover and no
-  longer returns provider error strings as model output (errors degrade to
-  heuristics and are logged).
+longer returns provider error strings as model output (errors degrade to heuristics and are logged).
 - Secrets are read from conventional unprefixed env vars too:
   `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`/`GH_TOKEN`.
 - Project metadata: repository URLs point at `bamr87/wtd`; version 0.2.0.
@@ -178,8 +138,7 @@ The platform release: WTD grows from a local recursive TODO engine into a
   types (`str`, `datetime | None`) instead of `Column[...]`; nullability is
   now declared per column. Verified with a full save/read round-trip.
 - The mypy baseline is cleared (30 errors → 0) and **CI now gates on
-  type-checking** instead of running it advisory-only; `check_untyped_defs`
-  is enabled since the tree is clean at that level too.
+type-checking** instead of running it advisory-only; `check_untyped_defs` is enabled since the tree is clean at that level too.
 
 ### Fixed
 - `wtd routines review` crashed: the CLI called a method
@@ -187,10 +146,7 @@ The platform release: WTD grows from a local recursive TODO engine into a
 - `wtd fleet loop --interval 0`-style falsy-zero intervals no longer fall
   back to the 900s default (orchestrator loop interval handling).
 - **`wtd dashboard` could never open**: `TodoTreeWidget` defined a helper
-  named `_add_node`, shadowing Textual's `Tree._add_node` internal (called
-  as `self._add_node(parent, label, data)` from `Tree.__init__`). The
-  clashing two-argument override made constructing the widget raise
-  `TypeError`. Renamed to `_add_todo_node`, with regression tests.
+named `_add_node`, shadowing Textual's `Tree._add_node` internal (called as `self._add_node(parent, label, data)` from `Tree.__init__`). The clashing two-argument override made constructing the widget raise `TypeError`. Renamed to `_add_todo_node`, with regression tests.
 - `create_app()` used attribute annotations on a non-`self` object
   (`app.state.trees: dict[...] = {}`), which is not valid typing syntax.
 
