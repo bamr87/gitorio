@@ -1,0 +1,19 @@
+# Paths this program currently claims and supports. The obsolescence baseline:
+# in-tree but unclaimed across N epochs => stale-claim candidate (spec 02 §7).
+claims:
+  - path: "docs/**"
+    since: e0
+  - path: "schemas/**"
+    since: e0
+  - path: ".program/**"
+    since: e0
+  - path: "seeds/**"
+    since: e0
+  - path: "prompts/**"
+    since: e0
+  - path: "src/**"
+    since: e0
+  - path: "scripts/**"
+    since: e0
+  - path: "tests/**"
+    since: e0

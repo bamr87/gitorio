@@ -1,0 +1,23 @@
+# A well-formed ledger observation event: docs/spec/02-ledger.md §2's own record, with the
+# timestamp written in full RFC 3339. The spec's illustrative `t: 2026-07-21T14:03Z` omits
+# seconds and therefore fails ajv-formats' `date-time`; see docs/spec/OPEN-QUESTIONS.md Q-07
+# and Q-31, and tests/fixtures/invalid-event.yaml, which exercises exactly that.
+#
+# The `event` hash is a fixture value, not a recomputed content hash: `gwtp validate` checks
+# the SHAPE of the ledger, not the integrity of a hash chain (Q-32).
+
+event: sha256:9f1323d86586e342335bdc00a7d4c260bc4ffa3f5d916ef0cfd753891341004a
+subject:
+  commit: 9f2c1d
+  pr: 214
+assertion: INV-005
+verdict: drift
+severity: 0.75
+precision_at: 0.9
+judge:
+  kind: model
+  id: invariant-judge
+  prompt: sha256:3efefce5b5888999e0fdf46fcd00be84c07dfadc0625af99c6ff0125eaeef9cb
+rationale: sha256:0f5b357d385e969278487ef91c43d5d881dcc85bb938cbbe127a323acb02e92d
+t: 2026-07-21T14:03:00Z
+supersedes: null

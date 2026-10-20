@@ -1,0 +1,22 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+
+# The nexus cache (docs/spec/05-nexus.md §1.3): DERIVED perception of the tree, rebuildable
+# at will with `gwtp nexus build`, authoritative for nothing. Committed derived bytes would
+# drift from the tree that derives them within one commit — so they never land in the tree.
+# (Deliberately narrower than `.gwtp/`: whether `.gwtp/proposals/` is committed is an open
+# governance question, OPEN-QUESTIONS.md Q-53, and an ignore rule must not answer it.)
+.gwtp/nexus/
+
+# NOT ignored, and easy to miss: package-lock.json MUST be committed.
+# `npm ci` — what CONTRIBUTING.md documents as the one fresh-clone command, and what every CI
+# job runs — fails outright without a lockfile. It is named here as a comment precisely because
+# a reader scanning .gitignore for "what does not get committed" is the reader most likely to
+# leave it untracked.
+
+# Repository upkeep working files (docs/spec/06-upkeep.md §3): the plan and apply outcomes are
+# per-run artifacts — the workflow uploads them; the tree never carries them.
+.gwtp/upkeep/

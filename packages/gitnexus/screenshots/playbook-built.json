@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8081/playbook",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Nexus Forge",
+      "hasCanvas": false,
+      "bodyTextLen": 8440,
+      "bodyTextHash": "a6d0905adb22b851ee1118cb3d6531e1d3d67d2e7909bf7a0cee9248b57e8284",
+      "bodyTextPrefix": "Skip to spec NXS Nexus Forge GitNexus 1.6.10 Search spec ⌘K 00 O",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/playbook-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Nexus Forge",
+      "hasCanvas": false,
+      "bodyTextLen": 8142,
+      "bodyTextHash": "f656844b5155eb093892387bd07e9f76794c28aee2992d3096ec42dc31e91d74",
+      "bodyTextPrefix": "Skip to spec NXS Nexus Forge 12 / REBUILD PLAYBOOK Implement in ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/playbook-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/playbook-built.json"
+}

@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gwtp/upkeep-plan.schema.json",
+  "title": "GWTP Upkeep Plan",
+  "description": "One upkeep pass, written down (spec 06 §3): what was observed, every divergence found, the forge-side actions that would resolve the remote ones, and the content slots an author (a model or an AI agent) may fill. The interchange document between the deterministic engine and the agent — an agent edits ONLY content[].status/value/provider/note. Identity-free: no author or committer field exists.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "repository", "mode", "observed", "findings", "actions", "content"],
+  "additionalProperties": false,
+  "definitions": {
+    "sha": { "type": "string", "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})?$" },
+    "facet": { "enum": ["metadata", "versioning", "releases", "labels", "references", "docs"] },
+    "actionId": { "type": "string", "pattern": "^A[0-9]+$" },
+    "contentId": { "type": "string", "pattern": "^C[0-9]+$" },
+    "finding": {
+      "type": "object",
+      "required": ["id", "facet", "severity", "where", "summary", "actions"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "facet": { "$ref": "#/definitions/facet" },
+        "severity": { "enum": ["info", "warn", "error"] },
+        "where": { "enum": ["remote", "in-tree"], "description": "remote = resolvable by an API call; in-tree = needs a reviewed PR (never applied by upkeep)" },
+        "summary": { "type": "string", "minLength": 1 },
+        "expected": { "type": "string" },
+        "actual": { "type": "string" },
+        "citation": {
+          "type": "object",
+          "required": ["path", "line"],
+          "additionalProperties": false,
+          "properties": { "path": { "type": "string", "minLength": 1 }, "line": { "type": "integer", "minimum": 1 } }
+        },
+        "actions": { "type": "array", "items": { "$ref": "#/definitions/actionId" } },
+        "remedy": { "type": "string" }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "$ref": "#/definitions/actionId" },
+        "kind": { "enum": ["repo.update", "repo.topics", "label.upsert", "tag.create", "release.create", "release.update"] },
+        "depends_on": { "type": "array", "items": { "$ref": "#/definitions/actionId" } },
+        "content": { "$ref": "#/definitions/contentId" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "repo.update" } } },
+          "then": {
+            "required": ["current"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {}, "kind": {}, "depends_on": {}, "content": {},
+              "description": { "type": ["string", "null"], "maxLength": 350 },
+              "homepage": { "type": "string" },
+              "current": {
+                "type": "object",
+                "required": ["description", "homepage"],
+                "additionalProperties": false,
+                "properties": { "description": { "type": ["string", "null"] }, "homepage": { "type": ["string", "null"] } }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "repo.topics" } } },
+          "then": {
+            "required": ["names", "current"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {}, "kind": {}, "depends_on": {}, "content": {},
+              "names": { "type": "array", "maxItems": 20, "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,49}$" } },
+              "current": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "label.upsert" } } },
+          "then": {
+            "required": ["name", "color", "description", "exists"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {}, "kind": {}, "depends_on": {}, "content": {},
+              "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+              "color": { "type": "string", "pattern": "^[0-9a-fA-F]{6}$" },
+              "description": { "type": "string", "maxLength": 100 },
+              "exists": { "type": "boolean" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "tag.create" } } },
+          "then": {
+            "required": ["tag", "sha"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {}, "kind": {}, "depends_on": {}, "content": {},
+              "tag": { "type": "string", "minLength": 1 },
+              "sha": { "type": "string", "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "release.create" } } },
+          "then": {
+            "required": ["tag", "name", "changelog", "prerelease", "make_latest"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {}, "kind": {}, "depends_on": {}, "content": {},
+              "tag": { "type": "string", "minLength": 1 },
+              "name": { "type": "string", "minLength": 1 },
+              "changelog": { "type": "string" },
+              "prerelease": { "type": "boolean" },
+              "make_latest": { "type": "boolean" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "release.update" } } },
+          "then": {
+            "required": ["release_id", "tag", "changelog"],
+            "additionalProperties": false,
+            "properties": {
+              "id": {}, "kind": {}, "depends_on": {}, "content": {},
+              "release_id": { "type": "integer" },
+              "tag": { "type": "string", "minLength": 1 },
+              "changelog": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+    "content": {
+      "type": "object",
+      "required": ["id", "kind", "brief", "status", "fallback"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/definitions/contentId" },
+        "kind": { "enum": ["description", "topics", "release-notes", "docs-review"] },
+        "brief": {
+          "type": "object",
+          "required": ["instructions", "context"],
+          "additionalProperties": false,
+          "properties": { "instructions": { "type": "string", "minLength": 1 }, "context": { "type": "object" } }
+        },
+        "status": { "enum": ["requested", "filled", "fallback", "rejected"], "description": "An author sets `filled` with a `value`; validation per kind is re-run by `gwtp upkeep check` and `apply` (spec 06 §4.2)." },
+        "value": {},
+        "fallback": {},
+        "provider": { "type": "string", "minLength": 1, "description": "Who filled it: model:<id>, agent, template." },
+        "note": { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "status": { "const": "filled" } } }, "then": { "required": ["value", "provider"] } }
+      ]
+    }
+  },
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "repository": { "type": ["string", "null"] },
+    "mode": { "enum": ["propose", "apply"] },
+    "observed": {
+      "type": "object",
+      "required": ["head", "branch", "version", "latest_tag", "tags", "unreleased_commits", "host"],
+      "additionalProperties": false,
+      "properties": {
+        "head": { "$ref": "#/definitions/sha" },
+        "branch": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "latest_tag": { "type": ["string", "null"] },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "unreleased_commits": { "type": "integer", "minimum": 0 },
+        "host": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["host", "description", "homepage", "topics", "releases", "labels"],
+              "additionalProperties": false,
+              "properties": {
+                "host": { "type": "string" },
+                "description": { "type": ["string", "null"] },
+                "homepage": { "type": ["string", "null"] },
+                "topics": { "type": "array", "items": { "type": "string" } },
+                "releases": { "type": "integer", "minimum": 0 },
+                "labels": { "type": "integer", "minimum": 0 }
+              }
+            }
+          ]
+        },
+        "host_error": { "type": "string" }
+      }
+    },
+    "findings": { "type": "array", "items": { "$ref": "#/definitions/finding" } },
+    "actions": { "type": "array", "items": { "$ref": "#/definitions/action" } },
+    "content": { "type": "array", "items": { "$ref": "#/definitions/content" } }
+  }
+}

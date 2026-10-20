@@ -1,0 +1,43 @@
+{
+  "name": "git-with-the-program",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Git with the Program (GWTP) — agentic repo-governance engine",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "gwtp": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gwtp": "tsx src/cli/index.ts",
+    "validate": "tsx src/cli/index.ts validate",
+    "check:inv001": "tsx scripts/check-inv001.ts",
+    "check:inv003": "tsx scripts/check-inv003.ts",
+    "ci": "npm run typecheck && npm run build && npm run test && npm run validate && npm run check:inv003"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "fast-check": "^3.23.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.0"
+  }
+}

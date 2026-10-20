@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --color-void: #090b09;
+  --color-plate: #121612;
+  --color-inset: #0c0f0c;
+  --color-paper: #e6eadc;
+  --color-muted: #8a9280;
+  --color-signal: #d6ff4a;
+  --color-line: #232920;
+  --color-glow: #d6ff4a33;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background: var(--color-void);
+    color: var(--color-paper);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-image:
+      linear-gradient(to right, rgb(214 255 74 / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(214 255 74 / 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-attachment: fixed;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: var(--color-signal);
+    color: var(--color-void);
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

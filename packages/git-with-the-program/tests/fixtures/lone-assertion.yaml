@@ -1,0 +1,12 @@
+# A single assertion record rather than a sequence: `gwtp validate` must accept one document
+# on its own, since a judge harness or a proposal renderer will hand it exactly that.
+id: INV-005
+statement: Engine core imports no forge-specific APIs; GitHub access lives in adapters/
+class: dependency
+scope: ["src/core/**"]
+enforcement: deterministic
+precision: 0.9
+budget: 3.0
+half_life: 120d
+status: inferred
+provenance: ["docs/vision.md#non-goals", design-thread-2026-07]

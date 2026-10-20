@@ -1,0 +1,4 @@
+# Neither the filename nor the shape names a contract. `gwtp validate` must say so and point
+# at --schema rather than guess.
+hello: world
+count: 3

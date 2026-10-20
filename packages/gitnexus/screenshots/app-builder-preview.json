@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Nexus Forge",
+      "hasCanvas": false,
+      "bodyTextLen": 1627,
+      "bodyTextHash": "89f9d743777d6c30b9b53e9c0ca0a611728ed6044ebf1cfa0f5818e0c030121d",
+      "bodyTextPrefix": "Skip to spec NXS Nexus Forge GitNexus 1.6.10 Search spec ⌘K 00 O",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Nexus Forge",
+      "hasCanvas": false,
+      "bodyTextLen": 1329,
+      "bodyTextHash": "c67d4dc08a384d47a4d5513537c1e09d8a494baaa4eff1fed0f0589062e4b485",
+      "bodyTextPrefix": "Skip to spec NXS Nexus Forge 00 / OVERVIEW Rebuild GitNexus from",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

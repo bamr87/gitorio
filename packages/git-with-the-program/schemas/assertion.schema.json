@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gwtp/assertion.schema.json",
+  "title": "GWTP Assertion",
+  "type": "object",
+  "required": ["id", "statement", "class", "scope", "enforcement", "precision", "budget", "half_life", "status", "provenance"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^(INV|CAND)-[0-9]{3,}$" },
+    "statement": { "type": "string", "minLength": 8 },
+    "class": { "enum": ["boundary", "dependency", "interface", "behavior", "convention"] },
+    "scope": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Path globs the assertion governs" },
+    "enforcement": { "enum": ["deterministic", "judgment", "hybrid"] },
+    "precision": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "Surprise weight per violation" },
+    "budget": { "type": "number", "exclusiveMinimum": 0, "description": "Accumulated surprise threshold that fires a proposal" },
+    "half_life": { "type": "string", "pattern": "^[0-9]+(d|w|mo)$", "description": "Decay constant, committer-time basis" },
+    "status": { "enum": ["inferred", "ratified", "contested", "amended", "retired"] },
+    "provenance": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Commits, PRs, issues, ADRs the assertion rests on. No assertion without provenance." },
+    "precision_seed": { "type": "number", "description": "Distillation-derived initial precision (spec 04 §5); informational after ratification" },
+    "evidence": {
+      "type": "object",
+      "description": "Distillation evidence summary for CAND-* entries",
+      "properties": {
+        "span": { "type": "string" },
+        "corroborations": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "id": { "pattern": "^CAND-" } } },
+      "then": { "properties": { "status": { "const": "inferred" } } }
+    }
+  ]
+}

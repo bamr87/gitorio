@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "gwtp/upkeep-config.schema.json",
+  "title": "GWTP Upkeep Config",
+  "description": "What a repository's forge-side presentation should be, and where each value comes from (spec 06 §2). Lives at .github/upkeep.yaml. Never normative: it governs presentation (description, topics, tags, releases, labels, documentation references), not code.",
+  "type": "object",
+  "required": ["schema_version"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "repository": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$", "description": "owner/name. Optional: falls back to GITHUB_REPOSITORY, then the origin remote." },
+    "mode": { "enum": ["propose", "apply"], "description": "propose = report only (a scheduled run applies nothing); apply = a scheduled run applies remote actions. `gwtp upkeep apply --yes` overrides per run." },
+    "ai": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string", "minLength": 1, "description": "Model id for the model content provider (`gwtp upkeep fill --provider model`)." },
+        "max_chars_per_file": { "type": "integer", "minimum": 500, "maximum": 200000 }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["from", "value"],
+              "additionalProperties": false,
+              "properties": { "from": { "const": "literal" }, "value": { "type": "string", "minLength": 1, "maxLength": 350 } }
+            },
+            {
+              "type": "object",
+              "required": ["from"],
+              "additionalProperties": false,
+              "properties": { "from": { "enum": ["package.json", "readme", "ai"] } }
+            }
+          ]
+        },
+        "homepage": { "type": "string", "description": "A URL, or \"\" to clear. Absent = unmanaged." },
+        "topics": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "include": { "type": "array", "maxItems": 20, "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,49}$" } },
+                "from_package_keywords": { "type": "boolean" },
+                "mode": { "enum": ["merge", "exact"] },
+                "min": { "type": "integer", "minimum": 0, "maximum": 20 }
+              }
+            }
+          ]
+        },
+        "license_file": { "type": "boolean" }
+      }
+    },
+    "versioning": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tag_prefix": { "type": "string", "maxLength": 20 },
+            "files": {
+              "type": "array",
+              "minItems": 1,
+              "description": "The first entry is the source of truth; every other must agree with it.",
+              "items": {
+                "type": "object",
+                "required": ["path", "pattern"],
+                "additionalProperties": false,
+                "properties": {
+                  "path": { "type": "string", "minLength": 1 },
+                  "pattern": { "type": "string", "minLength": 1, "description": "Regex with exactly one capture group: the version." }
+                }
+              }
+            },
+            "history_depth": { "type": "integer", "minimum": 1, "maximum": 5000 }
+          }
+        }
+      ]
+    },
+    "releases": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "backfill": { "type": "integer", "minimum": 0, "maximum": 50 },
+            "notes": { "enum": ["ai", "template"] }
+          }
+        }
+      ]
+    },
+    "labels": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from_code": { "type": "boolean" },
+            "declared": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "color"],
+                "additionalProperties": false,
+                "properties": {
+                  "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+                  "color": { "type": "string", "pattern": "^#?[0-9a-fA-F]{6}$" },
+                  "description": { "type": "string", "maxLength": 100 }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "doc", "items"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$" },
+          "doc": { "type": "string", "minLength": 1 },
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["glob"],
+                "additionalProperties": false,
+                "properties": { "glob": { "type": "string", "minLength": 1 }, "capture": { "type": "string", "minLength": 1 } }
+              },
+              {
+                "type": "object",
+                "required": ["file", "pattern"],
+                "additionalProperties": false,
+                "properties": { "file": { "type": "string", "minLength": 1 }, "pattern": { "type": "string", "minLength": 1 } }
+              }
+            ]
+          },
+          "mention": { "type": "string", "pattern": "\\{item\\}" }
+        }
+      }
+    },
+    "docs_review": {
+      "type": "object",
+      "required": ["files"],
+      "additionalProperties": false,
+      "properties": {
+        "files": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    }
+  }
+}
