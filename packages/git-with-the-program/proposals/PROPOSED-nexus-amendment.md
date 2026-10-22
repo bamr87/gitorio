@@ -48,8 +48,7 @@ provenance: [adr-0003, adr-0007, docs/spec/05-nexus.md#1-politics, tests/nexus/b
 
 CONTRIBUTING.md says an amendment PR edits only `.program/` — but `BLIND_DIRS` is the law's enforcement mirror, not an engine feature, and the relation test exists precisely so the two cannot drift. The honest options, for the ratifier to choose:
 
-1. **Carry the one-line `BLIND_DIRS` change in the ratification PR** and say so in the body
-   (this proposal is the reviewable argument for the exception), or
+1. **Carry the one-line `BLIND_DIRS` change in the ratification PR** and say so in the body (this proposal is the reviewable argument for the exception), or
 2. amend CONTRIBUTING.md first to name enforcement mirrors as part of an amendment.
 
 Option 1 is recommended; it is one line, and the test is the reviewer's proof it is the *right* line. Widening `BLIND_DIRS` widens what the prescreen fails CI for — flagged here as the governance change it is (same rule CONTRIBUTING applies to `MACHINE_ACTOR_PATTERNS`).

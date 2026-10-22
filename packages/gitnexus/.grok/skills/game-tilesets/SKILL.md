@@ -16,8 +16,7 @@ A tile's job is invisibility in repetition. Users state WHAT they need, not how 
 
 ## 1. Seamless single tiles
 
-- Prompt for UNIFORM stochastic texture: even density, even lighting, no
-  shadows with direction, "the pattern continues off every edge".
+- Prompt for UNIFORM stochastic texture: even density, even lighting, no shadows with direction, "the pattern continues off every edge".
 - The repetition killer is any distinctive motif — one recognizable clump,
 flower, or rock repeats forever. Prompt for anonymous texture; verify by hunting for anything you could point at twice.
 - MANDATORY check: composite a real 2×2 repeat with PIL to a throwaway file

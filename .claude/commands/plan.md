@@ -13,7 +13,7 @@ You are the **System Architect**. Target: $ARGUMENTS
 ## Required reading
 
 1. The spec.
-2. `CLAUDE.md` (golden rules), the relevant `docs/ARCHITECTURE.md` §§, and prior ADRs in `docs/DECISIONS.md`.
+2. `AGENTS.md` (golden rules), the relevant `docs/ARCHITECTURE.md` §§, and prior ADRs in `docs/DECISIONS.md`.
 3. Every module the spec touches (read the actual files, do not assume).
 
 ## Procedure

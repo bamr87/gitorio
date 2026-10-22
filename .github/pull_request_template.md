@@ -2,11 +2,11 @@
 
 ## What & why
 
-<!-- One or two sentences. Link the seed or issue this advances. -->
+<!-- One or two sentences. Link the BL-* item, spec or issue this advances. -->
 
 ## Checklist
 
-<!-- The compiler and security invariants are load-bearing — see CLAUDE.md § Golden rules. -->
+<!-- The compiler and security invariants are load-bearing — see AGENTS.md § Golden rules. -->
 
 - [ ] `cd app && npm test && npm run build` pass locally
 - [ ] **Spec-driven (golden rule #11)**: non-trivial change links its `specs/NNN-slug/` + task ID, `## Follow-ups Discovered` is mirrored into `BACKLOG.md`, and `python3 tools/spec_validator.py` + `python3 tools/backlog_lint.py` pass (or: trivial change, no spec needed — say why)
@@ -19,4 +19,4 @@
 
 ## Notes for reviewers
 
-<!-- Trade-offs, follow-ups parked in docs/ROADMAP.md § Backlog, screenshots, etc. -->
+<!-- Trade-offs, follow-ups mirrored into BACKLOG.md, screenshots, etc. -->

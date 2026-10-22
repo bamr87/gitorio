@@ -1,8 +1,8 @@
 # GitFactory Architecture
 
-> A factory builder for GitHub automation. You lay down machines and belts; the
-> compiler emits GitHub Actions workflows; Claude Code agents are the machines'
-> motors; the repository is the database, the event bus, and the factory floor.
+> The full design — components, auth phases, the blueprint model, how each machine compiles, the compiler spec, telemetry, prompts, Fleet Ops, maps, the harness and the security model.
+
+A factory builder for GitHub automation. You lay down machines and belts; the compiler emits GitHub Actions workflows; Claude Code agents are the machines' motors; the repository is the database, the event bus, and the factory floor.
 
 ## 1. System components
 
@@ -27,8 +27,7 @@ There is deliberately **no application server**. Three consequences:
 
 - The UI must do everything through GitHub's REST API with a user-supplied credential.
 - All agent compute happens inside GitHub Actions on the target repo's runners.
-- "Real-time" monitoring is polite polling (conditional requests) until the optional
-  webhook worker phase.
+- "Real-time" monitoring is polite polling (conditional requests) until the optional webhook worker phase.
 
 ## 2. Auth phases
 
@@ -58,14 +57,13 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
 }
 ```
 
-- Stored **in the target repo** at `.factory/blueprint.json` → versioned, PR-reviewable,
-  portable, and multiple people can open the same factory.
-- **Blueprint strings**: base64url of the JSON, shareable like Factorio blueprint
-  strings. Import/export lives in the top bar.
-- The UI keeps an in-memory working copy; "Deploy" writes blueprint + compiled
-  workflows + any new prompt files in a single commit (or a PR, user's choice).
+- Stored **in the target repo** at `.factory/blueprint.json` → versioned, PR-reviewable, portable, and multiple people can open the same factory.
+- **Blueprint strings**: base64url of the JSON, shareable like Factorio blueprint strings. Import/export lives in the top bar.
+- The UI keeps an in-memory working copy; "Deploy" writes blueprint + compiled workflows + any new prompt files in a single commit (or a PR, user's choice).
 
 ## 4. Machine catalog (v0)
+
+This section explains how each machine compiles. Every type's label, blurb, config fields and defaults are listed in the generated [`reference/machines.md`](reference/machines.md) (`cd app && npm run reference`), so that list is never maintained by hand.
 
 **Triggers** (copper) — map to `on:` blocks
 - `trigger.issue_opened` → `issues: [opened]`
@@ -79,16 +77,13 @@ guard. Runs in the **trusted default-branch context** (write token + secrets, no
 - `trigger.repository_dispatch` → `repository_dispatch: {types:[eventType]}` — the receiving end of an inter-repo belt (ADR-029). Entity-less (survey-mode grants for agent lines); `client_payload.number` joins the NUMBER/concurrency fallback chains as the entity pointer, while payload free text never enters prompts (ADR-005); empty event type warns.
 
 **Processors** (steel)
-- `agent.claude` — the star. Config: `promptRef`, `model`, `maxTurns`, `checks` (one repo check command per line — each compiles to exactly its own `Bash(<cmd>:*)` grant + a VERIFY obligation, ADR-025; quoting/substitution in a check is a compile error). Compiles to a
-  `claude-code-action@v1` step (see §5).
-- `filter.condition` — a raw Actions expression contributed to the job-level `if:`
-  (AND-joined with guards).
+- `agent.claude` — the star. Config: `promptRef`, `model`, `maxTurns`, `checks` (one repo check command per line — each compiles to exactly its own `Bash(<cmd>:*)` grant + a VERIFY obligation, ADR-025; quoting/substitution in a check is a compile error). Compiles to a `claude-code-action@v1` step (see §5).
+- `filter.condition` — a raw Actions expression contributed to the job-level `if:` (AND-joined with guards).
 - `processor.dependabot_meta` — a `dependabot/fetch-metadata@v2` step; scopes the line to
 Dependabot and gates downstream sinks by semver update type via a **step-level** `if:` (steps outputs aren't available at job-guard time). Needs a `pull_request` trigger (ADR-014).
 - `gate.approval` — runs the job in a GitHub **Environment** (`environment: <name>`) whose
 protection rules pause the run for a human reviewer. Env + reviewers are set in repo Settings (compiler can't) (ADR-016).
-- `rate.limiter` — a first guard step counting today's runs of the workflow, failing past
-  `maxPerDay` (needs `actions: read`). Runaway-loop + cost insurance (ADR-016).
+- `rate.limiter` — a first guard step counting today's runs of the workflow, failing past `maxPerDay` (needs `actions: read`). Runaway-loop + cost insurance (ADR-016).
 - `gate.enablement` — a default-OFF kill switch. Compiles to a tiny `gate` job checking a repo
 **variable** (`vars.<NAME>`) — plus, for agent lines, that Claude auth exists — and the `line` job `needs: gate` + `if: needs.gate.outputs.go == 'true'`. Unset = idle (never "safe to run"); flip the variable to arm/disarm a line instantly with no redeploy. The app toggles it via the Actions variables API. Governance backbone for autonomous lines (ADR-017).
 - `processor.feedback_controller` — the loop-tuner. A specialised agent (a claude-code-action step)
@@ -110,7 +105,7 @@ A **terminal** sink: it emits no new comment/issue/PR event, so a line whose onl
 `FLEET_TOKEN`); the `GITHUB_TOKEN` can't cross repos. Kept out of `WRITING_SINKS` — writing to another repo can't retrigger this line (Fleet C, ADR-016).
 - `sink.repository_dispatch` — POSTs a `repository_dispatch` to ANOTHER repo (`gh api repos/<target>/dispatches`, scoped token secret, `client_payload.number` entity pointer) — the sending end of the inter-repo belt, pairing with `trigger.repository_dispatch` (ADR-030). Agent grant is the exact target endpoint; deterministic emission exists; the compiler REFUSES self-dispatch loops (same repo + an event type the line listens for) and warns on other same-repo dispatches.
 
-Adding a machine type = registry entry + emitter + invariant test + catalog line here (`/add-machine` walks the checklist).
+Adding a machine type = registry entry + emitter + invariant test + catalog line here + a regenerated `reference/machines.md` (`/add-machine` walks the checklist).
 
 ## 5. Compiler specification
 
@@ -142,8 +137,7 @@ Read and follow the operating instructions in .factory/prompts/triage.md.
 The operating prompt stays in the repo → editing it changes behavior **without recompiling**. We pass entity *numbers*, not titles/bodies: the agent fetches content itself with `gh`, which keeps attacker-controlled text out of the workflow file (it is still untrusted input once fetched — see §8).
 
 **Computed job metadata.**
-- `permissions:` = union of sink needs (+ `contents: read` for checkout, `id-token:
-  write` when an agent step is present, matching the action's canonical examples).
+- `permissions:` = union of sink needs (+ `contents: read` for checkout, `id-token: write` when an agent step is present, matching the action's canonical examples).
 - `concurrency:` group `factory--<slug>-${{ github.event.issue.number ||
   github.event.pull_request.number || github.run_id }}` — one line per entity.
 - Guards: comment/issue triggers get `github.event.<entity>.user.type != 'Bot'` (or
@@ -170,15 +164,11 @@ Poll, cheaply:
 
 - `GET /repos/{o}/{r}/actions/runs?created=>YYYY-MM-DD` filtered to `factory--*`
 workflow files → map run status onto machines of that component. LED semantics: green = last run success, amber = in progress, red = failure, grey = never ran / no power.
-- Per-run drill-down: jobs API; **logs are a redirect to a zip** — fetch, unzip in the
-  browser (fflate), render in a drawer.
-- Sink verification: issue/PR timeline events (labeled, commented) correlated by time
-  window + actor.
-- Rate-limit hygiene: conditional requests with `If-None-Match` (304s are free),
-  backoff on `x-ratelimit-remaining`, poll only the open factory.
+- Per-run drill-down: jobs API; **logs are a redirect to a zip** — fetch, unzip in the browser (fflate), render in a drawer.
+- Sink verification: issue/PR timeline events (labeled, commented) correlated by time window + actor.
+- Rate-limit hygiene: conditional requests with `If-None-Match` (304s are free), backoff on `x-ratelimit-remaining`, poll only the open factory.
 - Dashboard: throughput (runs/day), success rate, p50 duration per assembly line.
-- **Watchdog factory** (Phase 6): a compiled cron workflow that files/updates a
-  `factory-alarm` issue when failure rate crosses a threshold. The alarm siren.
+- **Watchdog factory** (Phase 6): a compiled cron workflow that files/updates a `factory-alarm` issue when failure rate crosses a threshold. The alarm siren.
 
 ## 7. Prompt system & scheduling
 
@@ -186,10 +176,8 @@ workflow files → map run status onto machines of that component. LED semantics
 `model_hint`, `inputs`, `obligations_note`). Frontmatter is documentation; the *compiled* `claude_args` is what actually grants tools/model.
 - Prompt Studio (Phase 5): list, edit, diff; writes go through a PR by default
 (checkbox for direct commit). Lint rules: has frontmatter, states inputs, states output obligations, no secrets, no "ignore previous instructions"-style suffix traps.
-- Scheduling = `trigger.cron` machines. The UI shows a schedule overview (next runs
-  computed client-side from cron strings) so factory shifts are visible at a glance.
-- **Dry-run/apply** (ADR-017): a `trigger.manual` "plan-first" mode adds an `apply` boolean
-  input; a manual run plans only unless ticked, while scheduled/other events apply
+- Scheduling = `trigger.cron` machines. The UI shows a schedule overview (next runs computed client-side from cron strings) so factory shifts are visible at a glance.
+- **Dry-run/apply** (ADR-017): a `trigger.manual` "plan-first" mode adds an `apply` boolean input; a manual run plans only unless ticked, while scheduled/other events apply
   (`github.event_name != 'workflow_dispatch' || inputs.apply`). Deterministic mutating steps gate
   on it; agent lines get a PLAN/APPLY prompt note (report-only on a dry run).
 
@@ -201,8 +189,7 @@ Two repo-versioned, hand/agent-editable YAML files (Content tab cockpit, `conten
 to change it fleet-wide, mirrors lifehacker's `_data/ai.yml`), `maxDailyRuns` (soft budget), `brandVoice`, `contentPaths`, plus the docs-review knobs `docsDir` / `itemsPerRun`, a `reviewCriteria` checklist, and `skills` — named specializations (technical-writer, tutorial-author, api-reference…) the agent adopts per item (ADR-018). Editing it changes behavior without recompiling; all of it is editable from the Content tab.
 - `.factory/backlog.yml` — the content work queue: a list of `{id, kind, title, brief, priority,
 status}`. `status: todo → in-progress → done`; the app flags **starved** kinds (0 `todo`) — a signal the loop-tuner watches. Parsing is total (never throws; coerces + defaults).
-- `.factory/metrics/improvements.yml` + `history.jsonl` — the feedback controller's ledger + trend
-  snapshots (written by the loop-tuner agent at runtime, not the app).
+- `.factory/metrics/improvements.yml` + `history.jsonl` — the feedback controller's ledger + trend snapshots (written by the loop-tuner agent at runtime, not the app).
 
 ## 7b. Docs view — content rendered on Pages (ADR-018)
 
@@ -274,14 +261,12 @@ The **Harness tab** (`panels/HarnessPanel.tsx`, a lazy chunk) is the hub's `/har
 
 **Threats, in order of embarrassment:**
 
-1. **Feedback loops.** Agent comments → `issue_comment` trigger → agent comments…
-   Mitigation: compiler-enforced bot guards + per-entity concurrency + `maxTurns`.
+1. **Feedback loops.** Agent comments → `issue_comment` trigger → agent comments… Mitigation: compiler-enforced bot guards + per-entity concurrency + `maxTurns`.
 2. **Prompt injection.** Issue/PR/comment text is attacker-controlled. Mitigations:
 narrow `--allowedTools` (capability containment, not content filtering), entity numbers instead of inlined bodies in workflow files, no blanket `Bash`, prompts instruct the agent to treat fetched content as data. Residual risk is real; scope permissions as if injection succeeds.
 3. **Fork PRs.** `pull_request` from forks gets no secrets → agent steps simply fail
 closed. Never switch to `pull_request_target` + checkout of PR head; if fork support is ever needed it gets its own design review.
-4. **Secret handling.** Sealed-box provisioning only; plaintext key lives in a form
-   field, never in state, storage, blueprints, or logs.
+4. **Secret handling.** Sealed-box provisioning only; plaintext key lives in a form field, never in state, storage, blueprints, or logs.
 5. **Workflow write access is code execution.** The PAT/App permission that lets the
 UI deploy workflows is the crown jewel; device-flow tokens + short PAT expiries; deploy-as-PR mode for shared repos.
 6. **Action supply chain.** Only `anthropics/claude-code-action@v1` and
@@ -291,6 +276,5 @@ UI deploy workflows is the crown jewel; device-flow tokens + short PAT expiries;
 
 - Webhook worker → push telemetry (SSE), belts that light up live.
 - Blueprint marketplace: shareable blueprint strings with embedded prompt packs.
-- Multi-repo "train stations": `workflow_dispatch` sinks that feed factories in other
-  repos.
+- Multi-repo "train stations": `workflow_dispatch` sinks that feed factories in other repos.
 - Belt mode as default once structured-output ergonomics are proven.

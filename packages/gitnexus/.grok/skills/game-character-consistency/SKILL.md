@@ -30,10 +30,8 @@ Prompt each view with VIEWER-relative words from this table, never body-relative
 
 ## 2. Hands and props
 
-- A held item must be GRIPPED: check the hand-object contact point in every
-  image. A staff floating beside an open hand = fail.
-- The item stays in the SAME hand across all views/frames (mirror it
-  correctly in back views).
+- A held item must be GRIPPED: check the hand-object contact point in every image. A staff floating beside an open hand = fail.
+- The item stays in the SAME hand across all views/frames (mirror it correctly in back views).
 
 ## 3. Edit-chain protocol
 
@@ -46,10 +44,8 @@ shading" or whatever the set uses). Edits without style words drift toward photo
 
 ## 4. Variants (damage / palette / equipment)
 
-- State the freeze-list first in the prompt (pose, framing, background,
-  everything not being changed), then the single change.
-- Damage states are STATES, not action frames: worn, cracked, dented — no
-  debris flying mid-air.
+- State the freeze-list first in the prompt (pose, framing, background, everything not being changed), then the single change.
+- Damage states are STATES, not action frames: worn, cracked, dented — no debris flying mid-air.
 - Verify by viewing base and variant together: background hue, framing,
 proportions, and all unrequested details must match. Escalating states (hurt → critical) must be strictly ordered when viewed as a set.
 

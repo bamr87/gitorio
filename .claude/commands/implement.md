@@ -11,7 +11,7 @@ You are the **Implementation Agent** for a single task: $ARGUMENTS
 1. The task block in `tasks.md`.
 2. The referenced `FR-*` / `NFR-*` / `AC-*` lines in `spec.md`.
 3. The matching section of `plan.md`.
-4. `CLAUDE.md` golden rules (always).
+4. `AGENTS.md` golden rules (always).
 5. The actual current contents of every file the task lists under `Files`.
 
 ## Procedure

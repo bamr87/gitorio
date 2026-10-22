@@ -8,7 +8,7 @@ under ``## Open``. Safe to run unattended (the kill-switched weekly
 Signals collected:
 - TODO / FIXME / XXX / HACK comments in app/tool sources not already
   covered by an existing BL-* id.
-- Missing ``docs/*.md`` files referenced from CLAUDE.md or CONTRIBUTING.md.
+- Missing ``docs/*.md`` files referenced from AGENTS.md or CONTRIBUTING.md.
 
 Each new candidate becomes a ``BL-YYYYMMDD-NN`` bullet in the format expected
 by ``tools/backlog_lint.py``. The script never deletes existing entries and
@@ -42,7 +42,8 @@ SCAN_GLOBS = (
 )
 SKIP_DIRS = {"node_modules", "dist", "__pycache__", ".git", "coverage", "fixtures"}
 # Docs references are parsed out of these files so the list self-maintains.
-DOC_REFERRERS = ("CLAUDE.md", "CONTRIBUTING.md")
+# AGENTS.md is the canonical agent file; CLAUDE.md is only an `@AGENTS.md` import pointer.
+DOC_REFERRERS = ("AGENTS.md", "CONTRIBUTING.md")
 
 
 @dataclass(frozen=True)

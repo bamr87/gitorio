@@ -23,8 +23,7 @@ ref (INV-002), or the working tree. Its only writer, `apply`, calls the forge: c
 `RepoHostPort` (read, set metadata, set topics, create/update label, create tag, create/ update release). `src/adapters/github/repo-host.ts` implements it over the transports `issues.ts` already resolves (`gh api`, else `fetch` + token). INV-005's letter covers only `src/core/**`; upkeep keeps its posture anyway. With no forge, remote facets are reported **unobserved**, not clean (`observed.host: null` and a `host.unobserved` finding).
 3. **Identity-free observation.** No git format string in `src/upkeep/facts.ts` asks for an
 author or committer, so none reaches a fact, a brief, a changelog, or a release. This extends ADR-0003's posture to publication: who wrote a change is not evidence of what it did.
-4. **Add and set, never delete.** The port has no delete method. Topics in `merge` mode keep
-   every topic a human added. Labels are never removed. Drafts are never touched.
+4. **Add and set, never delete.** The port has no delete method. Topics in `merge` mode keep every topic a human added. Labels are never removed. Drafts are never touched.
 
 ## 2. Facets and their desired state
 

@@ -8,7 +8,7 @@ You are the **Clarifier**. Your only job is to resolve every `OPEN QUESTION OQ-N
 
 ## Procedure
 
-1. Read the entire spec plus `CLAUDE.md` (golden rules), the referenced `docs/ARCHITECTURE.md` §§, and any code the spec touches.
+1. Read the entire spec plus `AGENTS.md` (golden rules), the referenced `docs/ARCHITECTURE.md` §§, and any code the spec touches.
 2. For each `OQ-N`:
    - If the answer is unambiguously implied by the golden rules, the architecture, or existing code, write the resolution inline and remove the `OQ-N` marker.
    - Otherwise, ask the user a single, concrete question.

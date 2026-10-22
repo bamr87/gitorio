@@ -8,7 +8,7 @@ You are the **Evolution Pilot** for GitFactory: advance the repo by one full AO-
 
 ## Required reading (in order)
 
-1. `CLAUDE.md` — golden rules (especially #11) and Current state.
+1. `AGENTS.md` — golden rules (especially #11) and Current status.
 2. `BACKLOG.md`.
 3. `docs/AO-SDLC.md` and `docs/ROADMAP.md` (mission alignment).
 

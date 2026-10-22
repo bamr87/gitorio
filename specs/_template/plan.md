@@ -25,7 +25,7 @@ Schema edits stay in sync with the registry (the drift-guard test must stay gree
 |----------|--------|-------------------------|-----|
 | … | … | … | … |
 
-If any choice deviates from a golden rule in [CLAUDE.md](../../CLAUDE.md), append an ADR-lite entry to [docs/DECISIONS.md](../../docs/DECISIONS.md) and reference it here.
+If any choice deviates from a golden rule in [AGENTS.md](../../AGENTS.md), append an ADR-lite entry to [docs/DECISIONS.md](../../docs/DECISIONS.md) and reference it here.
 
 ## 5. Least Privilege & Permissions
 

@@ -5,7 +5,7 @@
 - **Owner**: @github-handle
 - **Created**: YYYY-MM-DD
 - **Roadmap link**: phase / section in [docs/ROADMAP.md](../../docs/ROADMAP.md), or the issue this advances
-- **Golden-rules compliance**: confirmed against [CLAUDE.md](../../CLAUDE.md) § Golden rules
+- **Golden-rules compliance**: confirmed against [AGENTS.md](../../AGENTS.md) § Golden rules
 
 ## 1. Problem & Motivation
 

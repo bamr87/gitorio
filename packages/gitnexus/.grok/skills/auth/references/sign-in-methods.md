@@ -30,5 +30,4 @@ and holds their shared secrets; this app only holds its own per-app client id/se
 `Domain=.grok.me` cookie, and Better Auth rejects cross-origin `/api/auth` calls.
 - **Sibling isolation**: `authMiddleware` rejects scripted cross-site/same-site
 requests (Fetch-Metadata), so a sibling can't ride this app's session cookie into its server functions.
-- The upstream Google/X tokens live only on the broker; this app only ever gets a
-  broker-issued identity and mints its own local session.
+- The upstream Google/X tokens live only on the broker; this app only ever gets a broker-issued identity and mints its own local session.

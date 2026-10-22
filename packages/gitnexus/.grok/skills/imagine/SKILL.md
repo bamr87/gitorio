@@ -30,10 +30,8 @@ Grok Build uses the **split Imagine computer stack** (`grok_computer` variants).
 
 **Path-based handles.** These tools read/write the shared sandbox:
 
-- Generation returns a sandbox **`file_path`** (under artifacts). Open it with
-  `read_file` / shell; show the user with **`render_file`**.
-- Edit / animate tools take that path (or paths) as input — match the live
-  schema (`image`, `images`, etc.). Never invent paths.
+- Generation returns a sandbox **`file_path`** (under artifacts). Open it with `read_file` / shell; show the user with **`render_file`**.
+- Edit / animate tools take that path (or paths) as input — match the live schema (`image`, `images`, etc.). Never invent paths.
 - Never call `imagine_image` / `imagine_video`. Asset-id helpers
 (`imagine_create_asset` / `imagine_view_media` / `render_imagine_media`) are **not** on this stack.
 

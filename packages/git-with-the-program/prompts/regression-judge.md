@@ -22,8 +22,6 @@ confidence: <0.0-1.0> evidence: [<file>:<start>-<end>, ...]            # regress
   <regression only: what makes this the same pattern, not a lookalike>
 
 ## Rules of the bench
-- The test is the *mechanism*, not the surface: same failure mode returning in
-  new clothes = regression; shared vocabulary with a different mechanism = aligned.
+- The test is the *mechanism*, not the surface: same failure mode returning in new clothes = regression; shared vocabulary with a different mechanism = aligned.
 - Cite the precedent id on every regression ruling — case law works by citation.
-- If genuinely uncertain whether the mechanism matches, abstain; a human will
-  rule, and their ruling becomes new case law either way.
+- If genuinely uncertain whether the mechanism matches, abstain; a human will rule, and their ruling becomes new case law either way.
