@@ -1,5 +1,7 @@
 # Specs — spec-driven development for GitFactory
 
+> The layout of a spec package, the `/specify` → `/implement` workflow, and the rules every spec follows.
+
 This directory holds the persistent, versioned specifications that drive every non-trivial change in the codebase — the AO-SDLC spec-kit layer merged from law-ai (ADR-022, golden rule #11). See [docs/AO-SDLC.md](../docs/AO-SDLC.md) for the full loop.
 
 ## Layout
@@ -26,6 +28,6 @@ specs/
 ## Rules
 
 - Specs are **code**: review them in PRs, never edit historical specs in-place after merge — open an amendment spec instead.
-- Every spec MUST satisfy the golden rules in [CLAUDE.md](../CLAUDE.md).
+- Every spec MUST satisfy the golden rules in [AGENTS.md](../AGENTS.md).
 - One paragraph per line (the `markdown-oneline` CI check applies here too; fix with `python3 tools/unwrap-prose.py --write`).
 - Keep specs concrete and free of marketing language — agents load them as context.

@@ -1,5 +1,7 @@
 # Roadmap
 
+> The product phases and their acceptance history, from the bootstrap seeds through Fleet Ops, maps and the harness; open work lives in BACKLOG.md.
+
 Phases mirror `seeds/` (the bootstrap era, now closed). A phase is done when its acceptance criteria pass and `npm test && npm run build` are green. Park anything else in `BACKLOG.md` (AO-SDLC, ADR-022) — § Backlog below is frozen history.
 
 ## Phase 0 — Bootstrap (seeds/00)

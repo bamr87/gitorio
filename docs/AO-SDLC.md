@@ -1,5 +1,7 @@
 # AO-SDLC — the spec-driven development loop
 
+> How work moves from BACKLOG.md through spec packages to merged code: the stages, the slash commands, the three mechanical gates and the autonomy invariants.
+
 GitFactory's development process is an **agent-orchestrated SDLC** merged from the law-ai repo (ADR-022): work enters an append-only backlog, graduates into versioned spec packages, gets implemented one verifiable task at a time, and every cycle is forced — mechanically, not aspirationally — to leave the backlog richer than it found it (golden rule #11). It replaces the seed-driven session era (seeds 00–07, now historical — see `seeds/README.md`).
 
 ## The loop
@@ -73,7 +75,7 @@ docs/DECISIONS.md              ← ADR-lite log (plans that deviate must add one
 
 ## Relation to the rest of the process
 
-- **Golden rules are the constitution.** Specs confirm compliance against `CLAUDE.md § Golden rules`; amendments require an ADR. Rule #11 *is* this loop.
+- **Golden rules are the constitution.** Specs confirm compliance against `AGENTS.md § Golden rules`; amendments require an ADR. Rule #11 *is* this loop.
 - **`/session-log` still closes every session** (golden rule #10); `/evolve` calls it as its final step.
 - **`docs/ROADMAP.md`** keeps the phase narrative and acceptance history; its `§ Backlog` was migrated here on 2026-08-16 and is frozen — new discoveries go to `BACKLOG.md`.
 - **seeds/** is the historical build plan (bootstrap era). Nothing new goes there.
