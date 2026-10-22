@@ -1,8 +1,8 @@
 # GitFactory Architecture
 
-> A factory builder for GitHub automation. You lay down machines and belts; the
-> compiler emits GitHub Actions workflows; Claude Code agents are the machines'
-> motors; the repository is the database, the event bus, and the factory floor.
+> The full design — components, auth phases, the blueprint model, how each machine compiles, the compiler spec, telemetry, prompts, Fleet Ops, maps, the harness and the security model.
+
+A factory builder for GitHub automation. You lay down machines and belts; the compiler emits GitHub Actions workflows; Claude Code agents are the machines' motors; the repository is the database, the event bus, and the factory floor.
 
 ## 1. System components
 
@@ -67,6 +67,8 @@ Canonical schema: `schema/blueprint.schema.json`. Shape:
 
 ## 4. Machine catalog (v0)
 
+This section explains how each machine compiles. Every type's label, blurb, config fields and defaults are listed in the generated [`reference/machines.md`](reference/machines.md) (`cd app && npm run reference`), so that list is never maintained by hand.
+
 **Triggers** (copper) — map to `on:` blocks
 - `trigger.issue_opened` → `issues: [opened]`
 - `trigger.issue_labeled` → `issues: [labeled]` + label guard
@@ -110,7 +112,7 @@ A **terminal** sink: it emits no new comment/issue/PR event, so a line whose onl
 `FLEET_TOKEN`); the `GITHUB_TOKEN` can't cross repos. Kept out of `WRITING_SINKS` — writing to another repo can't retrigger this line (Fleet C, ADR-016).
 - `sink.repository_dispatch` — POSTs a `repository_dispatch` to ANOTHER repo (`gh api repos/<target>/dispatches`, scoped token secret, `client_payload.number` entity pointer) — the sending end of the inter-repo belt, pairing with `trigger.repository_dispatch` (ADR-030). Agent grant is the exact target endpoint; deterministic emission exists; the compiler REFUSES self-dispatch loops (same repo + an event type the line listens for) and warns on other same-repo dispatches.
 
-Adding a machine type = registry entry + emitter + invariant test + catalog line here (`/add-machine` walks the checklist).
+Adding a machine type = registry entry + emitter + invariant test + catalog line here + a regenerated `reference/machines.md` (`/add-machine` walks the checklist).
 
 ## 5. Compiler specification
 
