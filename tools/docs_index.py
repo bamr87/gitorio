@@ -308,8 +308,17 @@ def collect(root, opts, index=INDEX, files=None, reader=None):
             docs.append(dict(path=path, group="", title=title, summary=rebase(summary, path, index),
                              source=source, h1=h1))
 
+    index_dir = os.path.dirname(index)
     for droot in opts["roots"]:
         prefix = droot + "/"
+        own = next((prefix + n for n in ("README.md", "index.md") if (prefix + n) in files), None)
+        if own and own != index and droot != index_dir:
+            # A root below the index's folder that has its own index is one row.
+            parent = droot.rsplit("/", 1)[0] + "/" if "/" in droot else ""
+            title, summary, source, h1 = describe(reader(own) or "")
+            docs.append(dict(path=own, group=parent, title=title, summary=rebase(summary, own, index),
+                             source=source, h1=h1, directory=prefix))
+            continue
         for p in [p for p in md if p.startswith(prefix) and p != index]:
             parts = p[len(prefix):].split("/")
             owner, group = None, prefix + "".join(d + "/" for d in parts[:-1])
