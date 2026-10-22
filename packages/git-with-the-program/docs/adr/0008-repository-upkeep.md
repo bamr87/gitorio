@@ -11,10 +11,8 @@ This repository is the evidence the problem is real. On the day this ADR was wri
 Three forces pull against each other:
 
 1. **Automatic** means a machine changes things on a schedule, unattended.
-2. **This repository forbids unreviewed machine writes** to its law (INV-001) and to its
-   evidence (INV-002), and its whole design is that machines append and humans ratify.
-3. **AI-provided content** is stochastic, and the content an AI reads (READMEs, commit
-   subjects) is attacker-influenceable text.
+2. **This repository forbids unreviewed machine writes** to its law (INV-001) and to its evidence (INV-002), and its whole design is that machines append and humans ratify.
+3. **AI-provided content** is stochastic, and the content an AI reads (READMEs, commit subjects) is attacker-influenceable text.
 
 ## Options considered
 
@@ -65,11 +63,9 @@ An agent's whole job description is "set `status`, `value`, `provider` on reques
 
 ## Consequences
 
-- Three new artifacts (two schemas, one config) and a new CLI command; no `.program/` change,
-  no change to any existing spec or schema.
+- Three new artifacts (two schemas, one config) and a new CLI command; no `.program/` change, no change to any existing spec or schema.
 - `GITHUB_TOKEN` cannot set a repository's description or topics. Full automation needs an
 admin-scoped `UPKEEP_TOKEN`. Without it, the weekly run reports those two actions as `blocked` (exit 1), loudly, every week, until either the secret is set or the config stops managing them. That is deliberate: a silent partial success would read as "no drift".
-- Whether upkeep's artifacts fall under INV-006, and whether `src/upkeep/**` should join
-  INV-005's scope, are ratification questions (OPEN-QUESTIONS Q-71, Q-72).
+- Whether upkeep's artifacts fall under INV-006, and whether `src/upkeep/**` should join INV-005's scope, are ratification questions (OPEN-QUESTIONS Q-71, Q-72).
 - ROADMAP v2's "packaging as a reusable GitHub Action for arbitrary repos" gets a first
 candidate: upkeep is config-driven and has no GWTP-specific assumptions beyond the code-derived labels, which a foreign repository's config simply leaves off.

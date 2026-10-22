@@ -99,8 +99,7 @@ The amendment does not claim the repo's operational surface: `.github/**`, `post
 
 Two readings, and this proposal takes neither:
 
-1. **Scope claims cover source the program governs**, and build manifests / prose are out of
-   frame. Then nothing more is needed, but the sweep must learn an exclusion.
+1. **Scope claims cover source the program governs**, and build manifests / prose are out of frame. Then nothing more is needed, but the sweep must learn an exclusion.
 2. **Scope claims cover the whole tree.** Then add, inside the same hunk, `- path: ".github/**"`,
 `- path: "posts/**"`, and `- path: "*"` for the root files. That last one is correct but reads like a typo: under the glob subset in `src/core/paths.ts`, `*` never crosses `/`, so a bare `*` matches `package.json` and `README.md` and nothing deeper (verified; see `docs/spec/OPEN-QUESTIONS.md` Q-12). If a reviewer wants that claim, it deserves a comment in `scope.yaml` saying why it is not `**`.
 
@@ -150,8 +149,7 @@ These thresholds decide when the framework proposes amending its own constitutio
 
 ### Options for the reviewer
 
-1. **Global, in `manifest.yaml`** — simplest; one policy for the whole repo. Needs no
-   assertion-schema change.
+1. **Global, in `manifest.yaml`** — simplest; one policy for the whole repo. Needs no assertion-schema change.
 2. **Per-assertion, in `invariants.yaml`** — most expressive (a `convention`-class assertion
 probably wants a different bar than a `boundary`-class one). Requires adding an optional `dispersion` object to `schemas/assertion.schema.json`.
 3. **Engine constant** — reject this amendment; accept that the numbers are implementation.

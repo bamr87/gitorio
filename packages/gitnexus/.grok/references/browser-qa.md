@@ -4,11 +4,9 @@
 
 Everything here runs **in the sandbox** against `http://127.0.0.1:8080` — it is **not** the user's Grok chat tab. Use whatever browser capability you have **yourself**, so quality beats curl-only.
 
-1. **Grok browser / computer-use / MCP browser tools**, if listed — open
-   `http://127.0.0.1:8080`, glance at the UI, screenshot if supported.
+1. **Grok browser / computer-use / MCP browser tools**, if listed — open `http://127.0.0.1:8080`, glance at the UI, screenshot if supported.
 2. **`web_fetch`** on that URL for an HTML-only check.
-3. **Playwright helper (preinstalled)** — one run loads desktop **and** mobile,
-   screenshots both, and prints a JSON verdict.
+3. **Playwright helper (preinstalled)** — one run loads desktop **and** mobile, screenshots both, and prints a JSON verdict.
 
 ```bash
 mkdir -p /workspace/screenshots

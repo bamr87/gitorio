@@ -4,8 +4,7 @@
 
 `@/lib/auth/use-current-user` (with auth on these reflect the REAL session, so a preview visitor is signed out until they sign in):
 
-- `useCurrentUser()` → `AppUser | null` — for display. `null` means *loading OR
-  signed out*, so never redirect on it alone.
+- `useCurrentUser()` → `AppUser | null` — for display. `null` means *loading OR signed out*, so never redirect on it alone.
 - `useCurrentUserState()` → `{ user, isPending }` — for guards: wait for
 `isPending` to clear before treating `user: null` as signed out, or a hard reload bounces signed-in users to sign-in.
 

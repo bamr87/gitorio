@@ -327,8 +327,7 @@ Raised while implementing `src/ledger/sighted.ts` and `src/ledger/firing.ts`. Ev
 `EvidenceLocus` (spec 02 §5, Q-17) carries exactly one actor, because author entropy counts "how many independent hands". Two legal subjects cannot supply one:
 1. **`subject.pr` with no `subject.commit`.** A pull request has many authors and the schema's
 `anyOf` permits a PR-only subject. Choosing which of them the event belongs to would be inventing a rule no spec states, and resolving a PR to its commits at all needs a forge port that INV-005 keeps out of `src/ledger`.
-2. **`subject.path` with no commit** — a `stale-claim` from the obsolescence sweep, which
-   "accumulates from *silence*" (spec 02 §7). Nobody's hand made it, by construction.
+2. **`subject.path` with no commit** — a `stale-claim` from the obsolescence sweep, which "accumulates from *silence*" (spec 02 §7). Nobody's hand made it, by construction.
 
 **Shipped (least-committal):** both are reported **unresolved**, and `requireLoci` turns an unresolved locus into a loud `unresolved-locus` failure rather than a firing computed over the subset that happened to resolve. The direction of the bias is the reason: dropped evidence always looks *less* dispersed than the evidence that produced it, and less dispersed is `refactor`, which is the outcome that leaves the law untouched. A classifier whose failure mode is "never propose amending the constitution" is not a neutral default. An explicit opt-in, `silencePolicy: 'attribute-to-silence'`, lets obsolescence accumulators fire at all, at the cost of one synthetic hand stamped `gwtp:silence` — deliberately not a plausible email, so a reader of a proposal can see at a glance that no human was attributed. **Questions for ratification:** (a) should the event schema carry a `paths` list so dispersion is computable from the ledger alone (the sharper form of Q-17), (b) should a PR-only subject be resolved through a forge adapter, and (c) does an obsolescence firing want a synthetic actor, a one-actor exemption in the classifier, or a dispersion rule of its own? **Pinned at:** `src/ledger/sighted.ts` → `resolveEvidenceLoci`, `UnresolvedReason`, `SILENCE_ACTOR_HANDLE`, `requireLoci`.
 
@@ -381,8 +380,7 @@ Spec 03 §3 hands a judge "the diff hunks intersecting the assertion's scope". I
 ### Q-60 — "blind" by VALUE, or blind by REACHABILITY?
 INV-003 states "no code path passes author identity or accumulator state to any judge", and ADR-0003 makes the evidence assembler "structurally" incapable of it. Two readings have been enforced side by side since SEED-01 and they are not the same rule:
 
-- **by value** — a blind module may not hold or unwrap a sentencing value. This is what
-  `Blind<T>`, the `SentencingWarrant` parameters and `scripts/check-inv003.ts` enforce.
+- **by value** — a blind module may not hold or unwrap a sentencing value. This is what `Blind<T>`, the `SentencingWarrant` parameters and `scripts/check-inv003.ts` enforce.
 - **by reachability** — a blind module's runtime import closure may not *contain*
 `src/core/{sentencing,accumulator,dispersion}.ts` at all. This is what `tests/ledger/blindness-boundary.test.ts` enforces ("holds TRANSITIVELY").
 

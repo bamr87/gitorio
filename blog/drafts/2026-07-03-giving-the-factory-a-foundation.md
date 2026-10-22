@@ -35,12 +35,10 @@ It also caught things worth *parking* rather than fixing mid-foundation — the 
 
 ## What "foundation" actually meant
 
-- **Version control**: `git init` at the correct root, `main`, comprehensive `.gitignore`
-  (secrets, build output, editor cruft), initial commit.
+- **Version control**: `git init` at the correct root, `main`, comprehensive `.gitignore` (secrets, build output, editor cruft), initial commit.
 - **One Node source of truth**: `.nvmrc` = 22 + `engines` in `package.json`, and the
 workflows switched from a hardcoded `node-version: 22` to `node-version-file: .nvmrc` so dev and CI can't drift.
-- **Cross-editor consistency**: `.editorconfig`, `.gitattributes` (LF normalization,
-  generated files marked).
+- **Cross-editor consistency**: `.editorconfig`, `.gitattributes` (LF normalization, generated files marked).
 - **Contribution surface**: `CONTRIBUTING.md`, `SECURITY.md` (the app compiles workflows
 with repo write access — a disclosure policy isn't optional), a golden-rules PR template, and Dependabot for npm + Actions.
 

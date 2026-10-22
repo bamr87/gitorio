@@ -7,10 +7,8 @@ The app is React/TanStack. The idiomatic way to do 3D here is **React Three Fibe
 > (+ `npm i -D @types/three`). If the deploy build has no three, the game is blank.
 
 ## When to use what
-- **three.js** — the engine. Raw three is fine for a self-contained canvas; prefer
-  R3F when the game has React UI/state around it.
-- **@react-three/fiber** — renders three as React; `useFrame((state, delta) => …)`
-  is your game loop (delta is seconds — scale movement by it, see SKILL §1).
+- **three.js** — the engine. Raw three is fine for a self-contained canvas; prefer R3F when the game has React UI/state around it.
+- **@react-three/fiber** — renders three as React; `useFrame((state, delta) => …)` is your game loop (delta is seconds — scale movement by it, see SKILL §1).
 - **@react-three/drei** — helpers so you don't hand-roll bug-prone code:
 `<PointerLockControls/>`, `useKeyboardControls`, `<OrbitControls/>`, `useGLTF`, `<Environment/>`, `<Instances/>`, `<Stats/>`.
 - **@react-three/rapier** — physics + **character controller** (capsule +
@@ -41,11 +39,9 @@ export default function Game() {
 ```
 
 ## Gotchas (map to the SKILL universals)
-- **Controls:** drei `PointerLockControls` is mouse-look only — WASD is yours
-  (SKILL §2). Gate `.lock()` behind a "click to play" overlay and dismiss it on lock.
+- **Controls:** drei `PointerLockControls` is mouse-look only — WASD is yours (SKILL §2). Gate `.lock()` behind a "click to play" overlay and dismiss it on lock.
 - **Orientation:** meshes face +Z, camera looks −Z; right-handed +Y up (SKILL §3).
-- **Delta:** `useFrame` delta is seconds; cap it; fixed-step physics via rapier's
-  own stepping. Don't read `THREE.Clock.getDelta()` twice a frame.
+- **Delta:** `useFrame` delta is seconds; cap it; fixed-step physics via rapier's own stepping. Don't read `THREE.Clock.getDelta()` twice a frame.
 - **Perf:** `<Instances>`/`InstancedMesh` for repeats; dispose on unmount (R3F
 auto-disposes objects it created, but not manual textures/loaders — dispose those). Set `dpr={[1, 2]}` to cap retina cost.
 - **Mobile:** R3F sets pixel ratio via `dpr`; still add touch controls + `touch-action:none`.

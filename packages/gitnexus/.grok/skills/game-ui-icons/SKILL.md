@@ -26,16 +26,13 @@ pressed = darker + inset/inner shadow. States must be distinguishable at a glanc
 
 - One style contract for the whole set, decided before generating: same
 stroke weight, same fill treatment (all outlined OR all solid — never mixed), same palette family, same padding, same background, same visual weight. Verify the set side by side; one icon with a different treatment (e.g. sitting in a filled tile while others float) fails the SET even if it's individually fine.
-- Generate icon 1, then edit-chain the rest from it to inherit the
-  contract.
+- Generate icon 1, then edit-chain the rest from it to inherit the contract.
 - Each icon must read at 32px: squint-test the thumbnail.
 
 ## 3. Panels, bars, wordmarks
 
-- Panels/dialogs: blank, text-ready, borders that survive 9-slicing
-  (uniform edges, ornament concentrated in corners).
-- Bars: clear frame vs fill separation; fill design must work at any
-  percentage.
+- Panels/dialogs: blank, text-ready, borders that survive 9-slicing (uniform edges, ornament concentrated in corners).
+- Bars: clear frame vs fill separation; fill design must work at any percentage.
 - Wordmark logos: image models garble text — generate, then READ THE TEXT
 BACK letter by letter; any wrong/merged/extra letter = retry. Deliver as an isolated asset on flat/keyable background, not a full scene, unless a title SCREEN is requested.
 

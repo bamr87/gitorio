@@ -33,10 +33,8 @@ Practical limits: a full mesh is O(N²) connections — cap rooms at ~8 peers. R
 
 Create the two server files — nothing works without them:
 
-1. `src/lib/multiplayer/signaling.server.ts` — the DB-backed signaling relay
-   (Neon deployed, PGLite in preview).
-2. `src/routes/api/rtc.ts` — mounts it at `/api/rtc` (GET poll, POST
-   signal/leave).
+1. `src/lib/multiplayer/signaling.server.ts` — the DB-backed signaling relay (Neon deployed, PGLite in preview).
+2. `src/routes/api/rtc.ts` — mounts it at `/api/rtc` (GET poll, POST signal/leave).
 
 **Copy both from `references/signaling-relay.md`**, which also carries the schema note: the relay creates its own two tables on first use (`CREATE TABLE IF NOT EXISTS`), so **nothing goes in `migrations/`** unless you deliberately want to own the schema.
 
@@ -68,10 +66,8 @@ Patterns:
 (positions, cursors). `send()` = reliable/ordered, for events that must arrive exactly once. Never stream game-rate state on `send()`; interpolate between broadcasts for smooth motion.
 2. Late joiners know nothing: on a new peer appearing in `p2p.peers`, an
 existing peer should `send()` it the current shared state. Exactly one peer must answer: compare ids among the peers that were ALREADY in the room (your `selfId` plus `p2p.peers` minus the newcomer) and answer only if your `selfId` is the smallest — so two simultaneous joiners neither double-answer nor go unanswered.
-3. Room ids: omit for "everyone on this app plays together"; pass
-   `room: code` for private lobbies (generate a short code, put it in the URL).
-4. Peers disappear without goodbye (tab close, sleep): treat a peer missing
-   from `p2p.peers` as gone and drop its entities.
+3. Room ids: omit for "everyone on this app plays together"; pass `room: code` for private lobbies (generate a short code, put it in the URL).
+4. Peers disappear without goodbye (tab close, sleep): treat a peer missing from `p2p.peers` as gone and drop its entities.
 5. A React binding that captures `room`/`name` on first render (the one in
 `references/react-binding.md` does) needs a remount to change them — key the component on the room code.
 

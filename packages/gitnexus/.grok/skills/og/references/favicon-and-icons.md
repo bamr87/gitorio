@@ -33,7 +33,6 @@ When the app ships a web manifest (the user asked for installable / PWA / home-s
 
 - `public/icon-192.png` and `public/icon-512.png` — the favicon's glyph on
 its tile, rasterized at size. Playwright (baked into the sandbox) can screenshot the served `/favicon.svg` at a 192/512 viewport; or redraw the same mark as a flat PNG. Keep it bold and flat — no photographic detail.
-- A maskable variant (`"purpose": "maskable"`) needs the glyph inside the
-  center ~80% safe zone so launcher shapes don't clip it.
+- A maskable variant (`"purpose": "maskable"`) needs the glyph inside the center ~80% safe zone so launcher shapes don't clip it.
 - Wire the manifest `icons` array plus `theme_color` / `background_color`
 from the app's design tokens, and read the 192 back to confirm it stays legible.

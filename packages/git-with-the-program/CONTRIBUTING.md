@@ -5,10 +5,8 @@
 
 This repository builds a governance framework, so it governs itself first. Two consequences you will hit within your first PR:
 
-1. **`.program/` is not code.** It is this repo's constitution, and it changes only through a
-   human-ratified PR. CI fails any commit where a machine actor touched that path (INV-001).
-2. **Verdicts, laws and evidence all need provenance.** No assertion without provenance; no
-   violation without a line citation. Both are enforced, not encouraged.
+1. **`.program/` is not code.** It is this repo's constitution, and it changes only through a human-ratified PR. CI fails any commit where a machine actor touched that path (INV-001).
+2. **Verdicts, laws and evidence all need provenance.** No assertion without provenance; no violation without a line citation. Both are enforced, not encouraged.
 
 If you only came to fix a bug in `src/`, skip to [Working on the engine](#working-on-the-engine).
 
@@ -91,10 +89,8 @@ npm run check:inv003
 
 The type system alone cannot enforce that. `Blind<T>` stops a `Surprise` from entering an evidence bundle, but a `number` that a declassifier already unwrapped is just a number, and every numeric field will take it. So three locks hold the line together, and all three are tested:
 
-1. the declassifiers are **withheld from the `src/core` barrel** (`tests/core/barrel-surface.test.ts`
-   asserts the export surface; `tests/core/blindness-compile.test.ts` asserts it at compile time);
-2. each takes a **`SentencingWarrant`** its caller must already hold, so a declassification is
-   always a call with an extra argument;
+1. the declassifiers are **withheld from the `src/core` barrel** (`tests/core/barrel-surface.test.ts` asserts the export surface; `tests/core/blindness-compile.test.ts` asserts it at compile time);
+2. each takes a **`SentencingWarrant`** its caller must already hold, so a declassification is always a call with an extra argument;
 3. this prescreen fails CI on the one greppable line that would be needed to obtain one.
 
 Exit codes match `check:inv001`: **0** clean · **1** violated · **2** could not run. It is the deterministic half of INV-003's `enforcement: hybrid`; the LLM half — identity flattened into free text, which no static check can see (`docs/spec/OPEN-QUESTIONS.md` Q-09) — lands with SEED-03.
@@ -103,8 +99,7 @@ Exit codes match `check:inv001`: **0** clean · **1** violated · **2** could no
 
 - **`src/core/**` imports nothing forge-specific** (INV-005). GitHub APIs live only under
 `src/adapters/github/**`. `src/core` is also dependency-free by convention — glob matching, canonical JSON and duration parsing are hand-written there for exactly this reason.
-- **Every module file opens with a header comment naming the spec section it implements**, e.g.
-  `// Implements: docs/spec/02-ledger.md §4 (accumulation: leaky integrator)`.
+- **Every module file opens with a header comment naming the spec section it implements**, e.g. `// Implements: docs/spec/02-ledger.md §4 (accumulation: leaky integrator)`.
 - **Never pass author identity or accumulator state toward a judge** (INV-003, ADR-0003). The
 type layer makes this a compile error; do not reach for `as any` to get around it — if you need the escape hatch, the design question is upstream of your patch.
 - **`docs/spec/**`, `schemas/**`, `prompts/**` and `seeds/**` are contracts**, not
@@ -139,12 +134,10 @@ git show refs/program/ledger:accumulators/INV-001.yaml
 
 Notes that will save you an afternoon:
 
-- **Do not check the ledger ref out into your working tree.** It is a parallel commit chain
-  with its own tree layout (`events/`, `accumulators/`, `epochs/`), not a branch of this repo.
+- **Do not check the ledger ref out into your working tree.** It is a parallel commit chain with its own tree layout (`events/`, `accumulators/`, `epochs/`), not a branch of this repo.
 - **Never rewrite it.** Corrections supersede (`supersedes: <event-id>`), they do not edit or
 delete (ADR-0002). An event file's name is the hash of its own body; editing one in place is detectable and is a bug report, not a fix.
-- **Accumulators are a cache, never authority.** They are a deterministic fold over `events/`
-  and can be recomputed at will. If a cached accumulator disagrees with the fold, the fold wins.
+- **Accumulators are a cache, never authority.** They are a deterministic fold over `events/` and can be recomputed at will. If a cached accumulator disagrees with the fold, the fold wins.
 - CI pushes to this ref; humans generally should not. The engine job in
 `.github/workflows/ci.yml` runs with `permissions: contents: read` precisely so that a routine PR build cannot write either store.
 
@@ -171,15 +164,12 @@ inferred ──(human ratification)──▶ ratified ──(reprogramming PR op
 - **`inferred`** — everything distillation may emit, and everything in this repo's
 `invariants.yaml` today. **Not enforced.** Machines may propose `inferred`; only a human may promote past it.
 - **`ratified`** — human-promoted, enforced.
-- **`contested`** — set when a reprogramming PR opens against the assertion. **Enforcement
-  mutes**: you do not keep citing people for a law under active renegotiation.
-- **`amended` / `retired`** — terminal. The assertion's history stays in git; nothing is
-  deleted.
+- **`contested`** — set when a reprogramming PR opens against the assertion. **Enforcement mutes**: you do not keep citing people for a law under active renegotiation.
+- **`amended` / `retired`** — terminal. The assertion's history stays in git; nothing is deleted.
 
 ### The two field rules, which reviewers will hold you to
 
-1. **No assertion without provenance.** Cite the commits, PRs, issues or ADRs the assertion
-   rests on. An assertion without provenance is unreviewable and therefore unratifiable.
+1. **No assertion without provenance.** Cite the commits, PRs, issues or ADRs the assertion rests on. An assertion without provenance is unreviewable and therefore unratifiable.
 2. **Constitutional minimalism.** A twelve-assertion program gets read; a sixty-assertion one
 gets rubber-stamped. Adding an assertion means arguing it earns its slot — and the honest version of that argument sometimes retires another one.
 
@@ -189,11 +179,8 @@ gets rubber-stamped. Adding an assertion means arguing it earns its slot — and
 2. Edit only `.program/` files. The PR body states, per assertion:
    - the exact statement being added, changed, retired, or promoted,
    - its provenance (links, not adjectives),
-   - for knob changes (`precision` / `budget` / `half_life`), what evidence justifies the
-     number. Once the ledger exists, "replay says this fires 3 times instead of 40" is the
-     argument that wins.
-3. **A human must be the author, the committer, and the merger.** CI checks this
-   (`.github/workflows/ci.yml` → the `inv001` job).
+   - for knob changes (`precision` / `budget` / `half_life`), what evidence justifies the number. Once the ledger exists, "replay says this fires 3 times instead of 40" is the argument that wins.
+3. **A human must be the author, the committer, and the merger.** CI checks this (`.github/workflows/ci.yml` → the `inv001` job).
 4. Review is per-assertion: **accept / edit / reject**. Rejecting an inferred regularity is
 itself a ruling — record it as a `coincidence` precedent in `precedents.yaml` so re-distillation cannot resurrect it (docs/spec/04-distillation.md §6).
 
@@ -209,14 +196,10 @@ The framework's whole point is that drift is not always the code's fault (docs/v
 
 Handling one as a reviewer:
 
-- The proposal ships its own evidence: contributing events, dispersion statistics, compliance
-  ratio, decay-weighted total. Read the evidence before the prose.
-- Opening it sets the assertion **`contested`** and mutes enforcement. That is deliberate;
-  it is also a clock, because ignoring it accrues **governance debt**.
-- **Rejecting** it is a real outcome, not a non-decision: it mints an `affirmed` precedent and
-  *raises* the assertion's precision — a law ratified under fire is a stronger prior.
-- **Accepting** it lands the amendment, moves the assertion to `amended`, and zeroes the
-  accumulator.
+- The proposal ships its own evidence: contributing events, dispersion statistics, compliance ratio, decay-weighted total. Read the evidence before the prose.
+- Opening it sets the assertion **`contested`** and mutes enforcement. That is deliberate; it is also a clock, because ignoring it accrues **governance debt**.
+- **Rejecting** it is a real outcome, not a non-decision: it mints an `affirmed` precedent and *raises* the assertion's precision — a law ratified under fire is a stronger prior.
+- **Accepting** it lands the amendment, moves the assertion to `amended`, and zeroes the accumulator.
 
 ---
 
@@ -237,8 +220,7 @@ A prompt PR must:
 2. **Pass the bar exam.** The candidate judge re-decides the settled cases in
 `.program/precedents.yaml` and must match the recorded rulings before it may sit. Precedents are the framework's case law and its calibration corpus at the same time; a judge that cannot reproduce settled law does not get to make new law.
 
-3. Say what changed and why, in the PR body, in terms of *rulings* — which cases would now be
-   decided differently, and is that the intent?
+3. Say what changed and why, in the PR body, in terms of *rulings* — which cases would now be decided differently, and is that the intent?
 
 The same rule applies to changing a judge's `model` id in `manifest.yaml`. And it applies to the framework's own judges, permanently: the observer is observed, with the same machinery (golden-sample drift checks, docs/spec/03-judge.md §6).
 

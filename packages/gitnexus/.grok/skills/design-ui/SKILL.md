@@ -56,14 +56,11 @@ no arbitrary values like `p-[16px]` or `text-[13px]`. If you need a value, it be
 
 ## 2. The quantified rubric (cheap rules that prevent "ugly")
 
-- **≤ 3–5 colors total** (one primary + neutrals + at most one accent). No random
-  extra hues. Don't default to purple unless asked.
+- **≤ 3–5 colors total** (one primary + neutrals + at most one accent). No random extra hues. Don't default to purple unless asked.
 - **≤ 2 font families** (often one). Pair a display/heading with a body, or use one.
 - **Line-height 1.4–1.6** for body; tighter for large headings.
-- **When you override a background color, override the foreground/text color too**
-  (contrast must hold — check both light and dark).
-- **Mobile-first**: design the ~390px layout first, then scale up. No horizontal
-  overflow; tap targets ≥ 44px.
+- **When you override a background color, override the foreground/text color too** (contrast must hold — check both light and dark).
+- **Mobile-first**: design the ~390px layout first, then scale up. No horizontal overflow; tap targets ≥ 44px.
 - **Consistent spacing scale** (4/8-based). Generous whitespace beats cramming.
 - **One accent, used sparingly** for primary actions — not everywhere.
 
@@ -71,29 +68,21 @@ no arbitrary values like `p-[16px]` or `text-[13px]`. If you need a value, it be
 
 - **No gradient-blob filler**, no giant hero gradients as a substitute for content.
 - **No emoji as icons** — use a real icon set (`lucide-react`).
-- **No hand-drawn SVG** illustrations/maps/charts — use real libraries (`recharts`
-  for charts) or real generated images.
-- **No placeholder images / lorem-gray boxes** in the final product — generate
-  real images or use real content; set `crossOrigin="anonymous"` on canvas images.
+- **No hand-drawn SVG** illustrations/maps/charts — use real libraries (`recharts` for charts) or real generated images.
+- **No placeholder images / lorem-gray boxes** in the final product — generate real images or use real content; set `crossOrigin="anonymous"` on canvas images.
 - **Avoid the overused-font look** (default system-only, or Comic Sans-tier picks).
-- **Every element earns its place.** Cut decorative noise. Establish a system,
-  then vary with intent — not randomness.
-- **Match the existing UI when editing** an app in place; don't introduce a second
-  visual language.
+- **Every element earns its place.** Cut decorative noise. Establish a system, then vary with intent — not randomness.
+- **Match the existing UI when editing** an app in place; don't introduce a second visual language.
 
 ## 4. Layout & hierarchy
 
-- Clear visual hierarchy: one primary action per view; size/weight/color express
-  importance. See `references/typography.md` and `references/surfaces.md`.
-- Use real layout structure (grid/flex, container max-widths), not absolute-position
-  hacks. Align to a consistent grid.
-- Empty states, loading states, and error states are part of the design — don't
-  ship blank/janky intermediate states.
+- Clear visual hierarchy: one primary action per view; size/weight/color express importance. See `references/typography.md` and `references/surfaces.md`.
+- Use real layout structure (grid/flex, container max-widths), not absolute-position hacks. Align to a consistent grid.
+- Empty states, loading states, and error states are part of the design — don't ship blank/janky intermediate states.
 
 ## 5. Motion (subtle, purposeful)
 
-- Short, eased transitions (150–250ms) on hover/press/enter; respect
-  `prefers-reduced-motion`. Details in `references/animations.md`.
+- Short, eased transitions (150–250ms) on hover/press/enter; respect `prefers-reduced-motion`. Details in `references/animations.md`.
 - Never animate layout in a way that causes jank; prefer transform/opacity.
 
 ## 6. Game overlays (when this pairs with `building-games`)

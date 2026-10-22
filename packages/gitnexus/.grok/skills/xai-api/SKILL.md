@@ -21,15 +21,11 @@ When `XAI_API_KEY` is present in the environment, this app has **real xAI API ac
 
 The key unlocks the **full API surface**, not just chat:
 
-- **Chat / LLM** — **latest model: `grok-4.5`**; default to it unless the
-  user asks otherwise.
-- **Imagine (images & video)** — generate and edit images, generate video,
-  at runtime inside the app.
+- **Chat / LLM** — **latest model: `grok-4.5`**; default to it unless the user asks otherwise.
+- **Imagine (images & video)** — generate and edit images, generate video, at runtime inside the app.
 - **Voice** — text-to-speech with expressive voices (and transcription).
-- **Official docs: [docs.x.ai](https://docs.x.ai)** — endpoints, models,
-  parameters, streaming, tool use. Don't guess API shapes; check the docs.
-- The API is **OpenAI-compatible** (`https://api.x.ai/v1`), so any
-  OpenAI-style client works by switching the base URL and key.
+- **Official docs: [docs.x.ai](https://docs.x.ai)** — endpoints, models, parameters, streaming, tool use. Don't guess API shapes; check the docs.
+- The API is **OpenAI-compatible** (`https://api.x.ai/v1`), so any OpenAI-style client works by switching the base URL and key.
 
 ## Env vars — do **not** create a `.env` file
 
@@ -96,10 +92,8 @@ body: JSON.stringify({
 // → body.data[0].url
 ```
 
-- **Image editing**: `POST /v1/images/edits` — natural-language edits, up to 3
-  reference images.
-- **Video**: `grok-imagine-video` via the async video endpoints (start, then
-  poll the returned request id; clips up to ~15s).
+- **Image editing**: `POST /v1/images/edits` — natural-language edits, up to 3 reference images.
+- **Video**: `grok-imagine-video` via the async video endpoints (start, then poll the returned request id; clips up to ~15s).
 - Full parameters and examples: [docs.x.ai](https://docs.x.ai) → Imagine API.
 
 ## Voice — text-to-speech (server-only)
@@ -119,10 +113,8 @@ The key belongs to the **app owner** (the user you're building for): every call 
 
 - **Cap output** (`max_tokens`) and keep prompts small for visitor-facing
 features. Image, and especially video, generation cost far more per call than chat.
-- **Never call the API in a loop, on every keystroke, or on page load** —
-  make calls user-initiated (button press, form submit) and debounce.
-- **Cache or persist results** (see the `neon` skill) instead of regenerating
-  the same content per visitor or per render.
+- **Never call the API in a loop, on every keystroke, or on page load** — make calls user-initiated (button press, form submit) and debounce.
+- **Cache or persist results** (see the `neon` skill) instead of regenerating the same content per visitor or per render.
 - **Gate expensive flows** — media generation in particular. On an app that
 already has sign-in, put them behind `authMiddleware` (see the **`auth` skill**). Sign-in is off by default, and adding the middleware without it breaks the deployed app (AGENTS.md §0.5) — so on an app without accounts, cap usage instead: user-initiated calls, small limits, cached results.
 - Don't add retry storms: on an API error, surface it; retry at most once.

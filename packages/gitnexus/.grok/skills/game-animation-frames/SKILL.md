@@ -48,8 +48,7 @@ Fall back to keyframe-by-keyframe `imagine_text_to_image` (still on `#FF00FF` wh
 ## Motion laws (verify against these, whatever the pipeline)
 
 - Cycles loop; alternating gaits spend half the period mirrored.
-- Continuity: limbs, props, anatomy, effects move on continuous paths —
-  nothing teleports, vanishes, or duplicates between adjacent frames.
+- Continuity: limbs, props, anatomy, effects move on continuous paths — nothing teleports, vanishes, or duplicates between adjacent frames.
 - Physics reads in stills: airborne shows air, anticipation compresses,
 follow-through overshoots; effects stay anchored to their origin unless the request moves them.
 - Energy matches the ask: idle/subtle means barely-different frames.

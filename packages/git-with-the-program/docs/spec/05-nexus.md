@@ -24,8 +24,7 @@ The mnemonic is law: **the program prescribes, the ledger remembers, the nexus p
 one tree state, worktree or commit. It never reads `git log`, blame, commit metadata, `accumulators/`, or the ledger ref. There is no field anywhere in the graph that an author, a committer time, or a meter reading could occupy; `assertBlind` walks a serialized nexus clean. This extends ADR-0003 to perception: a judge's percepts must not be a side channel for what the judge may not see. (Making this ratified law — INV-003's scope gaining `src/nexus/**` — is a human's amendment; see `proposals/PROPOSED-nexus-amendment.md`. Until then `tests/nexus/blindness.test.ts` holds the same line.)
 2. **Never authoritative, never normative.** The fold (spec 02 §4) takes no nexus input;
 firing classification (spec 02 §5) takes no nexus input. The nexus informs *evidence assembly* (rings, §5), *presentation* (seam naming in proposals, §6), and *rung-0 queries* (§7) — all places where a wrong graph produces a visible wrong answer, never a corrupted accumulator.
-3. **Never committed.** `.gwtp/nexus/` is gitignored. Derived bytes in the tree would drift
-   from the tree that derives them within one commit; whoever needs a nexus rebuilds one.
+3. **Never committed.** `.gwtp/nexus/` is gitignored. Derived bytes in the tree would drift from the tree that derives them within one commit; whoever needs a nexus rebuilds one.
 4. **Deterministic, or it is a defect.** Same file set + same extractor version ⇒
 byte-identical canonical artifact ⇒ same content hash. Property-tested, the same obligation the fold carries (spec 02 §1 property 2).
 5. **Extraction has a seat.** An extractor's identity is `name + version`, the analogue of a
@@ -70,8 +69,7 @@ v0 ships one extractor, TypeScript/JavaScript (`.ts .tsx .mts .cts .js .jsx .mjs
 relative specifiers against the snapshot (exact, `.ts/.tsx/.js/...` siblings, `/index.*`; emitted `.js` resolving to its `.ts` sibling); everything else — and every relative specifier that resolves to nothing — becomes an `external` node, the second case counted as `imports.unresolved`.
 - **P4 — calls.** Call sites (`name(...)`, `new Name(...)`, `ns.name(...)` for a namespace
 import) inside each innermost definition span, resolved same-file first, then through import bindings to the target module's exported definition. A binding that resolves to an external module yields a `calls` edge to the `external` node. Bare names that match no definition and no binding are locals and parameters — not counted, not guessed.
-- **Seams are not a pass.** They are derived at query time (§6) so the partition rule can
-  evolve without re-addressing the artifact.
+- **Seams are not a pass.** They are derived at query time (§6) so the partition rule can evolve without re-addressing the artifact.
 
 Determinism requirements: input paths are sorted before every pass; nodes sort by id; edges sort by `(kind, from, to, at)`; ids are pure functions of path, name and start line. The artifact's `nexus` field is the content hash (`src/core/canonical.ts` canonicalization) of the body **minus that field** — the same self-addressing discipline as ledger events (spec 02 §1, Q-24), so two builders on the same tree produce one address.
 
@@ -89,12 +87,10 @@ A cached artifact is trusted exactly as far as an accumulator cache is (spec 02 
 
 Spec 03 §3 grants an abstaining judge "an expanding context ring (function bodies → file → nearest callers)"; `src/core/change.ts` fixes the rungs `hunk → enclosing-symbol → file → callers`. The nexus supplies the implementation as a `ChangeSource` (the port the evidence assembler already consumes), leaving the assembler and the seal untouched:
 
-- **`hunk`** — the parsed diff hunks, unchanged. (Today's behavior at every ring; the rings
-  below are what the nexus adds.)
+- **`hunk`** — the parsed diff hunks, unchanged. (Today's behavior at every ring; the rings below are what the nexus adds.)
 - **`enclosing-symbol`** — plus, per hunk, one context hunk covering the span of the innermost
 definition enclosing the hunk's post-image lines. No enclosing definition (top-level code, unparsed module) adds nothing at this ring.
-- **`file`** — plus one context hunk covering each touched module in full. Works for every
-  module, parsed or not.
+- **`file`** — plus one context hunk covering each touched module in full. Works for every module, parsed or not.
 - **`callers`** — plus one context hunk per **nearest caller**: for each enclosing definition
 of a base hunk, every definition with a resolved `calls` edge into it, at that definition's span, in that definition's module.
 
@@ -127,8 +123,7 @@ Spec 04 §2's pass one already builds import graphs at epoch boundaries (`src/di
 
 ## 9. What the nexus is not
 
-- **Not authority.** No verdict, no accumulator, no proposal is ever *justified by* "the nexus
-  says"; the nexus locates and widens, judges rule, the ledger remembers.
+- **Not authority.** No verdict, no accumulator, no proposal is ever *justified by* "the nexus says"; the nexus locates and widens, judges rule, the ledger remembers.
 - **Not search.** GitNexus's embeddings, BM25, process tracing and graph chat are out of v0
 scope (ADR-0007); a natural-language interface would put a model inside evidence assembly, where only seated judges belong.
 - **Not a linter and not a metric.** The graph exists for the loop — rings, seams, negative
