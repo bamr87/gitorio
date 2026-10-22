@@ -1,152 +1,133 @@
-# GitFactory — CLAUDE.md
+<!-- kit: sdlc v0.1.0 · AGENTS.md is the CANONICAL agent instructions file (decision D4, UPS-AGENT-07/08). -->
 
-GitFactory is a **Factorio-style factory builder for GitHub automation**. Users drag machines onto a canvas, connect them with belts, and the blueprint **compiles to real GitHub Actions workflows** that run Claude Code agents against real repositories. The frontend is fully static; GitHub is the database, the event bus, and the compute layer.
+# gitorio
 
-## The metaphor (use it consistently in code, UI copy, and docs)
+> gitorio is GitFactory: a static, Factorio-style factory builder whose blueprints compile to GitHub Actions workflows that run Claude Code agents against real repositories.
+
+## What this repo is
+
+Users drag machines onto a canvas, connect them with belts, and **Deploy** compiles the blueprint into `factory--<slug>.yml` workflows in the target repo. The frontend is fully static (GitHub Pages); GitHub is the database, the event bus and the compute layer. The app also observes and operates a fleet (Fleet Ops, the Harness tab against the bamr87 hub) and runs tokenless with `?demo=1`. This repo dogfoods itself in `.factory/`. A change is done when it meets its spec's acceptance criteria, the gates below are green, generated files are regenerated rather than hand-edited, and the docs that describe it are updated in the same PR. Read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) before touching the compiler or auth.
+
+## Stack & commands
+
+Node 22 (`.nvmrc`), Vite + React + `@xyflow/react`, TypeScript, Vitest, ESLint; stdlib Python 3 gates in `tools/`. All application code lives in `app/`.
+
+```bash
+cd app
+npm install
+npm run dev        # vite dev server + HMR → http://localhost:5173
+npm test           # vitest — compiler invariant tests
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint
+npm run build      # typecheck + production build → app/dist
+```
+
+Repo gates (from the root; CI runs each of them):
+
+```bash
+python3 tools/spec_validator.py && python3 tools/backlog_lint.py   # AO-SDLC gates (CI spec-gate)
+python3 tools/unwrap-prose.py --check --exclude '(^|/)SCHEMA\.md$' --exclude '(^|/)CHANGELOG\.md$' --exclude '^vendor/'
+python3 tools/docs_index.py --check                               # docs/README.md index is fresh
+(cd app && npm run maps:check)                                    # delivered maps match the IR (CI diagram-gate)
+(cd app && npm run reference:check)                               # docs/reference/ matches the registry (also in npm test)
+docker compose up dev                                             # the same dev server in a container
+```
+
+Regenerate with `cd app && npm run maps` (maps), `npm run reference` (machine reference), `npx vite-node scripts/regen-examples.ts` (`examples/compiled/`), `npx vite-node scripts/gen-docs-gardener.ts` (the docs-gardener trio) and `python3 tools/docs_index.py --write` (docs index). [`docs/GENERATED-FILES.md`](docs/GENERATED-FILES.md) lists every generated file.
+
+## Layout
+
+| Path | What lives there |
+| --- | --- |
+| `app/` | The static frontend. `src/`: `compiler/` (pure compiler), `machines/` (registry), `github/` (client, deploy, telemetry), `fleet/` (Fleet Ops engines + verbatim fixtures), `archify/` (IR + colour vocabulary), `map/` (in-app maps), `ui/` (console primitives), `harness/` (hub harness engine), `demo/` (fixture client), `state/`. Also `scripts/` (generators) and `public/maps/` (generated) |
+| `.factory/` | This repo's own blueprints, prompts and `config.yml` — source, not output |
+| `.github/workflows/` | Hand-written CI/Pages/release/evolve workflows plus the compiled `factory--*.yml` lines |
+| `schema/` | `blueprint.schema.json`, drift-guarded against the registry |
+| `examples/` | Example blueprints and the `compiled/` golden anchors |
+| `docs/` | Contributor docs, indexed in [`docs/README.md`](docs/README.md); `reference/` is generated |
+| `_docs/` | The user-facing collection rendered in the app's Docs tab and tended by the Docs Gardener |
+| `specs/` | AO-SDLC spec packages `NNN-slug/{spec,plan,tasks}.md` + `_template/` |
+| `tools/` | Stdlib gates: spec validator, backlog lint, picker, id-minter, evolve audit, unwrap-prose, docs index |
+| `.claude/` | Slash commands (AO-SDLC chain, `/add-machine`, `/compile-check`, `/session-log`), review agents, skills (`archify`, `verify-feature`), hooks |
+| `vendor/archify/` | Pinned `tt-a1i/archify` renderer (`VENDOR.md` records the commit) — never edit |
+| `packages/` | Two imported repos (`git-with-the-program`, `gitnexus`) with their own tooling; run commands inside each |
+| `seeds/`, `blog/drafts/` | Closed bootstrap-era prompts (history); session-log drafts headed for it-journey |
+
+[`docs/DOCUMENTATION-MAP.md`](docs/DOCUMENTATION-MAP.md) says which of `docs/`, `_docs/`, `specs/` and `blog/` new writing belongs in.
+
+## Conventions
+
+- **Backlog of record:** [`BACKLOG.md`](BACKLOG.md) — append-only `BL-YYYYMMDD-NN` items (mint with `python3 tools/next_backlog_id.py`), declared as `backlog.mode: file` in `.github/sdlc.yml`. Items move Open → Claimed → Done, never deleted. Not to be confused with `.factory/backlog.yml`, the product's content queue.
+- **Definition of Done:** the checklist in [`.github/pull_request_template.md`](.github/pull_request_template.md) plus golden rule #8 for a new machine type.
+- **Decisions:** ADR-lite entries appended to [`docs/DECISIONS.md`](docs/DECISIONS.md) (ADR-001…039; date, decision, why, alternatives). The fleet-format ADR directory `docs/adr/` (the `adr_path` in `.github/sdlc.yml`) holds ADR 0001 and its index.
+- **Session workflow:** pick work with `python3 tools/pick_backlog_item.py` (or file the user's request as a `BL-*` item), run `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` one task at a time (or `/evolve` for a whole cycle), work to the acceptance criteria and nothing more, then `/session-log`. [`docs/AO-SDLC.md`](docs/AO-SDLC.md) has the stages and gates.
+- **Commits:** Conventional Commits (`feat fix docs style refactor test chore perf ci build`). **Branches:** `feature/`, `fix/`, `docs/`, `refactor/`, `test/` or `chore/` off `main`.
+- **Changelog:** `CHANGELOG.md` is written by release-please (`.github/workflows/release.yml`); don't edit it by hand.
+- **Markdown:** one paragraph per line; `markdown-oneline.yml` repairs a PR branch and fails a push to `main`.
+- **Never:** push to `main` directly, hand-edit a generated file, commit secrets, suppress type errors, or leave empty exception handlers.
+
+## The metaphor (use it consistently in code, UI copy and docs)
 
 | Factory term | GitHub reality |
-|---|---|
-| **Machine** | A node: trigger, processor (Claude agent, filter), or sink (comment, label, PR…) |
+| --- | --- |
+| **Machine** | A node: trigger, processor (Claude agent, filter, gate), or sink (comment, label, PR…) — every type is in [`docs/reference/machines.md`](docs/reference/machines.md) |
 | **Belt** | An edge: event/data flow between machines |
 | **Blueprint** | The graph, stored as `.factory/blueprint.json` in the *target* repo (versioned, shareable as an encoded string) |
-| **Assembly line** | One connected subgraph → compiles to one workflow file `factory--<slug>.yml` |
-| **Power** | Claude auth repo secret — `CLAUDE_CODE_OAUTH_TOKEN` (default) or `ANTHROPIC_API_KEY` (fallback); machines are greyed out without it |
+| **Assembly line** | One connected subgraph → one workflow file `factory--<slug>.yml` |
+| **Power** | The Claude auth repo secret — `CLAUDE_CODE_OAUTH_TOKEN` (default) or `ANTHROPIC_API_KEY` (fallback); agent machines are greyed out without it |
 | **Telemetry** | Actions run data polled from the API, rendered as machine status LEDs |
-| **Map** | A rendered archify diagram of a line, a fleet, or a run — delivered under `app/public/maps/` (`npm run maps`, never hand-edited, ADR-034) and drawn live in-app by `app/src/map/` from the same IR (specs/013) |
-| **Passport** | archify's Semantic Passport: the one proof surface a focused machine or workflow opens — stable id, kind, dials, evidence, authored reach; there are no permanent side panels |
-| **Finder** | archify's Node Finder: `/` opens it on the floor (to add a machine) and on every map (to focus a node) |
-| **Harness** | The hub's six-layer model — guides, sensors, bounded loop, memory, permissions, observability. GitFactory designs it (readiness per line); the hub presents and monitors it (`_data/harness_health.yml`); the Harness tab renders the hub's `/harness/` page from the same engine (specs/014, ADR-036) |
-| **Lane** | A `fleet/v1` record of one line (`fleet.manifest.yml`: id, kind, harness, triggers, switch, tokens, guardrails) — the interchange contract with the hub and `wtd`; one `HarnessCard` draws it everywhere |
+| **Map** | A rendered archify diagram of a line or a fleet — delivered under `app/public/maps/` (`npm run maps`, ADR-034) and drawn live by `app/src/map/` from the same IR |
+| **Passport** | archify's Semantic Passport: the one proof surface a focused machine or workflow opens; there are no permanent side panels |
+| **Finder** | archify's Node Finder: `/` opens it on the floor (add a machine) and on every map (focus a node) |
+| **Harness** | The hub's six-layer model (guides, sensors, bounded loop, memory, permissions, observability). GitFactory designs it; the hub monitors it (`_data/harness_health.yml`); the Harness tab renders the hub's page from the same engine (ADR-036) |
+| **Lane** | A `fleet/v1` record of one line in `fleet.manifest.yml` — the interchange contract with the hub and `wtd`; one `HarnessCard` draws it everywhere |
 | **Trip wire** | One of the hub's six alarms (stale-data, pass-rate-floor, waste-ceiling, cost-spike, standing-failures, credential-overdue) — an attention item, never an action |
-| **Hub** | The Jekyll monorepo (`bamr87/bamr87` by default) that presents and monitors the fleet; read-only from GitFactory — one persisted slug, never a token, never a write |
+| **Hub** | The bamr87/bamr87 monorepo that presents and monitors the fleet; read-only from GitFactory — one persisted slug, never a token, never a write |
 
 ## Architecture in ten lines
 
 1. Static React app (Vite + `@xyflow/react`) — deployable to GitHub Pages, zero backend.
 2. The canvas edits a **Blueprint** (JSON, schema in `schema/blueprint.schema.json`).
 3. The **compiler** (`app/src/compiler/compile.ts`) is a pure function: Blueprint → `{filename, yaml, diagnostics}[]`.
-4. Compiled workflows use **`anthropics/claude-code-action@v1`** as the agent runtime, authenticated by **`CLAUDE_CODE_OAUTH_TOKEN`** (default) with **`ANTHROPIC_API_KEY`** as fallback.
-5. Downstream sinks of an agent become the agent's **obligations** (prompt contract) plus scoped `--allowedTools` grants.
+4. Compiled workflows use **`anthropics/claude-code-action@v1`**, authenticated by `CLAUDE_CODE_OAUTH_TOKEN` with `ANTHROPIC_API_KEY` as fallback.
+5. Downstream sinks of an agent become its **obligations** (prompt contract) plus scoped `--allowedTools` grants.
 6. Trigger→sink chains with no agent compile to deterministic `gh` CLI steps.
-7. The app reads/writes blueprints, prompts, and workflow files in target repos via the GitHub REST API (Octokit, fine-grained PAT first, GitHub App device flow later).
+7. The app reads and writes blueprints, prompts and workflow files in target repos through the GitHub REST API (fine-grained PAT; GitHub App device flow is parked).
 8. Prompts live in the target repo at `.factory/prompts/*.md` — reviewable, versioned, hot-editable without recompiling.
-9. Monitoring = polling workflow runs + issue/PR timelines; no server, respect rate limits with conditional requests (ETags).
-10. Loop guards are compiler-enforced: agents that write comments must never retrigger themselves.
-
-Read `docs/ARCHITECTURE.md` before touching the compiler or auth. Read `docs/ROADMAP.md` to see what phase we're in.
+9. Monitoring polls workflow runs and issue/PR timelines with conditional requests (ETags); no server.
+10. Loop guards are compiler-enforced: an agent that writes comments never retriggers itself.
 
 ## Golden rules
 
-1. **The frontend stays static.** No servers unless a seed explicitly introduces the optional webhook worker (Phase 7+). Everything must work from GitHub Pages + APIs.
-2. **The blueprint is the source of truth.** Generated workflow YAML carries a `GENERATED BY GITFACTORY` header + blueprint hash. Never hand-edit generated files; fix the compiler.
-3. **The compiler is pure and tested.** No I/O, no globals. Every machine type has invariant tests in `compile.test.ts` (assert critical YAML fragments, not full golden strings — they're brittle).
-4. **Verify, don't recall.** Before changing anything that touches `anthropics/claude-code-action`, fetch its current `action.yml` and docs from the official repo (`https://github.com/anthropics/claude-code-action`). Input names have changed between versions (`direct_prompt`/`allowed_tools` are deprecated → `prompt`/`claude_args`). Same rule for Octokit endpoints: check `https://docs.github.com/en/rest` when unsure.
-5. **Least privilege, always.** Compiled workflows get a computed `permissions:` block — only what the sinks need. Agent tools are granted via narrow `--allowedTools` patterns like `Bash(gh issue comment:*)`, never blanket Bash.
-6. **Loop guards are mandatory.** Any workflow triggered by comments/issues that can also *write* comments/issues must guard on `github.event.*.user.type != 'Bot'` (or actor checks). The compiler must refuse to emit an unguarded feedback loop.
-7. **Secrets never touch the blueprint, the code, or localStorage.** PATs live in `sessionStorage` at most (or a DEV-only `.env`, guarded so it can never reach a build). The Claude auth secrets (`CLAUDE_CODE_OAUTH_TOKEN` default, `ANTHROPIC_API_KEY` fallback) are only ever referenced as `${{ secrets.* }}` in generated YAML, or provisioned via the encrypted-secret API (libsodium sealed box).
-8. **Definition of done for a new machine type:** registry entry (`machines/registry.ts`) + config fields + compiler emitter + invariant test + one sentence in `docs/ARCHITECTURE.md` machine catalog + it renders on the canvas. Use `/add-machine` for the checklist.
-9. **Untrusted content is untrusted.** Issue bodies, PR diffs, comments are attacker-controlled input to agents. Never widen tool grants to "make the prompt work"; tighten the prompt instead. Fork PRs don't get secrets — see ARCHITECTURE § Security.
-10. **End every session with `/session-log`** — draft a post to `blog/drafts/` (frontmatter `draft: true`, include a *Working-with-AI tip* section) and append a dated entry to `docs/DECISIONS.md` if any decision was made or reversed.
-11. **The factory always grows forward (AO-SDLC).** Non-trivial work is spec-driven: it enters as a `BL-YYYYMMDD-NN` item in `BACKLOG.md`, graduates to a `specs/NNN-slug/` package via `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` (or `/evolve` for the whole cycle), and every implement cycle ends with `## Follow-ups Discovered` mirrored back into `BACKLOG.md`. The backlog is append-only (items move to `## Done`, never deleted). `tools/spec_validator.py` + `tools/backlog_lint.py` enforce all of this in CI (`spec-gate`) and via a blocking edit hook. See `docs/AO-SDLC.md`.
+1. **The frontend stays static.** No servers unless a spec introduces the optional webhook worker (Phase 7+). Everything works from GitHub Pages + APIs.
+2. **The blueprint is the source of truth.** Generated YAML carries a `GENERATED BY GITFACTORY` header + blueprint hash. Never hand-edit generated files; fix the compiler (or the generator) and regenerate.
+3. **The compiler is pure and tested.** No I/O, no globals. Every machine type has invariant tests in `compile.test.ts` that assert critical YAML fragments, not full golden strings.
+4. **Verify, don't recall.** Before changing anything that touches `anthropics/claude-code-action`, fetch its current `action.yml` and docs from <https://github.com/anthropics/claude-code-action> (`direct_prompt`/`allowed_tools` are deprecated → `prompt`/`claude_args`). Check <https://docs.github.com/en/rest> for Octokit endpoints when unsure.
+5. **Least privilege, always.** Compiled workflows get a computed `permissions:` block — only what the sinks need. Agent tools are narrow `--allowedTools` patterns like `Bash(gh issue comment:*)`, never blanket Bash.
+6. **Loop guards are mandatory.** A workflow triggered by comments/issues that can also write comments/issues guards on the event actor (`github.event.sender.type != 'Bot'`, ADR-009). The compiler refuses to emit an unguarded feedback loop.
+7. **Secrets never touch the blueprint, the code, or localStorage.** PATs live in `sessionStorage` at most (or a DEV-only `.env` the build refuses to bundle). Claude auth secrets are only `${{ secrets.* }}` in generated YAML, or provisioned through the encrypted-secret API (libsodium sealed box).
+8. **Definition of done for a new machine type:** registry entry (`app/src/machines/registry.ts`) + config fields + compiler emitter + invariant test + one sentence in the `docs/ARCHITECTURE.md` §4 catalog + `cd app && npm run reference` + it renders on the canvas. `/add-machine` walks the checklist.
+9. **Untrusted content is untrusted.** Issue bodies, PR diffs and comments are attacker-controlled input to agents: pass entity numbers, not bodies (ADR-005); never widen tool grants to make a prompt work — tighten the prompt. Fork PRs get no secrets (ARCHITECTURE §8).
+10. **End every session with `/session-log`:** a draft post in `blog/drafts/` (`draft: true`, with a *Working-with-AI tip* section) and a dated `docs/DECISIONS.md` entry if a decision was made or reversed.
+11. **The factory always grows forward (AO-SDLC).** Non-trivial work enters as a `BL-*` item, graduates to a `specs/NNN-slug/` package, and every implement cycle ends with `## Follow-ups Discovered` mirrored into `BACKLOG.md`. `tools/spec_validator.py` + `tools/backlog_lint.py` enforce this in CI (`spec-gate`) and through a blocking edit hook.
 
-## Commands
+## Invariants worth knowing
 
-```bash
-cd app
-npm install        # first time
-npm run dev        # vite dev server → http://localhost:5173
-npm test           # vitest (compiler invariant tests)
-npm run typecheck  # tsc --noEmit
-npm run build      # typecheck + production build to app/dist
-```
+- **Agents never merge** (ADR-039): `sink.merge_pr` downstream of an agent, or any merge-capable grant, is a compile error; merges are deterministic, label-gated lines (ADR-027).
+- **Autonomous lines are default-OFF:** each scheduled agent line sits behind a `gate.enablement` repo variable (`*_ENABLED`); unset means idle (ADR-017). The same convention gates `evolve.yml` (`EVOLVE_AUDIT_ENABLED`).
+- **Action versions are a compiler change:** bump `PINNED_ACTIONS` in `compile.ts` and regenerate; never accept a Dependabot edit to a `factory--*.yml` (ADR-033).
+- **The demo is one substitution, not a mode:** `app/src/demo/` implements `GithubClient` over fixtures; no `if (demo)` branch anywhere (ADR-032).
+- **Design tokens live in `theme.css` only:** no colour literals elsewhere (`theme.test.ts` enforces it); machine tones come from `app/src/archify/vocabulary.ts`.
+- **The hub is read-only:** GitFactory persists the hub slug, never a token, and never writes to it (ADR-036).
 
-## How to run a session
+## Current status
 
-1. Pick work: `python3 tools/pick_backlog_item.py` chooses the top `## Open` item in `BACKLOG.md`, or take the user's request (either way it should exist as a `BL-*` item). The seed era (seeds 00–07) is closed — seeds are history, not intake.
-2. Run the AO-SDLC chain: `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` one task at a time (or `/evolve` for the whole cycle autonomously). Read the spec's context files and the relevant `docs/ARCHITECTURE.md` §§ first.
-3. Work to the spec's **acceptance criteria** — nothing more. Park discoveries in `tasks.md § Follow-ups Discovered` and mirror them into `BACKLOG.md` (golden rule #11).
-4. Run `npm test && npm run build` plus `python3 tools/spec_validator.py && python3 tools/backlog_lint.py` before declaring done.
-5. `/session-log`.
+Pre-alpha and dogfooding itself: canvas, compiler (27 machine types), GitHub connect + deploy, telemetry, Prompt Studio, the headless-CMS cockpit, Fleet Ops, the archify console and maps, the tokenless demo, and harness parity with the hub have shipped. Phase status and acceptance history are in [`docs/ROADMAP.md`](docs/ROADMAP.md); every decision is in [`docs/DECISIONS.md`](docs/DECISIONS.md); open work is in [`BACKLOG.md`](BACKLOG.md). Parked: the OODA dispatcher, belt mode (Phase 6.1) and the GitHub App device flow (Phase 7, blocked on browser CORS). Update this paragraph only when the headline status changes — history goes to ROADMAP and DECISIONS.
 
-## Current state (update this section as the project moves)
+## Fleet context
 
-- ✅ Scaffold: runnable canvas MVP (palette → drag → belts → inspector), blueprint
-  import/export/encode, compiler v0 with invariant tests, example factory dogfooded in `.factory/`.
-- ✅ Foundation: repo is under git (root = `gitorio/`, `app/` a direct child; branch
-`main`), dev hygiene in place (`.editorconfig`, `.gitattributes`, `.nvmrc` = 22, Dependabot, PR template, CONTRIBUTING, SECURITY).
-- ✅ GitHub connect MVP (seed 03): fetch-based `github/` client (PAT in sessionStorage),
-  preflight checklist, load `.factory/blueprint.json` into the canvas, **Deploy** blueprint
-  + `factory--*.yml` via the contents API (commit or PR mode), sealed-box power hookup
-(`CLAUDE_CODE_OAUTH_TOKEN` default / `ANTHROPIC_API_KEY` fallback), and a drift banner. Pure planner (`deploy.ts`) split from I/O executor (`execute.ts`). Verified green: 49 tests, typecheck, prod build, browser smoke. Live end-to-end demo needs a user PAT + scratch repo.
-- ✅ Telemetry MVP (seed 04): ETag-conditional polling of `factory--*` runs
-(`client.listFactoryRuns` + pure `github/telemetry.ts`), machine status LEDs via `compile.assemblyLines()`, and a floating panel (stats + run list) that polls only while open. Verified green: 66 tests, typecheck, build, render smoke.
-- ✅ Observe mode (plug-and-play, Phase A): reverse-import ANY repo's
-`.github/workflows/*.yml` into a read-only **fleet map** — one node per workflow, `workflow_run` + cross-repo belts, live telemetry LEDs. Pure parser (`fleet/parse.ts`)
-  + `fleet/import.ts` + `FleetCanvas`. Validated on the real `lifehacker.dev` fleet. Next:
-  multi-repo switcher (B), cross-repo machine (C) — see ROADMAP § Fleet.
-- ✅ Granular machines + live automerge: `trigger.workflow_run`, `sink.merge_pr`,
-`processor.dependabot_meta` (ADR-014) + `gate.approval`, `rate.limiter`, `sink.cross_repo_issue` (ADR-016) — **19 machine types**, schema-synced + drift-guarded. The Dependency Warden ran live on gitorio: reviewed Dependabot PRs #1–#5, auto-merged the vetted-safe ones. Merge policy hardened after an incident (ADR-015, PR #12).
-- ✅ Feature-rich frontend (ADR-016): **six-tab shell** — Build (canvas + palette search +
-undo/redo + rich Inspector + templates gallery) · Prompt Studio (browse/edit/lint/diff/ PR-writes) · Content (headless-CMS cockpit) · Monitor (per-line stats, jobs+steps drill-down, ▶ Run now / ✕ Cancel, cron overview) · Fleet (multi-repo observe switcher, Fleet B) · Settings (live preflight, connections, preferences). Browser-verified live against gitorio.
-- ✅ Headless CMS + feedback loops (ADR-017): studied the live `lifehacker.dev` fleet and adopted
-its governance/feedback/queue *patterns* onto the claude-code-action core. **`gate.enablement`** (default-OFF repo-variable kill switch), **`processor.feedback_controller`** (the loop-tuner: measure own telemetry → improvements ledger → smallest fix → ONE PR, never merges), **dry-run/apply** duality (plan-first manual), **`.factory/config.yml` + `.factory/backlog.yml`**
-  + a **Content tab** cockpit (config/backlog/kill-switch toggles via the Actions variables API),
-a **Headless CMS template**, and a fix to the `open_pr`/`commit_files` git grants. **21 machine types**, schema-synced + drift-guarded.
-- ✅ Docs Gardener + Docs view (ADR-018): a demonstrable daily content factory on gitorio — a
-**Docs Gardener** template (cron + plan-first manual → gate → rate limiter → agent → open PR) that scans `_docs`, improves `itemsPerRun` items using configured **review criteria** + **skill specializations**, dogfooded (prompt + `.factory/config.yml` + standalone blueprint + compiled `factory--docs-gardener.yml`, default-OFF via `DOCS_GARDENER_ENABLED`, generated by `app/scripts/gen-docs-gardener.ts`). A **Docs tab** renders the repo-root `_docs/*.md` (bundled via `import.meta.glob`, dependency-free Markdown renderer) — gitorio's Pages IS the app, so the docs deploy to Pages; improve → merge → redeploy → view updates. Config extended with `skills`/ `reviewCriteria`/`docsDir`/`itemsPerRun` (Content-tab editors); compiler gained a `blueprintPath` header option; `open_pr`/`commit_files` now grant `Read/Edit/Write`. **7-tab shell** (added Docs). **25 test files, 209 tests**, typecheck + prod build green (build validates the `_docs` glob).
-- ✅ Fleet Ops adapted to the #1 consumer + a management surface (ADR-021): turned the cockpit on `it-journey` (44% of fleet Actions minutes, 31 workflows) and closed the gaps a full survey found. Facts engine: an **`agentic-engine`** AI runner (the `agentic_validate.py` / bare `@anthropic-ai/claude-code` path — it-journey's biggest, previously-invisible cost center; detection reads command lines only via a `commandLines()` comment-stripper), **`AiFacts.maxCostUsd`**, plus `matrixDynamic`/`localWorkflowCalls`/`waitBound` and github-script sinks; **7 new archetypes** for the quest-* pipeline (agent-gatekeeper, issue-to-content, agentic-validator, perfection-loop, pr-gate, pr-editor, autonomy-loop) → **28 archetypes** with precedence fixes. Audit engine: `loop-safety` is now a real **self-retrigger model** (maps each sink to the event it emits; a `pull_request:` trigger with no `types:` still counts as synchronize-subscribed) so disciplined repos stop being under-graded; added `gate-job`/`concurrency-singleton` guards and a **`pin-sha`** reward rule → **15 rules**. UI: a fifth **Workflows** board (cost-cap column) + a **`WorkflowDrawer`** management slide-over wiring the maintain actions — Run now, Re-run last failure, Cancel, **Arm/Disarm the `*_ENABLED` gate** (delivers FF-0013), Enable/Disable — each behind an explicit confirm. Adversarially reviewed (each finding independently verified); the 5 confirmed findings fixed with regressions — including two loop-safety false-*negatives* the rewrite had introduced (a bare `pull_request:` with no `types:` defaults to include `synchronize`; a PR label re-emits `pull_request(labeled)`). **35 test files, 443 tests** (+73), typecheck + prod build green, browser-verified against a seeded it-journey fleet.
-- ✅ Fleet Ops — the fleet-wide cockpit (ADR-020): the Fleet tab gained a **Command** mode
-(the single-repo map is now the **Observe** toggle) that scans a *roster* of repos and renders a game-like cockpit to monitor/review/analyze/align/improve their Actions org-wide. Three pure engines in `app/src/fleet/`: **`facts.ts`** (deep per-workflow facts — resolves the `claude-run` composite AI path, kill switches in env/run/if, cross-repo + token-chain privilege, dormant crons, `⚙ GENERATED` provenance; **21 archetypes** + the dash cost type), **`metrics.ts`** (an exact TS port of the dash's `actions_analytics.py` — cost=wall-clock-min/effectiveness/waste/ p95/flags/`priority` — plus **rework** via a new `FactoryRun.runAttempt` and **queue latency**), and **`audit.ts`** (14 alignment rules encoding the fleet's own conventions → 0–100 score + S–D grade with per-finding fixes). Roster imports a hub's `.gitmodules` (`manifest.ts`); the first **multi-repo** store (`state/fleetops.ts`) does a user-driven concurrency-3 scan and persists slugs only (never tokens). Cockpit (`panels/FleetOpsPanel.tsx`): HUD + **Districts** (LED-wall repo cards + grades), **Rankings** (offender/slowest/rework/hall-of-fame boards), **Audit** (certification table + one-click work-order issue filing with a dedup marker), and **Schedule** (24h cron congestion + armed/disarmed kill switches + dormant automation). New client methods (`listRepoWorkflows`/`rerunRun`/`setWorkflowEnabled`/`createIssue`). Validated against the real `zer0-mistakes` + `lifehacker.dev` fleets (19 verbatim fixtures) and live in-browser (all four boards). Adversarially reviewed (multi-agent, each finding independently verified) and the 10 confirmed findings fixed with regressions. **34 test files, 370 tests**, typecheck + prod build green.
-- ✅ Frontend framework refactor (ADR-019): decluttered the shell — the global top bar is now only
-logo · nav · connection · power; Build-context actions moved to a per-view **BuildToolbar** (undo/redo · Templates · **Blueprint ▾** dropdown · LEDs · Deploy) backed by a new accessible **Menu** primitive. **Token unification**: newer panels referenced undefined `--border`/`--muted`/ `--accent`/`--input` (off-palette GitHub fallbacks) — added them as aliases to the industrial palette in `:root`, so every tab is now consistent. **Capability drill-down**: pure `describeWorkflow(yaml)` parses compiled YAML → the Inspector shows an agent's **Capabilities · compiled** (granted tools as readable phrases, token permissions, obligations, kill-switch) and Monitor lines are expandable to the same facts. **28 test files, 220 tests**, typecheck + build green, browser-verified.
-- ✅ AO-SDLC merged from law-ai (ADR-022): `BACKLOG.md` (append-only `BL-*` register; 35 items migrated from ROADMAP § Backlog) + `specs/NNN-slug/` packages + the `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` chain + `/evolve` autopilot, all as self-contained `.claude/commands/`; stdlib gates in `tools/` (spec_validator, backlog_lint, next_backlog_id, pick_backlog_item, evolve_audit); SessionStart orientation + PostToolUse blocking hook via `.claude/settings.json`; CI `spec-gate` job; kill-switched weekly `evolve.yml` (`EVOLVE_AUDIT_ENABLED`, default-OFF per the ADR-017 convention); read-only `golden-rules-reviewer` + `backlog-triager` agents; golden rule #11; `docs/AO-SDLC.md` guide. Seeds 00–07 closed as the historical bootstrap era. Adversarially reviewed (five-lens multi-agent pass, findings independently verified): 16 confirmed defects fixed with regression proofs — incl. a lifecycle blocker in the template-placeholder gate, a CI-vacuous append-only check (fixed via `BACKLOG_LINT_BASE=HEAD^1`), and a dedup-truncation bug inherited from the law-ai original. Bonus: defused the `fleetops.test.ts` date bomb that had CI on main red since 2026-07-30 (clock pinned; sweep filed as BL-20260817-01). **35 test files, 443 tests**, typecheck + prod build green, all four stdlib gates + both hooks smoke-verified.
-- ✅ Issue sweep + law-ai factory (ADR-023/024, specs/001+002 — the first two AO-SDLC spec packages, both shipped): adopted draft PR #37's **promptRef read-grant invariant** (the Factory-3 max-turns starvation incident; `Read`/`Glob`/`Grep` + survey `gh pr checks`, regression + 5-shape invariant table) and **regenerated all four deployed `factory--*.yml`** to carry it; invariant tests for the last two untested machines (`filter.condition`, `sink.commit_files` — 10 tests); **21-branch per-type config subschemas** in the blueprint schema + a dependency-free registry↔schema drift guard; committed `regen-examples.ts` (idempotent) + fresh golden anchors (deterministic no-agent line, PR-triggered line); UI polish (blob-revoke-after-click, `say()` timer, Inspector `NumberInput` blanking, `ErrorBoundary` "Line jam" + tests); **ESLint 10 flat config + Prettier + `npm run lint` in CI** (0 errors); Pages deploy `workflow_run`-gated on CI success; date-fixture sweep (8 candidates traced, all clean). And the first cross-repo dogfood: **GitFactory now builds/manages law-ai's AI orchestration** — `ao-sdlc-autopilot` gallery template + `app/scripts/gen-aosdlc-factory.ts` (target-repo generator) → three default-OFF lines installed in law-ai (evolve-pilot weekly, backlog-triage monthly, issue-concierge on issues; blueprints + prompts + compiled workflows, no merge grants, bot-guarded, `*_ENABLED` kill switches) with law-ai-side governance (its specs/037 + claimed BL, validators green). Cross-repo editing surfaced + fixed a `gate-check.sh` cwd-derived-root bug (ADR-024). **471 tests / 38 files**, lint 0 errors, typecheck + prod build green, both repos' AO-SDLC gates green.
-- ✅ Autonomous loop session, 7 cycles (ADR-025…030, specs/003–008 — all shipped spec-first through the AO-SDLC gates): **law-ai framework backport** (its spec 038: stage-aware validator, CI-effective append-only lint, audit dedup/insert/provenance fixes, evolve.yml pipefail + captured output, cwd-safe hook, picker/id-minter promoted to main); **`checks` verification grants** on `agent.claude` (exact-command `Bash(<cmd>:*)` + VERIFY obligation; law-ai's pilot/triage lines regenerated with the two validators); **SHA-pinned actions mode** (`meta.pinActions`, upstream-verified `PINNED_ACTIONS` table + two-way drift guard); **label-gated merge line** (`fireOn: labeled` + exact-label guard + terminal merge — ADR-015's structural closure — + `label-gated-automerge` template); **per-line names** (`meta.lineNaming: 'auto'`, shared between `compile()` and `assemblyLines()`); and the complete **inter-repo belt** — `trigger.repository_dispatch` (📡) + `sink.repository_dispatch` (📤) with `client_payload.number` entity plumbing, endpoint-exact grants, and compile-time self-dispatch-loop refusal. **23 machine types**, **501 tests / 38 files**, lint 0, typecheck + prod build green, both repos' AO-SDLC gates green after every cycle.
-- ✅ The perfection loop (ADR-031): ported the framework behind it-journey's
-`quest-perfection.yml` as four buildable machines — **`processor.ledger`** (a committed ledger, not a model, chooses the work: emits a deterministic `plan` job before the line and a `report` job after that recomputes "done" from sealed evidence and opens ONE ledger-scoped PR), **`gate.budget`** (backpressure clamped to human review speed — planning pauses once `maxOpenPrs` are already awaiting review), **`processor.evidence`** (measurement sealed as a plain workflow step BEFORE the agent, uploaded as the durable handoff — the agent can never manufacture the evidence it is graded on, and Claude Code scrubs auth from Bash-tool subprocesses so an engine inside an agent could not authenticate anyway), and **`gate.verified_fix`** (an independent command's exit code decides whether an edit survives; a failing check reverts the tree). The line gained `strategy.matrix: fromJson(needs.plan.outputs.matrix)` at `max-parallel: 1` — the rotating window. **27 machine types**, schema-synced + drift-guarded, plus a **Perfection Loop** template. Model selects refreshed to the current Claude family (`claude-opus-5-5` default). Verified after merging main's AO-SDLC work.
-- ✅ The browser demo (ADR-032, specs/009-demo-environment): five of the seven tabs used to be dead
-without a PAT, which made the Pages deployment — the shop window — mostly unusable to a first-time visitor. Fixed with **one substitution, not a mode**: `app/src/demo/` implements the existing `GithubClient` (22 methods + `login`) over committed fixtures and puts *that* in the store, so every panel comes alive with no `if (demo)` branch anywhere and the **real** `compile()`/`facts`/`metrics`/`audit` engines run over the fixture data (a test asserts the served `factory--*.yml` is byte-identical to `compile()` output). A three-repo fictional fleet — `acme/storefront` (C: an ungated nightly), `acme/infra` (B), `acme/design-system` (A) — deliberately imperfect so the Audit and Rankings boards have something to say; run history generates backwards from an **injected clock**, never hard-dated. Writes land in a session-only in-memory overlay; entering clears any live session *and* the sessionStorage PAT; there is no `fetch` and no token in the demo client at all. Entry via `?demo=1` or an "explore the demo" button in each empty state, a persistent banner, and a seven-step keyboard-navigable tour. Verified in Chromium with every `api.github.com` request aborted: all seven tabs non-empty, Fleet Command scanned 3/3 repos (287 runs, grades C/B/A), **0 network attempts, 0 console errors**; +23.3 kB raw JS against a 200 kB budget. **42 test files, 546 tests**, lint 0, typecheck + prod build green.
-- ✅ Open-PR sweep (ADR-033): 28 open PRs → 0. Merged the four clean ones (nanoid advisory lockfile refresh, vitest/user-event + jsdom 30 bumps, the self-healing `markdown-oneline` CI); replaced Dependabot's hand-edit of generated `factory--*.yml` with a **compiler bump to `actions/checkout@v7`** (SHA-verified pin, every compiled artifact regenerated — which also flushed ADR-029/030 drift from the deployed lines); consolidated 18 unverified `wtd`-fleet doc drafts into **`docs/GENERATED-FILES.md`** (what is generated, header + hash, regen scripts, determinism, real pinning procedure) plus README layout/commands/cross-links; closed the rest with pointers (already-on-main branches, dependabot.yml rewrites that dropped the npm ecosystem). **546 tests / 42 files**, lint 0 errors, build green, all gates green.
-- ✅ Archify maps (ADR-034, specs/010-archify-maps): the user asked to rebuild the framework around `tt-a1i/archify`; verified first that it is a JSON-IR → interactive HTML/SVG *renderer* + agent skill (no components, Node-only), and adopted it where it fits — vendored at a pinned commit (`vendor/archify/`, 2.1 MB, MIT, renders + validates with no npm deps), a **pure** `app/src/archify/ir.ts` (`toWorkflowIR` per assembly line with role lanes, depth columns, collision resolution, `mainPath`, a drawn ADR-009 bot guard in an exception lane, "+N more" collapse; `toArchitectureIR` per fleet with per-repo boundaries and a 12-component budget) + a machine→semantic-colour `vocabulary.ts` with a registry drift guard; `npm run maps` generates the eight dogfood + demo maps into `app/public/maps/` (GENERATED header, fonts link stripped, `archify check` + showcase-validated) and `maps:check` + a CI `diagram-gate` keep them byte-exact; the skill is installed at `.claude/skills/archify`. All maps pass archify's showcase gate. Companion specs to come: design-token migration to archify's DESIGN.md and the in-app Map surfaces (Build drawer, Fleet Observe replacement, Docs embeds). **44 test files, 566 tests**, typecheck + lint + prod build green.
-- ✅ The Evidence Console (specs/011-evidence-console, ADR-034 Tier A): archify's `DESIGN.md` is now the app's design system — `theme.css` defines the seven semantic tones (`--c-frontend`…`--c-external`) + roles (`--accent`/`--ok`/`--warn`/`--danger`), DESIGN.md radii/motion, mono-forward chrome (prose keeps sans), and a **light theme as a peer** (system preference or a Settings pin that stamps `data-theme`; light signal hues darkened to AA). The copper/steel names survive only as transitional aliases; machines on the canvas and in the palette carry `machine--c-<tone>` from `vocabulary.ts`, so a gate is rose and an agent is green on the canvas *and* on the maps. Zero colour literals outside `theme.css` (`theme.test.ts` enforces it). Verified in the demo: a computed WCAG audit over all seven tabs × both themes — 0 failures (bar React Flow's own attribution link). **45 test files, 571 tests**, typecheck + lint + build green.
-- ✅ The archify console (specs/013-archify-console, ADR-035): the app itself now behaves like the instrument the maps come from. A third pure consumer of the data model, `app/src/map/layout.ts`, turns the archify IR into positioned geometry with archify's *own* constants (680 px lane frame, six column x's, 92 × 52 nodes; the grid cell math and 30/50 boundary padding) so the in-app map and the delivered map share a coordinate frame; `MapView` draws it as inline SVG with the same `c-<type>` classes and carries archify's reader model — Semantic Passport (stable id, kind, authored Upstream/Downstream reach in violet/green with a receipt, host sections), `/` Node Finder, guided views, zoom, text-labelled evidence beacons. **Build** gained `Floor | Map` (every line live from `toWorkflowIR`, selection shared both ways, a machine passport with dials + diagnostics + compiled capabilities + *Edit on the floor*, the bot guard explained in its own passport); the palette became the floating **Machine Finder** and the Inspector the floating **Machine Passport** (no permanent columns — DESIGN.md's rule), with a Blueprint passport on the toolbar title. **Fleet Observe** renders `toArchitectureIR(fleet, { cap: all })` through the same surface with run-status beacons and a workflow passport; the React Flow fleet canvas (`FleetCanvas`/`WorkflowNode`/`fleet/layout.ts`) is retired. **Docs** embed delivered maps via `::map <slug> [caption]` → `DiagramFrame` (same-origin iframe, `embed=1`, theme parity), resolved through `app/public/maps/manifest.json` (written by `gen-maps`, byte-checked by `maps:check`, imported at build time — no fetch). Chrome grammar as `app/src/ui/` primitives (PageHeader, Panel, Cards, Chip, Kbd, Eyebrow, SearchField, Beacon) on every tab; `.btn` on the toolbar-button recipe; tabs as chips; the viewer's three-state theme toggle on `T`. Map surfaces are a lazy chunk (35 kB raw) — initial JS +9 kB raw / +4 kB gzip. Chromium pass on the demo, both schemes, 19 screens each: zero console errors from app code, zero `api.github.com` requests, no horizontal overflow. **50 test files, 598 tests**, lint 0 errors, typecheck + prod build + `maps:check` green, all AO-SDLC gates green.
-- ✅ Harness parity (specs/014-harness-parity, ADR-036): the user asked for GitFactory to match the hub's `/harness/` page and integrate tightly with the bamr87 monorepo — GitFactory designs, models and deploys agent harnesses; the hub presents and monitors them on Jekyll. Verified first what the hub commits (a generated `_data/harness_health.yml` from four `_data/*.yml` signals, thresholds in `_data/fleet.yml`, no registry file). **`app/src/harness/`**: a pure TS port of `dash-gen harness` (`health.ts` — nine-metric scorecard + six trip wires, Python `round`/float-format parity) with a **golden test** that reproduces the hub's committed health file from its committed inputs at the pulse commit `bamr87/bamr87@00fa7ae`; a live adapter (`signals.ts`) so the same wires run over a Fleet Ops scan; the **`fleet/v1` bridge** (`lanes.ts`: blueprint → lanes, manifest → lanes, a parity test against this repo's `wtd`-written `fleet.manifest.yml`; `manifest-yaml.ts` emits one); **design readiness** (`readiness.ts`: the six layers + the twelve-row checklist from compiler facts); one **`HarnessCard`** on the floor's Blueprint passport (lazy `BlueprintLanes`), in Fleet Observe's passport (the import now fetches `fleet.manifest.yml`), and on the tab. A read-only **hub store** (`state/hub.ts`, default `bamr87/bamr87`, slug persisted, `hubread.ts` lazy) re-derives the committed file in-app and prints a computed parity note. The **eighth tab, Harness**, is the hub's page anatomy in the console's tokens (KPI row, snapshot line, Trip wires, Scorecard, the hub's five diagrams embedded, then readiness + lanes) over Hub or Live sources; Settings hub field; tour step; `?tab=harness&hub=`. Demo: a fictional `acme/hub` generated by the real engine at first read (one tripped wire) and a compiled manifest on `acme/storefront`. Bundle: engine in lazy chunks, initial JS **+6.4 kB raw / +1.4 kB gzip** (first cut was +28 kB). Chromium pass, both schemes: 0 console errors, 0 `api.github.com` requests, no overflow. **57 test files, 639 tests**, lint 0 errors, typecheck + build + `maps:check` green, all AO-SDLC gates green.
-- ✅ Fleet runner by reference (ADR-037): after the fleet centralized its AI runner in the hub (`bamr87/bamr87` kit `ai-runner`: the `claude-run` composite + reusable `ai-lane.yml`, consumed at `@main`), Fleet Ops facts carry `ai.hubRunner` / `ai.vendoredRunner`, a caller of the reusable lane counts as an AI workflow, the rulebook gained `vendored-runner` (warn: a local copy of the runner), and Observe names the reference. Compiling TO the hub runner stays spec-first (BL-20260908-01).
-- ✅ A fleet is a link (ADR-038): `?tab=fleet&roster=owner/a,owner/b` adds repos to the persisted Fleet Ops roster on load, so an operator bookmarks ONE URL that observes and operates a chosen set of repos' loops (the content fleet's: `?tab=fleet&roster=bamr87/lifehacker.dev,bamr87/irony-works`). Pure parser in `state/deeplink.ts`; storage guards fixed for Node 22+ so CI (and therefore Pages) is green again.
-- ⬜ Parked (with reasons in ROADMAP): OODA dispatcher + computed-matrix fan-out + work-leasing
-(ADR-017, Phase 8 tail), belt mode (Phase 6.1), §8 red-team pass, GitHub App device flow (Phase 7 — blocked on browser CORS; needs the optional worker), `repository_dispatch` trigger + combined-canvas inter-repo belts (Fleet C tail).
-- Known rough edges: multi-line blueprints name files by `<meta.name> <index>` (no per-line
-names); v0 belt mode not yet (agent-obligation mode only). `@types/node` added to tsconfig for node-context tests. The in-app workflow map keeps archify's four-node lane capacity (BL-20260902-04); the floor's Machine Passport has no authored-reach trace yet (BL-20260902-08).
+Member of the bamr87 fleet. The standards live in the hub: <https://github.com/bamr87/bamr87/tree/main/specs> (the Universal Project Standard). The repo's SDLC declaration is `.github/sdlc.yml`. gitorio is a submodule of `bamr87/bamr87`: commit and push here first; the hub bumps its pointer afterwards. Loops that act on this repo: the hub's fan-outs (standardize, sdlc and harness kits arrive as PRs), the shared `standard-ci.yml` and `fleet-conformance.yml` gates called from CI, the hub's daily fleet-pulse doctor (draft fix PRs for failing workflows), and this repo's own `@claude` handler, `evolve.yml` and kill-switched `factory--*` lines.
 
-## Repo map
+## Standard deviations
 
-```
-CLAUDE.md                  ← you are here
-BACKLOG.md                 ← append-only BL-* work register (AO-SDLC intake; lint-gated)
-specs/                     ← spec packages NNN-slug/{spec,plan,tasks}.md + _template/
-docs/AO-SDLC.md            ← the spec-driven loop: stages, gates, invariants
-docs/ARCHITECTURE.md       ← full design: auth phases, compiler spec, security model
-docs/ROADMAP.md            ← phases + acceptance history (§ Backlog frozen → BACKLOG.md)
-docs/DECISIONS.md          ← ADR-lite log; append, never rewrite history
-seeds/                     ← historical: the bootstrap-era session prompts (00–07)
-tools/                     ← stdlib gates: spec_validator · backlog_lint · picker · id-minter · evolve_audit · unwrap-prose
-.claude/commands/          ← /add-machine, /compile-check, /session-log + AO-SDLC: /specify /clarify /plan /tasks /implement /evolve
-.claude/agents/            ← golden-rules-reviewer · backlog-triager (read-only)
-.claude/hooks/             ← session-start orientation · gate-check edit blocker
-schema/blueprint.schema.json
-.factory/                  ← this repo dogfoods itself: blueprints, prompts, config.yml
-_docs/                      ← docs collection rendered in the app's Docs tab + tended by the Docs Gardener
-examples/compiled/         ← reference compiler output (what compile.ts converges to)
-app/                       ← the static frontend (Vite + React + @xyflow/react)
-app/src/fleet/             ← Fleet Ops engines: facts · metrics · audit · manifest (+ fixtures/ real workflows)
-app/src/state/fleetops.ts  ← the multi-repo cockpit store (roster scan → facts/audit/metrics)
-app/src/demo/             ← the tokenless demo: fixture GithubClient + seed + tour (?demo=1)
-app/src/archify/           ← pure Blueprint/Fleet → archify IR compiler + machine→colour vocabulary (ADR-034)
-app/src/map/               ← the console: pure IR → geometry layout, MapView/Passport/Finder (inline SVG), DiagramFrame, the delivered-map manifest (specs/013)
-app/src/ui/                ← archify's chrome grammar as React primitives: PageHeader · Panel · Cards · Chip · Kbd · Eyebrow · SearchField · Beacon
-app/src/harness/           ← the hub's harness engine (specs/014): health (dash-gen port + golden fixtures) · signals (live adapter) · lanes (fleet/v1 bridge) · readiness · HarnessCard · hubread
-app/src/state/hub.ts       ← the read-only hub source (default bamr87/bamr87; slug persisted, never a token)
-app/public/maps/           ← generated archify maps (npm run maps; CI diagram-gate) — never hand-edit
-vendor/archify/            ← pinned tt-a1i/archify renderer (VENDOR.md records the commit); also .claude/skills/archify
-blog/drafts/               ← session logs headed for the it-journey repo
-```
+none
