@@ -1,0 +1,132 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "wtd"
+version = "0.2.0"
+description = "WTD – What To Do: a standalone, autonomous AI agent fleet platform for the whole SDLC"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "WTD Team" }
+]
+keywords = ["todo", "ai", "agents", "automation", "claude", "sdlc", "orchestration", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
+# Core dependencies. The default provider chain is Claude Code OAuth
+# (subscription, via the claude CLI) with the Anthropic API as fallback —
+# so the anthropic SDK is core. Legacy providers (ollama, openai) are extras.
+dependencies = [
+    "typer[all]>=0.9.0",
+    "rich>=13.7.0",
+    "textual>=0.47.0",
+    "httpx>=0.26.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "anthropic>=0.40.0",
+    "pyyaml>=6.0.1",
+    "gitpython>=3.1.40",
+    "watchfiles>=0.21.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.25.0",
+    "aiosqlite>=0.19.0",
+    "sqlalchemy>=2.0.25",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+openai = [
+    "openai>=1.6.0",
+]
+ollama = [
+    "ollama>=0.1.6",
+]
+# Kept for compatibility with older install docs; anthropic is core now.
+anthropic = [
+    "anthropic>=0.40.0",
+]
+all = [
+    "openai>=1.6.0",
+    "ollama>=0.1.6",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "openai>=1.6.0",
+    "ollama>=0.1.6",
+]
+
+[project.scripts]
+wtd = "wtd.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/bamr87/wtd"
+Documentation = "https://github.com/bamr87/wtd/blob/main/docs/FLEET.md"
+Repository = "https://github.com/bamr87/wtd"
+
+[tool.hatch.build.targets.wheel]
+packages = ["wtd"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+# Modules below are excluded from lint enforcement until the formatting /
+# whitespace cleanup pass scheduled in the refactor plan (Phase 0/8).
+# New code (tests/, wtd/config.py, wtd/api/app.py, wtd/cli.py, wtd/core/agent.py,
+# wtd/providers/, wtd/fleet/, wtd/ui/fleet_output.py)
+# is fully linted. The intent is to shrink this list over time, never grow it.
+extend-exclude = [
+    "wtd/core/models.py",
+    "wtd/core/routines.py",
+    "wtd/core/scanner.py",
+    "wtd/core/tree.py",
+    "wtd/core/tree_store.py",
+    "wtd/core/workspace.py",
+    "wtd/db/models.py",
+    "wtd/db/repository.py",
+    "wtd/ui/dashboard.py",
+    "wtd/ui/output.py",
+    "wtd/ui/routines_output.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# Multi-line LLM prompt strings exceed the line-length budget by design.
+"wtd/core/agent.py" = ["E501"]
+"wtd/fleet/roles.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+# The codebase is clean at this setting (0 errors), so CI GATES on mypy —
+# see .github/workflows/ci.yml. Full `strict = true` is still the eventual
+# goal; tighten a flag at a time, keeping the error count at zero.
+strict = false
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]

@@ -16,7 +16,7 @@ GitFactory is a **Factorio-style factory builder for GitHub automation**. Users 
 | **Passport** | archify's Semantic Passport: the one proof surface a focused machine or workflow opens — stable id, kind, dials, evidence, authored reach; there are no permanent side panels |
 | **Finder** | archify's Node Finder: `/` opens it on the floor (to add a machine) and on every map (to focus a node) |
 | **Harness** | The hub's six-layer model — guides, sensors, bounded loop, memory, permissions, observability. GitFactory designs it (readiness per line); the hub presents and monitors it (`_data/harness_health.yml`); the Harness tab renders the hub's `/harness/` page from the same engine (specs/014, ADR-036) |
-| **Lane** | A `fleet/v1` record of one line (`fleet.manifest.yml`: id, kind, harness, triggers, switch, tokens, guardrails) — the interchange contract with the hub and `wtd`; one `HarnessCard` draws it everywhere |
+| **Lane** | A `fleet/v1` record of one line (`fleet.manifest.yml`: id, kind, harness, triggers, switch, tokens, guardrails) — the interchange contract with the hub and `wtd` (`packages/wtd/`, spec in `packages/wtd/docs/FLEET-SPEC.md`); one `HarnessCard` draws it everywhere |
 | **Trip wire** | One of the hub's six alarms (stale-data, pass-rate-floor, waste-ceiling, cost-spike, standing-failures, credential-overdue) — an attention item, never an action |
 | **Hub** | The Jekyll monorepo (`bamr87/bamr87` by default) that presents and monitors the fleet; read-only from GitFactory — one persisted slug, never a token, never a write |
 
