@@ -80,7 +80,7 @@ Regenerate with `cd app && npm run maps` (maps), `npm run reference` (machine re
 | **Passport** | archify's Semantic Passport: the one proof surface a focused machine or workflow opens; there are no permanent side panels |
 | **Finder** | archify's Node Finder: `/` opens it on the floor (add a machine) and on every map (focus a node) |
 | **Harness** | The hub's six-layer model (guides, sensors, bounded loop, memory, permissions, observability). GitFactory designs it; the hub monitors it (`_data/harness_health.yml`); the Harness tab renders the hub's page from the same engine (ADR-036) |
-| **Lane** | A `fleet/v1` record of one line in `fleet.manifest.yml` — the interchange contract with the hub and `wtd`; one `HarnessCard` draws it everywhere |
+| **Lane** | A `fleet/v1` record of one line in `fleet.manifest.yml` — the interchange contract with the hub and `wtd` (`packages/wtd/`, spec in `packages/wtd/docs/FLEET-SPEC.md`); one `HarnessCard` draws it everywhere |
 | **Trip wire** | One of the hub's six alarms (stale-data, pass-rate-floor, waste-ceiling, cost-spike, standing-failures, credential-overdue) — an attention item, never an action |
 | **Hub** | The bamr87/bamr87 monorepo that presents and monitors the fleet; read-only from GitFactory — one persisted slug, never a token, never a write |
 
@@ -131,3 +131,7 @@ Member of the bamr87 fleet. The standards live in the hub: <https://github.com/b
 ## Standard deviations
 
 none
+
+## Governance
+
+Read [`docs/constitution.md`](docs/constitution.md) before changing anything: it is the highest-precedence rule set here and wins over this file when they disagree. It changes only through a numbered record in [`docs/amendments/`](docs/amendments/), ratified by the maintainer merging the PR; agents propose, never merge. Every user-facing feature has a stable id in [`features/features.yml`](features/features.yml) with `status`, location and the PRD requirement ids it serves; the PRD's "Feature catalog" block is generated from it (`python3 <bamr87/bamr87>/tools/governance_lint.py prd-sync . --write`; check with `… check .`). Never hand-edit that block or `CHANGELOG.md`.
