@@ -65,6 +65,7 @@ export const VOCABULARY: Record<string, VocabularyEntry> = {
   'processor.evidence': { component: 'database', lane: 'agent', label: 'Evidence' },
   'gate.verified_fix': { component: 'security', lane: 'policy', label: 'Verified fix' },
   'processor.feedback_controller': { component: 'backend', lane: 'agent', label: 'Loop tuner' },
+  'processor.issue_batcher': { component: 'backend', lane: 'agent', label: 'Issue sorter' },
   'sink.comment': { component: 'frontend', lane: 'sinks', label: 'Comment' },
   'sink.label': { component: 'frontend', lane: 'sinks', label: 'Label' },
   'sink.create_issue': { component: 'frontend', lane: 'sinks', label: 'Create issue' },

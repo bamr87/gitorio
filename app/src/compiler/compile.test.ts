@@ -505,6 +505,14 @@ describe('compile: gate.approval / rate.limiter / cross_repo_issue (agent patter
     }).workflows[0];
     expect(wf.yaml).toContain('🚥 rate.limiter (rl)');
     expect(wf.yaml).toContain('LIMIT: "4"');
+    // the limiter runs BEFORE checkout, so gh has no git dir — it must get GH_REPO or it
+    // dies with "failed to determine base repo" (found live, lifehacker.dev run 28769878311)
+    const limiterStep = wf.yaml.slice(wf.yaml.indexOf('rate.limiter'), wf.yaml.indexOf('gh run list'));
+    expect(limiterStep).toContain('GH_REPO: ${{ github.repository }}');
+    // gh run list counts the CURRENT run too — the N-th run sees COUNT=N, so the guard
+    // must be -gt (allow exactly N working runs/day); -ge stopped run N (off-by-one).
+    expect(wf.yaml).toContain('"$COUNT" -gt "$LIMIT"');
+    expect(wf.yaml).not.toContain('"$COUNT" -ge "$LIMIT"');
     expect(wf.yaml).toContain('actions: read');
     // the limiter step precedes the agent step
     expect(wf.yaml.indexOf('rate.limiter')).toBeLessThan(wf.yaml.indexOf('agent.claude'));
@@ -742,6 +750,124 @@ describe('blueprintPath header override (standalone/named blueprints)', () => {
   });
 });
 
+// ── ADR-040: issue-processing pipeline (issue batcher + fix line) ─────────
+
+describe('processor.issue_batcher — the intake sorter (issue factory)', () => {
+  const batcherLine = (config: Record<string, unknown> = {}): Blueprint => ({
+    version: 1,
+    meta: { name: 'Issue Batcher' },
+    nodes: [
+      node('t', 'trigger.cron', { cron: '0 6 * * 1-5' }),
+      node('b', 'processor.issue_batcher', {
+        promptRef: '.factory/prompts/issue-batcher.md',
+        model: 'claude-sonnet-5-5',
+        maxGroupSize: 4,
+        maxTurns: 30,
+        ...config,
+      }),
+    ],
+    edges: [edge('e1', 't', 'b')],
+  });
+  const wf = compile(batcherLine()).workflows[0];
+
+  it('compiles clean to a claude-code-action step carrying the built-in batching contract', () => {
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('anthropics/claude-code-action@v1');
+    expect(wf.yaml).toContain('issue_batcher');
+    for (const phase of ['SURVEY', 'ASSESS', 'GROUP', 'FILE WORK ORDERS', 'MARK']) {
+      expect(wf.yaml).toContain(phase);
+    }
+  });
+
+  it('speaks the shared label protocol the fix line consumes', () => {
+    expect(wf.yaml).toContain('factory:work-order');
+    expect(wf.yaml).toContain('factory:queued');
+    expect(wf.yaml).toContain('factory:needs-human');
+  });
+
+  it('threads maxGroupSize into the context and the contract', () => {
+    expect(wf.yaml).toContain('MAX_GROUP_SIZE: 4');
+    expect(wf.yaml).toContain('at most 4 issues');
+    const small = compile(batcherLine({ maxGroupSize: 2 })).workflows[0];
+    expect(small.yaml).toContain('MAX_GROUP_SIZE: 2');
+    expect(small.yaml).toContain('at most 2 issues');
+  });
+
+  it('grants issue read/label/comment/create — and NEVER file-editing or git/PR verbs', () => {
+    expect(wf.yaml).toContain('Bash(gh issue list:*)');
+    expect(wf.yaml).toContain('Bash(gh issue view:*)');
+    expect(wf.yaml).toContain('Bash(gh issue create:*)');
+    expect(wf.yaml).toContain('Bash(gh label create:*)');
+    expect(wf.yaml).toContain('Bash(gh issue comment:*)');
+    // the sorter must not be able to fix: no Edit/Write, no git verbs, no PR verbs
+    expect(wf.yaml).not.toMatch(/Read,Glob,Grep,Edit,Write/);
+    expect(wf.yaml).not.toContain('Bash(git push:*)');
+    expect(wf.yaml).not.toContain('Bash(gh pr create:*)');
+    expect(wf.yaml).not.toContain('Bash(gh pr merge:*)');
+  });
+
+  it('computes least-privilege permissions: issues write, contents read-only, and checks out the code for grouping', () => {
+    expect(wf.yaml).toContain('issues: write');
+    expect(wf.yaml).toContain('contents: read');
+    expect(wf.yaml).not.toContain('contents: write');
+    expect(wf.yaml).not.toContain('pull-requests: write');
+    expect(wf.yaml).toContain('id-token: write');
+    expect(wf.yaml).toContain('actions/checkout@v7');
+  });
+
+  it('cron line → no bot loop-guard; its own work-order issues cannot retrigger it', () => {
+    expect(wf.yaml).not.toContain("sender.type != 'Bot'");
+    expect(wf.yaml).not.toContain('issues:\n  types');
+  });
+
+  it('a plan-first manual run flips the batcher into a report-only dry run', () => {
+    const planned = compile({
+      version: 1,
+      meta: { name: 'Planned Batcher' },
+      nodes: [
+        node('m', 'trigger.manual', { mode: 'plan-first' }),
+        node('b', 'processor.issue_batcher', {}),
+      ],
+      edges: [edge('e1', 'm', 'b')],
+    }).workflows[0];
+    expect(errs(planned)).toHaveLength(0);
+    expect(planned.yaml).toContain('PLAN/APPLY MODE');
+    expect(planned.yaml).toContain('APPLY: ${{');
+  });
+
+  it('carries no downstream-sink warning — the contract IS its obligations', () => {
+    expect(wf.diagnostics.some((d) => /no downstream sinks/.test(d.message))).toBe(false);
+  });
+});
+
+describe('issue-factory fix line — a survey agent consumes work orders and opens ONE PR', () => {
+  const wf = compile({
+    version: 1,
+    meta: { name: 'Issue Fixer' },
+    nodes: [
+      node('t', 'trigger.cron', { cron: '0 7 * * 1-5' }),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/issue-fixer.md', maxTurns: 40 }),
+      node('pr', 'sink.open_pr', { branchHint: 'factory/issue-*' }),
+      node('cm', 'sink.comment', { instruction: 'links the fix PR on every member issue' }),
+    ],
+    edges: [edge('e1', 't', 'a'), edge('e2', 'a', 'pr'), edge('e3', 'a', 'cm')],
+  }).workflows[0];
+
+  it('grants gh issue view — a survey agent must be able to READ the work orders it discovers', () => {
+    expect(errs(wf)).toHaveLength(0);
+    expect(wf.yaml).toContain('Bash(gh issue list:*)');
+    expect(wf.yaml).toContain('Bash(gh issue view:*)');
+  });
+
+  it('can edit files, branch, and open the PR — but never merge it', () => {
+    expect(wf.yaml).toMatch(/Read,Glob,Grep,Edit,Write/);
+    expect(wf.yaml).toContain('Bash(gh pr create:*)');
+    expect(wf.yaml).not.toContain('Bash(gh pr merge:*)');
+    expect(wf.yaml).toContain('contents: write');
+    expect(wf.yaml).toContain('pull-requests: write');
+  });
+});
+
 describe('open_pr / commit_files grant file-editing tools (agent must change files first)', () => {
   it('open_pr grants Read/Edit/Write plus the git verbs and gh pr create', () => {
     const yaml = compile({
@@ -796,7 +922,7 @@ describe('prompt/grant coherence: an agent ordered to read its promptRef can rea
   it('emits the exact expected grant, in Set-insertion order (cron → survey → read → sinks)', () => {
     const { yaml } = compile(factory3).workflows[0];
     expect(yaml).toContain(
-      '--allowedTools "Bash(gh issue list:*),Bash(gh search issues:*),' +
+      '--allowedTools "Bash(gh issue list:*),Bash(gh search issues:*),Bash(gh issue view:*),' +
         'Bash(gh pr list:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),' +
         'Read,Glob,Grep,' +
         'Bash(gh issue comment:*),Bash(gh pr comment:*),' +

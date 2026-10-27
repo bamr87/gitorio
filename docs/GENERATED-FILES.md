@@ -10,9 +10,10 @@ This page is the one place that says which files in this repo the **compiler** a
 
 | Generated path | Source of truth | Regenerate with (from `app/`) |
 | --- | --- | --- |
-| `.github/workflows/factory--gitorio-factory-{1,2,3,4}.yml` | `.factory/blueprint.json` (+ prompts in `.factory/prompts/`) | `compile()` over the blueprint — the app's **Deploy** button, or a one-off `vite-node` script that calls `compile(bp, { blueprintPath: '.factory/blueprint.json' })` and writes each `{ filename, yaml }` |
+| `.github/workflows/factory--gitorio-factory-{1,2,3,4}.yml` | `.factory/blueprint.json` (+ prompts in `.factory/prompts/`) | `compile()` over the blueprint — the app's **Deploy** button, or `npx vite-node scripts/compile-blueprint.ts ../.factory/blueprint.json ../.github/workflows .factory/blueprint.json` (refuses to write on an error diagnostic) |
 | `.github/workflows/factory--docs-gardener.yml`, `.factory/docs-gardener.blueprint.json`, `.factory/config.yml` | the `docs-gardener` gallery template in `app/src/templates/catalog.ts` + `app/src/content/model.ts` | `npx vite-node scripts/gen-docs-gardener.ts` |
 | `examples/compiled/factory--*.yml` (the golden anchors) | `examples/*.blueprint.json` | `npx vite-node scripts/regen-examples.ts` — owns the directory: stale files are removed |
+| `examples/issue-factory/issue-factory.blueprint.json`, `examples/issue-factory/workflows/factory--issue-factory-{1,2}.yml` | the `issue-factory` gallery template in `app/src/templates/catalog.ts` (the prompts beside them are hand-written content) | `npx vite-node scripts/gen-issue-factory.ts` |
 | `app/public/maps/*` (archify maps + `manifest.json`) | `.factory/*.blueprint.json` and the demo fixtures | `npm run maps` — owns the directory; `npm run maps:check` is the CI `diagram-gate` |
 | `docs/reference/machines.md` | `app/src/machines/registry.ts` | `npm run reference`; `npm run reference:check` and `npm test` (`reference.test.ts`) fail when it is stale |
 | the `AUTO:docs-index` span in `docs/README.md` | each document's summary line (front-matter `description:` or the `>` line under its H1) | `python3 tools/docs_index.py --write`, from the repo root; `--check` fails when it is stale |

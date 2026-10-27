@@ -56,7 +56,7 @@ export const LAYERS: { id: LayerId; label: string }[] = [
   { id: 'observability', label: 'Observability' },
 ];
 
-const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller']);
+const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller', 'processor.issue_batcher']);
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 const numOf = (v: unknown): number | null =>
   typeof v === 'number' && Number.isFinite(v) ? v : null;

@@ -17,7 +17,7 @@ import { describeWorkflow, describeTool } from '../compiler/describe';
 import type { Diagnostic } from '../compiler/compile';
 import type { LedState } from '../github/types';
 
-const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller']);
+const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller', 'processor.issue_batcher']);
 
 // The Lanes section carries the fleet/v1 vocabulary; it loads with the passport, not the floor.
 const BlueprintLanes = lazy(() =>

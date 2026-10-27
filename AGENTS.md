@@ -59,7 +59,7 @@ Regenerate with `cd app && npm run maps` (maps), `npm run reference` (machine re
 
 - **Backlog of record:** [`BACKLOG.md`](BACKLOG.md) — append-only `BL-YYYYMMDD-NN` items (mint with `python3 tools/next_backlog_id.py`), declared as `backlog.mode: file` in `.github/sdlc.yml`. Items move Open → Claimed → Done, never deleted. Not to be confused with `.factory/backlog.yml`, the product's content queue.
 - **Definition of Done:** the checklist in [`.github/pull_request_template.md`](.github/pull_request_template.md) plus golden rule #8 for a new machine type.
-- **Decisions:** ADR-lite entries appended to [`docs/DECISIONS.md`](docs/DECISIONS.md) (ADR-001…039; date, decision, why, alternatives). The fleet-format ADR directory `docs/adr/` (the `adr_path` in `.github/sdlc.yml`) holds ADR 0001 and its index.
+- **Decisions:** ADR-lite entries appended to [`docs/DECISIONS.md`](docs/DECISIONS.md) (ADR-001…041; date, decision, why, alternatives). The fleet-format ADR directory `docs/adr/` (the `adr_path` in `.github/sdlc.yml`) holds ADR 0001 and its index.
 - **Session workflow:** pick work with `python3 tools/pick_backlog_item.py` (or file the user's request as a `BL-*` item), run `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` one task at a time (or `/evolve` for a whole cycle), work to the acceptance criteria and nothing more, then `/session-log`. [`docs/AO-SDLC.md`](docs/AO-SDLC.md) has the stages and gates.
 - **Commits:** Conventional Commits (`feat fix docs style refactor test chore perf ci build`). **Branches:** `feature/`, `fix/`, `docs/`, `refactor/`, `test/` or `chore/` off `main`.
 - **Changelog:** `CHANGELOG.md` is written by release-please (`.github/workflows/release.yml`); don't edit it by hand.
@@ -122,7 +122,7 @@ Regenerate with `cd app && npm run maps` (maps), `npm run reference` (machine re
 
 ## Current status
 
-Pre-alpha and dogfooding itself: canvas, compiler (27 machine types), GitHub connect + deploy, telemetry, Prompt Studio, the headless-CMS cockpit, Fleet Ops, the archify console and maps, the tokenless demo, and harness parity with the hub have shipped. Phase status and acceptance history are in [`docs/ROADMAP.md`](docs/ROADMAP.md); every decision is in [`docs/DECISIONS.md`](docs/DECISIONS.md); open work is in [`BACKLOG.md`](BACKLOG.md). Parked: the OODA dispatcher, belt mode (Phase 6.1) and the GitHub App device flow (Phase 7, blocked on browser CORS). Update this paragraph only when the headline status changes — history goes to ROADMAP and DECISIONS.
+Pre-alpha and dogfooding itself: canvas, compiler (28 machine types), GitHub connect + deploy, telemetry, Prompt Studio, the headless-CMS cockpit, Fleet Ops, the archify console and maps, the tokenless demo, and harness parity with the hub have shipped. Phase status and acceptance history are in [`docs/ROADMAP.md`](docs/ROADMAP.md); every decision is in [`docs/DECISIONS.md`](docs/DECISIONS.md); open work is in [`BACKLOG.md`](BACKLOG.md). Parked: the OODA dispatcher, belt mode (Phase 6.1) and the GitHub App device flow (Phase 7, blocked on browser CORS). Update this paragraph only when the headline status changes — history goes to ROADMAP and DECISIONS.
 
 ## Fleet context
 
