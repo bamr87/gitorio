@@ -14,7 +14,7 @@
 | [`trigger.cron`](#triggercron) | trigger | ⏰ Schedule | `cron` |
 | [`trigger.manual`](#triggermanual) | trigger | 🕹️ Manual lever | `mode` |
 | [`trigger.workflow_run`](#triggerworkflow_run) | trigger | 🚦 On workflow result | `workflow`, `conclusion` |
-| [`trigger.repository_dispatch`](#triggerrepository_dispatch) | trigger | 📡 Cross-repo signal | `eventType` |
+| [`trigger.repository_dispatch`](#triggerrepository_dispatch) | trigger | 📡 Cross-repo signal | `eventType`, `sourceRepo` |
 | [`agent.claude`](#agentclaude) | processor | ⚙️ Claude agent | `promptRef`, `model`, `maxTurns`, `checks` |
 | [`filter.condition`](#filtercondition) | processor | 🧪 Filter | `expression` |
 | [`processor.dependabot_meta`](#processordependabot_meta) | processor | 📋 Dependabot metadata | `allow` |
@@ -112,13 +112,14 @@ Canvas summary with the defaults: `on: CI → success`
 
 ### `trigger.repository_dispatch`
 
-📡 **Cross-repo signal** — Fires when another repo (or any system holding a repo-scoped token) POSTs a repository_dispatch event of this type — the receiving end of an inter-repo belt (Fleet C). Senders are write-privileged principals; the payload body never enters prompts, only client_payload.number as an entity pointer.
+📡 **Cross-repo signal** — Fires when another repo (or any system holding a repo-scoped token) POSTs a repository_dispatch event of this type — the receiving end of an inter-repo belt (Fleet C). Senders are write-privileged principals; the payload body never enters prompts. Only client_payload.number crosses, as an entity pointer, and a first step fails the run unless it is a positive integer and client_payload.source is a well-formed repo (one of Source repo, when set).
 
 Canvas summary with the defaults: `on: repository_dispatch [factory-signal]`
 
 | Field | Label | Kind | Default | Notes |
 | --- | --- | --- | --- | --- |
 | `eventType` | Event type | text | `factory-signal` | Scopes the trigger to exactly this dispatch type (repository_dispatch: types). Empty = every type (warns). |
+| `sourceRepo` | Source repo | text | — | Accept the signal only from this repo: the run fails before any other step unless client_payload.source matches. Empty = any sender holding a token for this repo. e.g. `owner/name` |
 
 ## Processors
 
@@ -297,7 +298,7 @@ Canvas summary with the defaults: `PR from factory/*`
 
 ### `sink.repository_dispatch`
 
-📤 **Cross-repo signal (send)** — POSTs a repository_dispatch event to ANOTHER repo — the sending end of an inter-repo belt, pairing with the 📡 Cross-repo signal trigger. Uses a repo secret holding a PAT scoped to the target (default FLEET_TOKEN). Sends the entity number as client_payload.number; the compiler refuses self-dispatch loops.
+📤 **Cross-repo signal (send)** — POSTs a repository_dispatch event to ANOTHER repo — the sending end of an inter-repo belt, pairing with the 📡 Cross-repo signal trigger. Uses a repo secret holding a PAT scoped to the target (default FLEET_TOKEN). Sends the entity number as client_payload.number and this repo as client_payload.source; the compiler refuses self-dispatch loops.
 
 Canvas summary with the defaults: `signal → owner/name [factory-signal]`
 

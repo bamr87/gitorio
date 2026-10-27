@@ -1,7 +1,7 @@
 <!-- kit: sdlc v0.1.0 · ADR index (UPS-WORK-04, decision D2: law-ai format) -->
 # Architecture Decision Records
 
-> The fleet-format ADR directory (UPS-WORK-04): the file format, the status values and the index; the repo's ADR-001…039 history is in DECISIONS.md.
+> The fleet-format ADR directory (UPS-WORK-04): the file format, the status values and the index; the repo's ADR-001…042 history is in DECISIONS.md.
 
 This directory records decisions for gitorio that are hard to reverse: the stack, data model, security model, public interfaces, and any relaxation of a gate. Add an ADR in the same PR as the change it justifies.
 
