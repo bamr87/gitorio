@@ -1391,7 +1391,7 @@ describe('trigger.repository_dispatch (ADR-029): the receiving end of an inter-r
   it('numbers-not-bodies: the payload POINTER is context, its free text is not', () => {
     const { yaml } = compile(dispatchLine('factory-signal')).workflows[0];
     expect(yaml).toContain('DISPATCH_TYPE: ${{ github.event.action }}');
-    expect(yaml).toContain('PAYLOAD_NUMBER: ${{ github.event.client_payload.number }}');
+    expect(yaml).toContain('PAYLOAD_NUMBER: ${{ steps.payload.outputs.number }}');
     expect(yaml).not.toContain('toJSON(github.event.client_payload)');
   });
 
@@ -1408,6 +1408,108 @@ describe('trigger.repository_dispatch (ADR-029): the receiving end of an inter-r
     const { yaml } = compile(bp).workflows[0];
     expect(yaml).toContain('github.event.client_payload.number');
     expect(yaml).toContain('gh issue edit');
+  });
+});
+
+describe('dispatch payloads (ADR-042): only the number crosses, checked at the receiver', () => {
+  const receiver = (triggers: Record<string, unknown>[], extra: ReturnType<typeof node>[] = []): Blueprint => ({
+    version: 1,
+    meta: { name: 'Signal Receiver' },
+    nodes: [
+      ...triggers.map((c, i) => node(`t${i}`, 'trigger.repository_dispatch', c)),
+      node('rl', 'rate.limiter', { maxPerDay: 3 }),
+      node('a', 'agent.claude', { promptRef: '.factory/prompts/receiver.md' }),
+      node('cm', 'sink.comment', { instruction: 'reports what the signal asked for' }),
+      ...extra,
+    ],
+    edges: [
+      ...triggers.map((_, i) => edge(`et${i}`, `t${i}`, 'rl')),
+      edge('e1', 'rl', 'a'),
+      edge('e2', 'a', 'cm'),
+    ],
+  });
+  const promptOf = (yaml: string) => yaml.slice(yaml.indexOf('prompt: |-'), yaml.indexOf('claude_args:'));
+
+  it('the payload check is the FIRST step — before the rate limiter, checkout and the agent', () => {
+    const { yaml } = compile(receiver([{ eventType: 'factory-signal' }])).workflows[0];
+    const check = yaml.indexOf('🛂 dispatch.payload');
+    expect(check).toBeGreaterThan(-1);
+    expect(check).toBeLessThan(yaml.indexOf('🚥 rate.limiter'));
+    expect(check).toBeLessThan(yaml.indexOf('actions/checkout'));
+    expect(check).toBeLessThan(yaml.indexOf('claude-code-action'));
+    expect(yaml).toContain('id: payload');
+    expect(yaml).toContain("if: ${{ github.event_name == 'repository_dispatch' }}");
+  });
+
+  it('fails closed unless the number is a positive integer (absent = an entity-less signal)', () => {
+    const { yaml } = compile(receiver([{ eventType: 'factory-signal' }])).workflows[0];
+    expect(yaml).toContain('[[ "$PAYLOAD_NUMBER" =~ ^[1-9][0-9]{0,9}$ ]]');
+    expect(yaml).toContain('client_payload.number must be a positive integer"; exit 1');
+    expect(yaml).toContain('[[ "$PAYLOAD_SOURCE" =~ ^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$ ]]');
+  });
+
+  it('payload values reach the script through env only, never `${{ }}` inside run:', () => {
+    const { yaml } = compile(receiver([{ eventType: 'factory-signal' }])).workflows[0];
+    expect(yaml).toContain('PAYLOAD_NUMBER: ${{ github.event.client_payload.number }}');
+    expect(yaml).toContain('PAYLOAD_SOURCE: ${{ github.event.client_payload.source }}');
+    const run = yaml.slice(yaml.indexOf('🛂 dispatch.payload'), yaml.indexOf('🚥 rate.limiter'));
+    expect(run.slice(run.indexOf('run: |-'))).not.toContain('${{');
+  });
+
+  it('the prompt reads the validated copies, never the raw payload', () => {
+    const { yaml } = compile(receiver([{ eventType: 'factory-signal' }])).workflows[0];
+    const prompt = promptOf(yaml);
+    expect(prompt).toContain('PAYLOAD_NUMBER: ${{ steps.payload.outputs.number }}');
+    expect(prompt).toContain('PAYLOAD_SOURCE: ${{ steps.payload.outputs.source }}');
+    expect(prompt).not.toContain('client_payload');
+  });
+
+  it('a sourceRepo on the trigger makes the sender part of the check', () => {
+    const { yaml } = compile(receiver([{ eventType: 'factory-signal', sourceRepo: 'o/hub' }])).workflows[0];
+    expect(yaml).toContain('EXPECTED_SOURCES: o/hub');
+    expect(yaml).toContain('if [ -z "$PAYLOAD_SOURCE" ]; then');
+    expect(yaml).toContain('case " $EXPECTED_SOURCES " in *" $PAYLOAD_SOURCE "*) ;;');
+  });
+
+  it('without a sourceRepo any well-formed sender passes — no membership check is emitted', () => {
+    const { yaml } = compile(receiver([{ eventType: 'factory-signal' }])).workflows[0];
+    expect(yaml).not.toContain('EXPECTED_SOURCES');
+  });
+
+  it('enforces the sender only when EVERY dispatch trigger on the line names one', () => {
+    const mixed = compile(receiver([{ eventType: 'a', sourceRepo: 'o/hub' }, { eventType: 'b' }])).workflows[0];
+    expect(mixed.yaml).not.toContain('EXPECTED_SOURCES');
+    const both = compile(receiver([{ eventType: 'a', sourceRepo: 'o/hub' }, { eventType: 'b', sourceRepo: 'o/alt' }])).workflows[0];
+    expect(both.yaml).toContain('EXPECTED_SOURCES: o/alt o/hub');
+  });
+
+  it('a malformed sourceRepo is a compile error', () => {
+    const wf = compile(receiver([{ eventType: 'factory-signal', sourceRepo: 'not a repo; rm -rf /' }])).workflows[0];
+    expect(wf.diagnostics.some((d) => d.level === 'error' && /Source repo .* is not owner\/name/.test(d.message))).toBe(true);
+  });
+
+  it('a deterministic receiver (no agent) is checked before its sink step too', () => {
+    const { yaml } = compile({
+      version: 1,
+      meta: { name: 'Signal Labeler' },
+      nodes: [
+        node('t', 'trigger.repository_dispatch', { eventType: 'label-request', sourceRepo: 'o/hub' }),
+        node('lb', 'sink.label', { labels: 'from-belt' }),
+      ],
+      edges: [edge('e1', 't', 'lb')],
+    }).workflows[0];
+    expect(yaml.indexOf('🛂 dispatch.payload')).toBeGreaterThan(-1);
+    expect(yaml.indexOf('🛂 dispatch.payload')).toBeLessThan(yaml.indexOf('gh issue edit'));
+  });
+
+  it('lines without a dispatch trigger carry no payload step', () => {
+    const { yaml } = compile({
+      version: 1,
+      meta: { name: 'Cron' },
+      nodes: [node('t', 'trigger.cron', { cron: '17 3 * * *' }), node('lb', 'sink.label', { labels: 'x' })],
+      edges: [edge('e1', 't', 'lb')],
+    }).workflows[0];
+    expect(yaml).not.toContain('dispatch.payload');
   });
 });
 
@@ -1428,6 +1530,7 @@ describe('sink.repository_dispatch (ADR-030): the sending end of an inter-repo b
     expect(yaml).toContain('[sink.repository_dispatch d]');
     expect(yaml).toContain('gh api repos/o/other/dispatches');
     expect(yaml).toContain('Bash(gh api repos/o/other/dispatches:*)');
+    expect(yaml).toContain("-f 'client_payload[source]=${{ github.repository }}'");
     expect(yaml).not.toContain('"Bash(gh api:*)');
     expect(yaml).toContain('FLEET_TOKEN: ${{ secrets.FLEET_TOKEN }}');
   });
@@ -1443,7 +1546,10 @@ describe('sink.repository_dispatch (ADR-030): the sending end of an inter-repo b
       edges: [edge('e1', 't', 'd')],
     };
     const { yaml } = compile(bp).workflows[0];
-    expect(yaml).toContain('gh api "repos/$TARGET/dispatches" -f "event_type=$EVENT_TYPE" -F "client_payload[number]=$NUMBER"');
+    expect(yaml).toContain(
+      'gh api "repos/$TARGET/dispatches" -f "event_type=$EVENT_TYPE" -F "client_payload[number]=$NUMBER" -f "client_payload[source]=$SOURCE"',
+    );
+    expect(yaml).toContain('SOURCE: ${{ github.repository }}');
     expect(yaml).toContain('GH_TOKEN: ${{ secrets.FLEET_TOKEN }}');
     expect(yaml).toContain('TARGET: o/hub');
     expect(yaml).not.toContain('claude-code-action');

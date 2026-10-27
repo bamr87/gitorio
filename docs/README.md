@@ -27,11 +27,11 @@ This index covers the root documents of record and everything under `docs/`. The
 | [`docs/AO-SDLC.md`](AO-SDLC.md) | How work moves from BACKLOG.md through spec packages to merged code: the stages, the slash commands, the three mechanical gates and the autonomy invariants. |
 | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) | The full design — components, auth phases, the blueprint model, how each machine compiles, the compiler spec, telemetry, prompts, Fleet Ops, maps, the harness and the security model. |
 | [`docs/constitution.md`](constitution.md) | The rules every change to this repo must satisfy, whoever makes it — a human or an AI agent. Agents read this before [AGENTS.md](../AGENTS.md) conventions, the [PRD](../PRD.md), or the [feature catalog](../features/features.yml). Ratified… |
-| [`docs/DECISIONS.md`](DECISIONS.md) | The append-only log of every architecture and process decision (ADR-001…041) — what was decided, why, and the alternatives rejected. |
+| [`docs/DECISIONS.md`](DECISIONS.md) | The append-only log of every architecture and process decision (ADR-001…042) — what was decided, why, and the alternatives rejected. |
 | [`docs/DOCUMENTATION-MAP.md`](DOCUMENTATION-MAP.md) | Which of the four prose directories — `docs/`, `_docs/`, `specs/` and `blog/` — a piece of writing belongs in, who reads each one, and how long it lives. |
 | [`docs/GENERATED-FILES.md`](GENERATED-FILES.md) | Which files in this repo are generated, from what and by which command, and the header, determinism and action-pinning guarantees that compiled workflows carry. |
 | [`docs/ROADMAP.md`](ROADMAP.md) | The product phases and their acceptance history, from the bootstrap seeds through Fleet Ops, maps and the harness; open work lives in BACKLOG.md. |
-| [`docs/adr/`](adr/README.md) | The fleet-format ADR directory (UPS-WORK-04): the file format, the status values and the index; the repo's ADR-001…041 history is in DECISIONS.md. |
+| [`docs/adr/`](adr/README.md) | The fleet-format ADR directory (UPS-WORK-04): the file format, the status values and the index; the repo's ADR-001…042 history is in DECISIONS.md. |
 | [`docs/amendments/`](amendments/README.md) | The append-only log of changes to [the constitution](constitution.md). |
 
 ### `docs/reference/`

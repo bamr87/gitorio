@@ -109,7 +109,7 @@
           },
           {
             "if": { "properties": { "type": { "const": "trigger.repository_dispatch" } }, "required": ["type"] },
-            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "eventType": { "type": "string" } } } } }
+            "then": { "properties": { "config": { "type": "object", "additionalProperties": false, "properties": { "eventType": { "type": "string" }, "sourceRepo": { "type": "string" } } } } }
           },
           {
             "if": { "properties": { "type": { "const": "agent.claude" } }, "required": ["type"] },

@@ -157,7 +157,7 @@ export const MACHINES: MachineDef[] = [
     label: 'Cross-repo signal',
     icon: '📡',
     blurb:
-      'Fires when another repo (or any system holding a repo-scoped token) POSTs a repository_dispatch event of this type — the receiving end of an inter-repo belt (Fleet C). Senders are write-privileged principals; the payload body never enters prompts, only client_payload.number as an entity pointer.',
+      'Fires when another repo (or any system holding a repo-scoped token) POSTs a repository_dispatch event of this type — the receiving end of an inter-repo belt (Fleet C). Senders are write-privileged principals; the payload body never enters prompts. Only client_payload.number crosses, as an entity pointer, and a first step fails the run unless it is a positive integer and client_payload.source is a well-formed repo (one of Source repo, when set).',
     fields: [
       {
         key: 'eventType',
@@ -166,9 +166,17 @@ export const MACHINES: MachineDef[] = [
         placeholder: 'factory-signal',
         help: 'Scopes the trigger to exactly this dispatch type (repository_dispatch: types). Empty = every type (warns).',
       },
+      {
+        key: 'sourceRepo',
+        label: 'Source repo',
+        kind: 'text',
+        placeholder: 'owner/name',
+        help: 'Accept the signal only from this repo: the run fails before any other step unless client_payload.source matches. Empty = any sender holding a token for this repo.',
+      },
     ],
     defaults: { eventType: 'factory-signal' },
-    describe: (c) => `on: repository_dispatch [${str(c.eventType, 'any type!')}]`,
+    describe: (c) =>
+      `on: repository_dispatch [${str(c.eventType, 'any type!')}]${str(c.sourceRepo) ? ` from ${str(c.sourceRepo)}` : ''}`,
   },
   {
     type: 'agent.claude',
@@ -560,7 +568,7 @@ export const MACHINES: MachineDef[] = [
     label: 'Cross-repo signal (send)',
     icon: '📤',
     blurb:
-      'POSTs a repository_dispatch event to ANOTHER repo — the sending end of an inter-repo belt, pairing with the 📡 Cross-repo signal trigger. Uses a repo secret holding a PAT scoped to the target (default FLEET_TOKEN). Sends the entity number as client_payload.number; the compiler refuses self-dispatch loops.',
+      'POSTs a repository_dispatch event to ANOTHER repo — the sending end of an inter-repo belt, pairing with the 📡 Cross-repo signal trigger. Uses a repo secret holding a PAT scoped to the target (default FLEET_TOKEN). Sends the entity number as client_payload.number and this repo as client_payload.source; the compiler refuses self-dispatch loops.',
     fields: [
       { key: 'targetRepo', label: 'Target repo', kind: 'text', placeholder: 'owner/name' },
       { key: 'eventType', label: 'Event type', kind: 'text', placeholder: 'factory-signal' },
