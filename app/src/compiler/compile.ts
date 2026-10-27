@@ -135,6 +135,10 @@ const WRITING_SINKS = new Set(['sink.comment', 'sink.create_issue', 'sink.label'
 // Terminal sinks close/merge the entity — they emit no new comment/issue/PR event, so a
 // line whose only action is terminal can never retrigger itself and needs no bot loop-guard.
 const TERMINAL_SINKS = new Set(['sink.merge_pr']);
+// A GitHub owner/name slug. Strict on purpose: a dispatch line's `sourceRepo` is written
+// into the workflow verbatim, and the receiver applies the same pattern at run time.
+const REPO_SLUG = /^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9._-]+$/;
+const REPO_SLUG_BASH = '^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$';
 
 // ── agents never merge (ADR-039) ──
 // The house rule is "agents open draft PRs; humans (or a deterministic label-gated line,
@@ -318,7 +322,7 @@ function obligationFor(sink: BlueprintNode, entityExpr: string): string {
       const target = s(c.targetRepo, 'OWNER/NAME');
       const secret = s(c.tokenSecret, 'FLEET_TOKEN');
       const evType = s(c.eventType, 'factory-signal');
-      return `[sink.repository_dispatch ${sink.id}] Send exactly ONE cross-repo signal to ${target}: \`GH_TOKEN=$${secret} gh api repos/${target}/dispatches -f event_type='${evType}' -F 'client_payload[number]=<entity number>'\` (include the number only when your work concerns a specific issue/PR). The default GITHUB_TOKEN cannot write to other repos — authenticate with the scoped token in \`$${secret}\`.`;
+      return `[sink.repository_dispatch ${sink.id}] Send exactly ONE cross-repo signal to ${target}: \`GH_TOKEN=$${secret} gh api repos/${target}/dispatches -f event_type='${evType}' -F 'client_payload[number]=<entity number>' -f 'client_payload[source]=\${{ github.repository }}'\` (include the number only when your work concerns a specific issue/PR; always send the source — the receiver checks it). The default GITHUB_TOKEN cannot write to other repos — authenticate with the scoped token in \`$${secret}\`.`;
     }
     case 'sink.cross_repo_issue': {
       const target = s(c.targetRepo, '<targetRepo missing>');
@@ -450,6 +454,10 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     let hasPr = false;
     let prLabelScoped = false;
     let hasDispatch = false;
+    // The senders a dispatch line accepts (trigger `sourceRepo`). Enforced only when EVERY
+    // dispatch trigger on the line names one; an unnamed trigger accepts any sender.
+    const dispatchSources: string[] = [];
+    let dispatchAnySource = false;
     let hasComment = false;
     let hasWorkflowRun = false;
     let planFirst = false; // a manual trigger asked for dry-run-by-default (apply on non-manual events)
@@ -533,6 +541,11 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
                 'Cross-repo signal fires for EVERY dispatch type — set an event type (e.g. factory-signal) to scope it.',
             });
           }
+          const sourceRepo = s(t.config.sourceRepo);
+          if (!sourceRepo) dispatchAnySource = true;
+          else if (!REPO_SLUG.test(sourceRepo)) {
+            diags.push({ level: 'error', nodeId: t.id, message: `Source repo "${sourceRepo}" is not owner/name.` });
+          } else dispatchSources.push(sourceRepo);
           hasDispatch = true;
           break;
         }
@@ -777,6 +790,39 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
 
     // steps
     const steps: Record<string, unknown>[] = [];
+    if (hasDispatch) {
+      // Only the number crosses (ADR-005, ADR-042): a dispatch payload is checked BEFORE any
+      // other step, and fails closed. The number must be a positive integer (or absent — an
+      // entity-less signal); the sender must stamp a well-formed owner/name source, which must
+      // be one of the trigger's `sourceRepo`s when every dispatch trigger names one. Values
+      // reach the script through env, never `${{ }}` in `run:`, and later steps read the
+      // validated copies from this step's outputs.
+      const enforceSource = !dispatchAnySource && dispatchSources.length > 0;
+      const env: Record<string, string> = {
+        PAYLOAD_NUMBER: '${{ github.event.client_payload.number }}',
+        PAYLOAD_SOURCE: '${{ github.event.client_payload.source }}',
+      };
+      if (enforceSource) env.EXPECTED_SOURCES = [...new Set(dispatchSources)].sort().join(' ');
+      const run = [
+        `if [ -n "$PAYLOAD_NUMBER" ] && ! [[ "$PAYLOAD_NUMBER" =~ ^[1-9][0-9]{0,9}$ ]]; then echo "::error::client_payload.number must be a positive integer"; exit 1; fi`,
+        `if [ -n "$PAYLOAD_SOURCE" ] && ! [[ "$PAYLOAD_SOURCE" =~ ${REPO_SLUG_BASH} ]]; then echo "::error::client_payload.source must be owner/name"; exit 1; fi`,
+      ];
+      if (enforceSource) {
+        // PAYLOAD_SOURCE already matched the slug pattern above, so it holds no glob or space.
+        run.push(
+          'if [ -z "$PAYLOAD_SOURCE" ]; then echo "::error::dispatch carries no client_payload.source; this line accepts only: $EXPECTED_SOURCES"; exit 1; fi',
+          'case " $EXPECTED_SOURCES " in *" $PAYLOAD_SOURCE "*) ;; *) echo "::error::dispatch source $PAYLOAD_SOURCE is not one of: $EXPECTED_SOURCES"; exit 1 ;; esac',
+        );
+      }
+      run.push('echo "number=$PAYLOAD_NUMBER" >> "$GITHUB_OUTPUT"', 'echo "source=$PAYLOAD_SOURCE" >> "$GITHUB_OUTPUT"');
+      steps.push({
+        name: '🛂 dispatch.payload — only the number crosses',
+        id: 'payload',
+        if: "${{ github.event_name == 'repository_dispatch' }}",
+        env,
+        run: run.join('\n'),
+      });
+    }
     if (rateLimit !== null) {
       // First step, before checkout: count today's runs of THIS workflow and fail fast at the cap.
       steps.push({
@@ -839,7 +885,9 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           // Numbers-not-bodies (ADR-005): the payload's entity POINTER is context;
           // its free-text fields never enter the prompt.
           contextLines.push('DISPATCH_TYPE: ${{ github.event.action }}');
-          contextLines.push('PAYLOAD_NUMBER: ${{ github.event.client_payload.number }}');
+          // Read from the validation step, never the raw payload (ADR-042).
+          contextLines.push('PAYLOAD_NUMBER: ${{ steps.payload.outputs.number }}');
+          contextLines.push('PAYLOAD_SOURCE: ${{ steps.payload.outputs.source }}');
         }
         if (hasWorkflowRun) {
           contextLines.push('PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}');
@@ -1069,8 +1117,8 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
           name: `📤 sink.repository_dispatch (${sink.id})`,
           ...detIf(null),
           // Scoped PAT secret, NOT github.token — the GITHUB_TOKEN can't write other repos.
-          env: { ...env, GH_TOKEN: `\${{ secrets.${secret} }}`, TARGET: target, EVENT_TYPE: evType },
-          run: 'gh api "repos/$TARGET/dispatches" -f "event_type=$EVENT_TYPE" -F "client_payload[number]=$NUMBER"',
+          env: { ...env, GH_TOKEN: `\${{ secrets.${secret} }}`, TARGET: target, EVENT_TYPE: evType, SOURCE: '${{ github.repository }}' },
+          run: 'gh api "repos/$TARGET/dispatches" -f "event_type=$EVENT_TYPE" -F "client_payload[number]=$NUMBER" -f "client_payload[source]=$SOURCE"',
         });
       } else if (sink.type === 'sink.cross_repo_issue') {
         const target = s(sink.config.targetRepo, 'OWNER/NAME');
