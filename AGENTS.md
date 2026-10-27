@@ -122,7 +122,7 @@ Regenerate with `cd app && npm run maps` (maps), `npm run reference` (machine re
 
 ## Current status
 
-Pre-alpha and dogfooding itself: canvas, compiler (27 machine types), GitHub connect + deploy, telemetry, Prompt Studio, the headless-CMS cockpit, Fleet Ops, the archify console and maps, the tokenless demo, and harness parity with the hub have shipped. Phase status and acceptance history are in [`docs/ROADMAP.md`](docs/ROADMAP.md); every decision is in [`docs/DECISIONS.md`](docs/DECISIONS.md); open work is in [`BACKLOG.md`](BACKLOG.md). Parked: the OODA dispatcher, belt mode (Phase 6.1) and the GitHub App device flow (Phase 7, blocked on browser CORS). Update this paragraph only when the headline status changes — history goes to ROADMAP and DECISIONS.
+Pre-alpha and dogfooding itself: canvas, compiler (28 machine types), GitHub connect + deploy, telemetry, Prompt Studio, the headless-CMS cockpit, Fleet Ops, the archify console and maps, the tokenless demo, and harness parity with the hub have shipped. Phase status and acceptance history are in [`docs/ROADMAP.md`](docs/ROADMAP.md); every decision is in [`docs/DECISIONS.md`](docs/DECISIONS.md); open work is in [`BACKLOG.md`](BACKLOG.md). Parked: the OODA dispatcher, belt mode (Phase 6.1) and the GitHub App device flow (Phase 7, blocked on browser CORS). Update this paragraph only when the headline status changes — history goes to ROADMAP and DECISIONS.
 
 ## Fleet context
 

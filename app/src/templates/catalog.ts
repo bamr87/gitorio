@@ -213,6 +213,62 @@ export const TEMPLATES: FactoryTemplate[] = [
     },
   },
   {
+    id: 'issue-factory',
+    name: 'Issue Factory',
+    icon: '🗂',
+    blurb:
+      'The issue-processing pipeline: each weekday a batcher agent reviews the open issues, files batch work orders (grouping related issues), and an hour later a fix agent picks ONE work order, implements it, and opens ONE PR that closes the whole batch. Both lines are default-OFF behind a single kill switch; manual runs are dry runs unless you tick “apply”.',
+    blueprint: {
+      version: 1,
+      meta: {
+        name: 'Issue Factory',
+        description:
+          'Review open issues → group related ones into work orders → one reviewable PR per work order.',
+      },
+      nodes: [
+        // Line 1 — intake: survey open issues, assess, group into work orders.
+        T('bc', 'trigger.cron', 40, 80, { cron: '0 6 * * 1-5' }),
+        T('bm', 'trigger.manual', 40, 200, { mode: 'plan-first' }),
+        T('bg', 'gate.enablement', 240, 140, { variable: 'ISSUE_FACTORY_ENABLED' }),
+        T('brl', 'rate.limiter', 430, 140, { maxPerDay: 2 }),
+        T('ba', 'processor.issue_batcher', 620, 140, {
+          promptRef: '.factory/prompts/issue-batcher.md',
+          model: CLAUDE_MODELS.sonnet,
+          maxGroupSize: 4,
+          maxTurns: 30,
+        }),
+        // Line 2 — fix: consume ONE work order → one PR that closes the batch.
+        T('fc', 'trigger.cron', 40, 380, { cron: '0 7 * * 1-5' }),
+        T('fm', 'trigger.manual', 40, 500, { mode: 'plan-first' }),
+        T('fg', 'gate.enablement', 240, 440, { variable: 'ISSUE_FACTORY_ENABLED' }),
+        T('frl', 'rate.limiter', 430, 440, { maxPerDay: 3 }),
+        T('fa', 'agent.claude', 620, 440, {
+          promptRef: '.factory/prompts/issue-fixer.md',
+          model: CLAUDE_MODELS.opus,
+          // A batch fix = read work order + members, edit files, run checks, PR, comment on
+          // each member. 40 hit error_max_turns on the first live run (lifehacker.dev).
+          maxTurns: 100,
+        }),
+        T('fpr', 'sink.open_pr', 870, 380, { branchHint: 'factory/issue-*' }),
+        T('fcm', 'sink.comment', 870, 500, {
+          instruction: 'links the fix PR on every member issue of the work order it addressed',
+        }),
+      ],
+      edges: [
+        E('e1', 'bc', 'bg'),
+        E('e2', 'bm', 'bg'),
+        E('e3', 'bg', 'brl'),
+        E('e4', 'brl', 'ba'),
+        E('e5', 'fc', 'fg'),
+        E('e6', 'fm', 'fg'),
+        E('e7', 'fg', 'frl'),
+        E('e8', 'frl', 'fa'),
+        E('e9', 'fa', 'fpr'),
+        E('e10', 'fa', 'fcm'),
+      ],
+    },
+  },
+  {
     id: 'docs-gardener',
     name: 'Docs Gardener',
     icon: '📖',

@@ -3,7 +3,7 @@
 
 > Every machine type the canvas offers — its id, category, blurb, config fields and defaults — generated from the machine registry.
 
-27 machine types: 8 triggers · 11 processors · 8 sinks. How each one compiles (guards, grants, obligations, emitted jobs) is explained in [ARCHITECTURE.md § 4](../ARCHITECTURE.md#4-machine-catalog-v0); the user-facing tour is the app's Docs tab (`_docs/machines-and-belts.md`). Add a machine with `/add-machine`, then regenerate this file.
+28 machine types: 8 triggers · 12 processors · 8 sinks. How each one compiles (guards, grants, obligations, emitted jobs) is explained in [ARCHITECTURE.md § 4](../ARCHITECTURE.md#4-machine-catalog-v0); the user-facing tour is the app's Docs tab (`_docs/machines-and-belts.md`). Add a machine with `/add-machine`, then regenerate this file.
 
 | Type | Category | Machine | Config fields |
 | --- | --- | --- | --- |
@@ -26,6 +26,7 @@
 | [`processor.evidence`](#processorevidence) | processor | 🔏 Evidence seal | `measureCmd`, `evidencePath`, `artifactName` |
 | [`gate.verified_fix`](#gateverified_fix) | processor | ⚖️ Verified fix gate | `verifyCmd`, `onFail`, `maxRounds` |
 | [`processor.feedback_controller`](#processorfeedback_controller) | processor | 🔁 Feedback controller | `promptRef`, `model`, `ledgerPath`, `windowDays`, `maxTurns` |
+| [`processor.issue_batcher`](#processorissue_batcher) | processor | 🗂️ Issue batcher | `promptRef`, `model`, `maxGroupSize`, `maxTurns` |
 | [`sink.comment`](#sinkcomment) | sink | 📝 Post comment | `instruction` |
 | [`sink.label`](#sinklabel) | sink | 🏷️ Apply labels | `labels` |
 | [`sink.create_issue`](#sinkcreate_issue) | sink | 🧾 Create issue | `titleHint` |
@@ -250,6 +251,19 @@ Canvas summary with the defaults: `loop-tuner · claude-opus-5-5 · 7d window`
 | `model` | Model | select: `claude-opus-5-5` · `claude-sonnet-5-5` · `claude-haiku-5-5` | `claude-opus-5-5` | — |
 | `ledgerPath` | Improvements ledger | text | `.factory/metrics/improvements.yml` | Where the controller records each change + the metric it should move, so the next run can verify it. |
 | `windowDays` | Look-back window (days) | number | `7` | — |
+| `maxTurns` | Max turns | number | `30` | — |
+
+### `processor.issue_batcher`
+
+🗂️ **Issue batcher** — The intake sorter. A scheduled agent that surveys open issues, filters the actionable ones, groups related issues into batch work orders (one tracking issue per batch, labeled factory:work-order), and marks members factory:queued. It never fixes anything itself — a downstream fix line consumes the work orders, one PR per order.
+
+Canvas summary with the defaults: `batch ≤ 4 issues/order · claude-sonnet-5-5`
+
+| Field | Label | Kind | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `promptRef` | Prompt file | text | `.factory/prompts/issue-batcher.md` | Extra operating instructions (triage policy, priorities) layered on the built-in batching contract. |
+| `model` | Model | select: `claude-opus-5-5` · `claude-sonnet-5-5` · `claude-haiku-5-5` | `claude-sonnet-5-5` | — |
+| `maxGroupSize` | Max issues per work order | number | `4` | Batches larger than this get split — one PR must plausibly close the whole batch. |
 | `maxTurns` | Max turns | number | `30` | — |
 
 ## Sinks

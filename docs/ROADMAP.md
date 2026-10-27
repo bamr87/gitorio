@@ -101,6 +101,13 @@ Goal: configure an autonomous, configurable, headless content management system 
 - [x] Harness parity (specs/014-harness-parity): a pure port of the hub's `dash-gen harness` with a golden test over the hub's committed files, a live adapter over Fleet Ops scans, the `fleet/v1` lane bridge (blueprint → lanes, manifest → lanes, one `HarnessCard`, parity with `wtd`'s manifest for this repo), six-layer design readiness + the twelve-row checklist, a read-only hub store (default `bamr87/bamr87`), the eighth tab with the hub's `/harness/` anatomy over Hub and Live sources, a demo hub, deep links both ways.
 - [ ] Deploy writes `fleet.manifest.yml` with declared provenance (BL-20260902-13); live adapters for the issue pipeline and token rotation (BL-20260902-14); readiness over observed fleets (BL-20260902-15); hub-side scorecard tint + link back (BL-20260902-16); a vendored-archify drift guard against the hub (BL-20260902-17); ETag-conditional hub reads (BL-20260902-18).
 
+## Phase 9 — Issue processing (ADR-040)
+Goal: every open issue gets reviewed, related issues get grouped, and Claude Code agents address each group with one reviewable PR. Worked example targets `bamr87/lifehacker.dev` (`examples/issue-factory/`). Built on `feat/frontend-refactor` in July 2026 and landed on main on 2026-10-27.
+- [x] **`processor.issue_batcher`** — the intake sorter: built-in SURVEY → ASSESS → GROUP → FILE WORK ORDERS → MARK contract; groups ≤ `maxGroupSize` issues sharing a root cause into work-order issues (`factory:work-order`), marks members `factory:queued`, routes non-actionable ones to `factory:needs-human`. No file-edit/git/PR grants — sorts, never fixes.
+- [x] **Issue Factory template** — two lines, one kill switch (`ISSUE_FACTORY_ENABLED`), both plan-first + rate-limited: weekday batcher (06:00 UTC) + weekday fixer (07:00 UTC) that drains ONE work order per run into ONE PR (`Closes #N` per member; merge stays human).
+- [x] **Survey-mode `gh issue view` grant** — survey agents can now read the issues they discover.
+- [x] **`rate.limiter` fixes (ADR-041)** — `-gt` allows exactly `maxPerDay` working runs; `GH_REPO` lets the pre-checkout step reach the repo.
+
 ## Backlog
 
 > **Migrated 2026-08-16 (ADR-022):** the live backlog moved to `BACKLOG.md` at the repo root. Every still-open item below — including the Fleet-track FF-list and the Phase 6/7/8 parked boxes — was carried over as a `BL-20260816-NN` entry (undo/redo excluded: shipped in ADR-016). This section is frozen history, kept append-only for the audit trail; add new items to `BACKLOG.md`, never here.

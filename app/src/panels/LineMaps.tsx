@@ -22,7 +22,7 @@ import { useTelemetryStore } from '../state/telemetry';
 import { useUiStore } from '../state/ui';
 import { Chip, Panel } from '../ui/primitives';
 
-const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller']);
+const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller', 'processor.issue_batcher']);
 const LED_BEACON: Record<string, Beacon> = {
   on: { label: 'ok', tone: 'ok', title: 'Last run: success' },
   warn: { label: 'run', tone: 'warn', title: 'Run in progress' },

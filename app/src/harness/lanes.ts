@@ -73,7 +73,7 @@ export interface FleetManifest {
 // ── blueprint → lanes ───────────────────────────────────────────────────────
 
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
-const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller']);
+const AGENT_TYPES = new Set(['agent.claude', 'processor.feedback_controller', 'processor.issue_batcher']);
 const EVENT_OF: Record<string, string> = {
   'trigger.issue_opened': 'issues',
   'trigger.issue_labeled': 'issues',
@@ -97,6 +97,7 @@ export function laneKindFor(nodes: BlueprintNode[]): LaneKind {
   if (has('sink.repository_dispatch', 'sink.cross_repo_issue')) return 'fanout';
   if (has('processor.ledger', 'processor.evidence', 'gate.verified_fix')) return 'maintenance';
   if (has('processor.feedback_controller')) return 'analysis';
+  if (has('processor.issue_batcher')) return 'triage';
   if (has('trigger.pr_opened', 'processor.dependabot_meta')) return 'review';
   if (has('trigger.issue_opened', 'trigger.issue_labeled') && has('sink.label', 'sink.comment'))
     return 'triage';
