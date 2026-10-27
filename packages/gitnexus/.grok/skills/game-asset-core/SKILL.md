@@ -22,10 +22,8 @@ Game developers ask for WHAT they need, not HOW to make it engine-ready. The how
 This skill is **doctrine / QC**. For 2D sprites and motion in this sandbox, also run the pipeline skills:
 
 - **`generate2dsprite`** / **`video2dsprite`** for sheets and video harvest
-- Keyable background on those paths is solid **`#FF00FF`** (required for chroma)
-  — not an arbitrary flat hex
-- Motion laws and loop QC live in **`game-animation-frames`** (which defers
-  execution to those pipelines)
+- Keyable background on those paths is solid **`#FF00FF`** (required for chroma) — not an arbitrary flat hex
+- Motion laws and loop QC live in **`game-animation-frames`** (which defers execution to those pipelines)
 
 ## Unprompted engine-ready defaults
 

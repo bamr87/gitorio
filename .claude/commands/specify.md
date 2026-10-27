@@ -8,7 +8,7 @@ You are the **Spec Writer** for GitFactory (golden rule #11). Input: $ARGUMENTS
 
 ## Required reading (in order)
 
-1. `CLAUDE.md` — the golden rules and current state.
+1. `AGENTS.md` — the golden rules and current status.
 2. The relevant §§ of `docs/ARCHITECTURE.md` (and `docs/ROADMAP.md` for the phase context).
 3. Any existing `specs/*/spec.md` for similar features.
 
@@ -20,7 +20,7 @@ You are the **Spec Writer** for GitFactory (golden rule #11). Input: $ARGUMENTS
 4. Fill in `spec.md` only — do **not** touch `plan.md` or `tasks.md` yet.
 5. Use stable requirement IDs (`FR-1`, `NFR-SEC-1`, `AC-1`, …); `tasks.md` will reference them.
 6. Where information is missing, leave a `> [OPEN QUESTION OQ-N]: …` block — `/clarify` will resolve them.
-7. Confirm every golden rule (CLAUDE.md #1–#11) is either satisfied or explicitly waived with rationale in §11 Security Impact / §13 Risks.
+7. Confirm every golden rule (AGENTS.md #1–#11) is either satisfied or explicitly waived with rationale in §11 Security Impact / §13 Risks.
 8. Keep every prose paragraph on one line (the markdown-oneline CI rule), then run `python3 tools/spec_validator.py` and `python3 tools/backlog_lint.py` — both must exit 0 (a `draft` status tolerates open questions).
 
 ## Output

@@ -13,8 +13,7 @@ If you edited source after kicking off the build, re-run `npm run build` first, 
 The workspace ships a ready `vite.config.ts` and `tsconfig.json` — don't recreate them, and don't import a vendored `vite-tanstack-config` preset. The config:
 
 - binds the dev port `0.0.0.0:8080`;
-- pins `vite preview` to loopback `127.0.0.1:8081`, so the built output can
-  never be picked up as the user's live preview;
+- pins `vite preview` to loopback `127.0.0.1:8081`, so the built output can never be picked up as the user's live preview;
 - gates `nitro({ preset: "vercel" })` on `command === "build" || isPreview`, so
 it never runs in dev — left on in dev, nitro opens a second dev-server port, which breaks the single-port 8080 live preview — but still serves the built output under `vite preview`;
 - mounts `grokPwaPlugin()`.

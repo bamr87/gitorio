@@ -5,34 +5,17 @@ For prompt-craft, composition, and blind read-back verification, follow the `ima
 1. **Set the canvas with `aspect_ratio: "16:9"`.** The call looks like
 `{ "prompt": "…", "aspect_ratio": "16:9" }` — ratio words in the prompt do **not** set the canvas. At 2mp, 16:9 renders 1792×1008, so the normalize below cover-crops to 1200×630 trimming only ~3% vertically, which a centered title survives. A narrower canvas is what kills titles: from 3:2 the same crop takes **~21% vertically**, straight through the lockup. Paths:
 
-   - **Default — one call with `aspect_ratio: "16:9"`:** `imagine_text_to_image`
-     with the art + baked title. **Check the output dimensions** via
-     `read_file` / Pillow on the returned `file_path`; if the ratio missed, reframe or use
-     the API path.
-   - **Reframe if needed:** pass the prior `file_path` into `imagine_image_to_image`
-     with **`aspect_ratio: "16:9"`** and a prompt like "extend the scenery
-     left and right into a wider frame; keep the title lettering and
-     central subject exactly as they are".
-   - **Optional — true 2:1 via the xAI Images API:** `POST
-     https://api.x.ai/v1/images/generations` with `"aspect_ratio": "2:1"`
-     and `response_format: "b64_json"` using the injected `XAI_API_KEY`
-     (see the `xai-api` skill). 2mp 2:1 is 1984×992; normalize then trims
-     only ~2.4% per side and nothing vertical.
+   - **Default — one call with `aspect_ratio: "16:9"`:** `imagine_text_to_image` with the art + baked title. **Check the output dimensions** via `read_file` / Pillow on the returned `file_path`; if the ratio missed, reframe or use the API path.
+   - **Reframe if needed:** pass the prior `file_path` into `imagine_image_to_image` with **`aspect_ratio: "16:9"`** and a prompt like "extend the scenery left and right into a wider frame; keep the title lettering and central subject exactly as they are".
+   - **Optional — true 2:1 via the xAI Images API:** `POST https://api.x.ai/v1/images/generations` with `"aspect_ratio": "2:1"` and `response_format: "b64_json"` using the injected `XAI_API_KEY` (see the `xai-api` skill). 2mp 2:1 is 1984×992; normalize then trims only ~2.4% per side and nothing vertical.
 
 Build the prompt from the app's theme, palette, and characters. If the app already has a key generated asset (hero sprite, title scene), pass its `file_path` into `imagine_image_to_image` so the card matches in-game art — same 16:9 + check-the-output rule applies. **Last resort only** (no `imagine_text_to_image` and no xAI Images API): stay on whatever canvas you have and keep the entire title block inside the **middle half** of the frame height, with the crop-clipping check in step 6 as the gate.
 2. **Bake the title in like a game cover.** Store-page covers (Stardew Valley,
 Cuphead) lead with a short stylized logo-type title. Put the exact app name in quotes in the prompt; 1–3 strong words; optional short tagline under the title in smaller lettering (exact words in quotes).
    - **Stack multi-word titles** into a two-line lockup ("SKY" over "STRIKE").
-   - **Center the block both ways** with generous margins — avoid "upper third"
-     / percentage placement (models hug the edge).
-   - **Bound the width**: lettering spans roughly half to two-thirds of the
-     frame, never border to border.
-   - **Keep comfortable margins anyway.** From a 16:9 canvas the normalize
-     below trims only ~3% vertically; from a 2:1 API canvas it trims
-     nothing vertical and ~2.4% per side. The crop turns destructive when
-     the canvas comes back off-ratio — an edit that pinned to its input's
-     ratio, or a model miss — so **check the raw canvas dimensions before
-     cropping**, and re-ratio first if it isn't ~16:9 or 2:1.
+   - **Center the block both ways** with generous margins — avoid "upper third" / percentage placement (models hug the edge).
+   - **Bound the width**: lettering spans roughly half to two-thirds of the frame, never border to border.
+   - **Keep comfortable margins anyway.** From a 16:9 canvas the normalize below trims only ~3% vertically; from a 2:1 API canvas it trims nothing vertical and ~2.4% per side. The crop turns destructive when the canvas comes back off-ratio — an edit that pinned to its input's ratio, or a model miss — so **check the raw canvas dimensions before cropping**, and re-ratio first if it isn't ~16:9 or 2:1.
 3. **Verify glyphs *and* layout on read-back** (see `imagine` / `game-asset-core`
 for the blind-describe loop). On a garble or layout miss, **regenerate with a corrected prompt** — never try to move a logo with `imagine_image_to_image` (frame translation / seams). After two failed attempts, ship the card **artwork-only** (titleless).
 
@@ -47,8 +30,7 @@ from 16:9 this shaves ~3% top/bottom; from 2:1 ~2.4% per side and nothing vertic
    node scripts/write-atomic.mjs /workspace/.grok/og.jpg.tmp public/og.jpg
    ```
 
-5. **Tell the injector the card is custom** — set `"card": "custom"` in
-   `src/lib/og/site.json`, handed over the same way, and keep `public/og.jpg`:
+5. **Tell the injector the card is custom** — set `"card": "custom"` in `src/lib/og/site.json`, handed over the same way, and keep `public/og.jpg`:
 
    ```sh
    node scripts/write-atomic.mjs /workspace/.grok/site.json.tmp src/lib/og/site.json

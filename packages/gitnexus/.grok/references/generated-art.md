@@ -29,8 +29,7 @@ still a game), whimsical apps, creative tools, and brand-forward pages. Only pla
 `src/lib/og/site.json`. Bake infers custom from the file when the flag is missing, but `brand-check` still requires the field.
 - Games also set `"type": "x:game"` (X presents the unfurl as a game card) and
 ship `public/x-banner.jpg` (50:11, 1200×264). `twitter:card=summary_large_image` is layout, not the game signal.
-- Title defaults to the host slug; `src/lib/og/site.json` is only needed when
-  the display name is not the slug, or the app is a game.
+- Title defaults to the host slug; `src/lib/og/site.json` is only needed when the display name is not the slug, or the app is a game.
 - The tags come from the PWA injector (`scripts/grok-pwa-shared.mjs`), which
 overwrites anything in `__root.tsx`. Live preview emits the same tags (via `X-Forwarded-Host`), and identity is baked at `vite build` so published Nitro can inject without reading the workspace filesystem.
 - Applies at build time, publish or not.

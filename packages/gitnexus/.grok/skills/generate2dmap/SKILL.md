@@ -47,8 +47,7 @@ Use user-specified parameters when present; otherwise infer the lightest playabl
 references, prop sheets, and tileset art. Default `art_style` is `clean_hd` (hand-painted HD, sharp readable shapes, low texture noise, no chunky pixels); use `pixel_inspired` or `retro_pixel` only when asked.
 - **Write every creative prompt yourself.** Scripts may assemble, slice,
 chroma-key, crop, validate, compose previews, and emit JSON/engine files — never write creative prompts or draw final art. Procedural/placeholder art only when the user explicitly asks for placeholders, fixtures, debug maps, or scaffolding. With a tile engine target, generate the tileset art first, then script only the layers, collision, zones, and scene wiring.
-- Save each prompt beside its asset as `<asset>.prompt.txt` (or an explicit
-  manifest field) whenever the run creates new visual assets.
+- Save each prompt beside its asset as `<asset>.prompt.txt` (or an explicit manifest field) whenever the run creates new visual assets.
 - **A reference handoff is a file path, not a sentence.** To build on an earlier
 image, pass its sandbox `file_path` to `imagine_image_to_image` (and `read_file` it so you can see it), then name the concrete features to preserve: camera framing, horizon, road/water shapes, terrain boundaries, entrances/exits, landmarks. A filename, "based on the map", or the image merely being visible in conversation is **not** a handoff — stop and pass the path.
 
@@ -64,13 +63,10 @@ Dressed references (top-down) and stage references (side-view) plan placement in
 
 ## Depth for the pipeline you picked — open these before producing assets
 
-- Layered raster maps → `references/layered-map-contract.md` (layer types, base and
-  prop prompt patterns, prop metadata, render order, collision, QA checklist).
+- Layered raster maps → `references/layered-map-contract.md` (layer types, base and prop prompt patterns, prop metadata, render order, collision, QA checklist).
 - `side_scroll_mode` → `references/side-scroll-stages.md`: the `stage_canvas`
 decision, the named scenery-only parallax layers, and the mandatory in-world stage reference before any platform/object work.
 - Any prop or scene-object generation → classify each object first, then follow
 `references/prop-pack-contract.md`: only compact props may share a square prop pack; platforms, floors, bridges, gates, buildings and anything collision-aligned go one-by-one, as a platform strip, a custom wide pack, or tile/object layers.
-- Parameters, the step-by-step workflow, and the `extract_prop_pack.py` /
-  `compose_layered_preview.py` commands → `references/pipeline.md`.
-- Deliverable lists per pipeline and the validation checklist →
-  `references/deliverables.md`; run both before calling a map done.
+- Parameters, the step-by-step workflow, and the `extract_prop_pack.py` / `compose_layered_preview.py` commands → `references/pipeline.md`.
+- Deliverable lists per pipeline and the validation checklist → `references/deliverables.md`; run both before calling a map done.

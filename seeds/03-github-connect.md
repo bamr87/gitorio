@@ -7,8 +7,7 @@
 **Tasks**
 1. Octokit setup with fine-grained PAT from a connect dialog; token in
 sessionStorage only; "disconnect" wipes it. Preflight: check token scopes/repo permissions and show a red/green checklist (Contents, Issues, PRs, Actions, Workflows, Secrets).
-2. Repo picker → loads `.factory/blueprint.json` if present (else offers to
-   initialize from the current canvas), loads prompt files referenced by agents.
+2. Repo picker → loads `.factory/blueprint.json` if present (else offers to initialize from the current canvas), loads prompt files referenced by agents.
 3. Deploy: single commit (or PR when "propose changes" is checked) writing
 blueprint + `.github/workflows/factory--*.yml` + new/changed prompts. Show the diff before committing. Delete workflows for assembly lines that no longer exist.
 4. Power hookup: sealed-box provisioning of ANTHROPIC_API_KEY (fetch repo public

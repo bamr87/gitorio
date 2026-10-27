@@ -41,8 +41,7 @@ Do all of this — the routes alone render the disabled branch:
 restart so it applies. It is tracked by basename in `_migrations`, so a database that already has it will not re-run it.
 3. **Routes:** add `src/routes/api/auth/$.ts` + `src/routes/login.tsx` — copy
 both from `references/wiring.md` (the catch-all API route is what makes `/api/auth/*` and the broker callback work).
-4. **Sign out:** a login with no way out is not done — render `<UserButton />`
-   from `@/lib/auth/gates` (it wires `signOut()`); see `references/session-ui.md`.
+4. **Sign out:** a login with no way out is not done — render `<UserButton />` from `@/lib/auth/gates` (it wires `signOut()`); see `references/session-ui.md`.
 5. **Existing data:** wrap the app's server functions in `authMiddleware` (an
 auth-off app must not have been using it — see the `neon` skill). Rows from before sign-in existed are **development data**: drop and recreate them unless the user says otherwise — don't hand them to whoever signs in first.
 

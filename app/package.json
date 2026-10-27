@@ -16,7 +16,9 @@
     "format:check": "prettier --check src",
     "e2e": "vite-node e2e/harness.ts",
     "maps": "vite-node scripts/gen-maps.ts",
-    "maps:check": "vite-node scripts/gen-maps.ts --check"
+    "maps:check": "vite-node scripts/gen-maps.ts --check",
+    "reference": "vite-node scripts/gen-reference.ts",
+    "reference:check": "vite-node scripts/gen-reference.ts --check"
   },
   "dependencies": {
     "@xyflow/react": "^12.12.0",

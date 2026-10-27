@@ -1,5 +1,7 @@
 # Decisions (ADR-lite)
 
+> The append-only log of every architecture and process decision (ADR-001…039) — what was decided, why, and the alternatives rejected.
+
 Append entries; never rewrite history. Format: date, decision, why, alternatives.
 
 ## 2026-10-03 — ADR-039: Agents never merge — the compiler refuses an agent merge obligation or grant

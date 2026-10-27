@@ -18,8 +18,7 @@ When armed, a Claude agent:
 
 1. Scans the docs directory named in `.factory/config.yml` (`docsDir`, default `_docs`).
 2. Picks the most-improvable items — as many as `itemsPerRun` (default 3).
-3. Applies the configurable **review criteria** and adopts the matching **skill
-   specialization** (technical writer, tutorial author, API reference, …).
+3. Applies the configurable **review criteria** and adopts the matching **skill specialization** (technical writer, tutorial author, API reference, …).
 4. Improves those docs in place and opens **one** pull request for you to review and merge.
 
 ## Configuring it

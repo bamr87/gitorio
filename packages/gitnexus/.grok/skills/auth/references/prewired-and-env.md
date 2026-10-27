@@ -18,8 +18,7 @@
 
 - **Live preview** (`*.grok-sandbox.com`): the app is an embedded iframe, so
 sign-in opens a **popup** (a top-level redirect to the broker can't work inside the iframe) and federates via a baked shared **preview client** (`src/lib/auth/preview.ts`). The handler 302s straight to the broker/upstream login; on return the popup posts the session bearer back in a tiny HTML page. Sessions (and email/password users) persist in the app's embedded PGLite DB — the SAME DB as app data — and, since the iframe's cookies are partitioned, ride that bearer token; all of it lives in `src/lib/auth`. Restarting the preview resets the DB.
-- **Deployed**: the deployer injects a per-app client + `DATABASE_URL`, so
-  sign-in persists identities in Postgres.
+- **Deployed**: the deployer injects a per-app client + `DATABASE_URL`, so sign-in persists identities in Postgres.
 
 ## Env vars — do **not** create a `.env` file
 

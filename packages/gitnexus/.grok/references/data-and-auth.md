@@ -6,12 +6,9 @@ Full guides + snippets: the **`neon` skill** (database) and the **`auth` skill**
 
 ## Database (`@/lib/db`, server-only)
 
-- `const sql = await getSql()` from `@/lib/db`. Use it **only** inside
-  `createServerFn` handlers / server loaders.
-- Dual-mode: a regular Postgres driver (node-postgres, `pg`) when `DATABASE_URL`
-  is set, else a local **PGLite** fallback — so the preview always renders.
-- In preview, PGLite **bootstraps at server start** (`ensureDbReady`) once the
-  app has migrations. Do not remove that.
+- `const sql = await getSql()` from `@/lib/db`. Use it **only** inside `createServerFn` handlers / server loaders.
+- Dual-mode: a regular Postgres driver (node-postgres, `pg`) when `DATABASE_URL` is set, else a local **PGLite** fallback — so the preview always renders.
+- In preview, PGLite **bootstraps at server start** (`ensureDbReady`) once the app has migrations. Do not remove that.
 - A deployed app is provisioned a real database when it ships `migrations/*.sql`
 or sign-in. An app that needs one without either says so with `"deploy": {"database": true}` in `.grok/app-env.json` — see the `neon` skill.
 
@@ -20,8 +17,7 @@ or sign-in. An app that needs one without either says so with `"deploy": {"datab
 - `migrations/*.sql` is the single schema source: applied to **Neon on deploy**
 (`npm run build` runs `npm run db:migrate`, so Vercel ships with the schema ready) and to the **PGLite** preview automatically on startup.
 - Add the app's tables as ordered files (`migrations/0002_*.sql`), not inline.
-- An app that needs no database adds no `.sql` file, and then no migration runs
-  anywhere.
+- An app that needs no database adds no `.sql` file, and then no migration runs anywhere.
 - The Better Auth schema sits outside that scope in `migrations/auth/` (neither
 applier descends into it); the `auth` skill's "Turning sign-in on" copies it up. Do not edit it. Applied files are keyed by **basename**, so a database that already has `0001_auth.sql` will not re-run it.
 
@@ -37,8 +33,7 @@ shared Grok auth broker for **Google** and **X**. The only other supported metho
 and `src/routes/login.tsx` (provider buttons via `signIn(providerId)`). Copy the snippets from the `auth` skill.
 - The live-preview popup at `/auth/popup` is served by the template Vite plugin
 (`vite.config.ts` → `popup.server.ts`); `AGENTS.md` § "First scaffold" states the rule about not adding a React route there.
-- Read the user with `useCurrentUser()` (`@/lib/auth/use-current-user`) and gate
-  UI with `SignedIn` / `SignedOut` / `UserButton` (`@/lib/auth/gates`).
+- Read the user with `useCurrentUser()` (`@/lib/auth/use-current-user`) and gate UI with `SignedIn` / `SignedOut` / `UserButton` (`@/lib/auth/gates`).
 - Sign-in is **real even in the live preview** — it federates via a baked shared
 preview client — so a visitor is signed out until they sign in. Build real sign-in; do **NOT** scaffold demo/mock/hardcoded users.
 - **Authorize every server function** with `authMiddleware`

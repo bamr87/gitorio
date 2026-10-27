@@ -1,5 +1,7 @@
 # Security Policy
 
+> How to report a vulnerability privately, and a summary of the security invariants every compiled workflow keeps.
+
 GitFactory compiles user-designed blueprints into **real GitHub Actions workflows that run agents with write access to real repositories**, so security is a first-class design constraint, not an afterthought. The threat model and defenses live in [`docs/ARCHITECTURE.md` § 8 (Security model)](docs/ARCHITECTURE.md); this file is the disclosure policy and a summary of the load-bearing invariants.
 
 ## Reporting a vulnerability
@@ -8,7 +10,7 @@ GitFactory compiles user-designed blueprints into **real GitHub Actions workflow
 
 Report privately via GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) (the **Security → Report a vulnerability** tab on this repo). Include a description, repro steps, and the impact. We aim to acknowledge within a few days and will coordinate a fix and disclosure timeline with you.
 
-## Security invariants (see CLAUDE.md § Golden rules)
+## Security invariants (see AGENTS.md § Golden rules)
 
 These are the guarantees the codebase must never break — a change that weakens one is a security regression:
 

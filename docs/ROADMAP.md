@@ -1,5 +1,7 @@
 # Roadmap
 
+> The product phases and their acceptance history, from the bootstrap seeds through Fleet Ops, maps and the harness; open work lives in BACKLOG.md.
+
 Phases mirror `seeds/` (the bootstrap era, now closed). A phase is done when its acceptance criteria pass and `npm test && npm run build` are green. Park anything else in `BACKLOG.md` (AO-SDLC, ADR-022) — § Backlog below is frozen history.
 
 ## Phase 0 — Bootstrap (seeds/00)
@@ -22,22 +24,15 @@ Phases mirror `seeds/` (the bootstrap era, now closed). A phase is done when its
 
 ## Phase 3 — GitHub connect (seeds/03) — MVP ✅
 - [x] PAT auth (sessionStorage), repo entry, permission preflight checklist
-- [x] Load/save blueprint + workflows via contents API (commit or PR mode)
-      — prompt *content* editing/writing lands with Prompt Studio (Phase 5); deploy
-      warns on referenced-but-missing prompt files
+- [x] Load/save blueprint + workflows via contents API (commit or PR mode) — prompt *content* editing/writing lands with Prompt Studio (Phase 5); deploy warns on referenced-but-missing prompt files
 - [x] Power hookup: sealed-box secret provisioning for ANTHROPIC_API_KEY (tweetnacl)
 - [x] Drift detection: hash-mismatch banner when deployed workflows were hand-edited
-- Note: repo *picker* is a text field for the MVP (list picker = backlog); live
-  end-to-end demo on a scratch repo pending a user PAT.
+- Note: repo *picker* is a text field for the MVP (list picker = backlog); live end-to-end demo on a scratch repo pending a user PAT.
 
 ## Phase 4 — Telemetry (seeds/04) — MVP ✅
-- [x] Runs polling with ETag conditional requests (304s are free); status LEDs on machines
-      (green=success, amber=running, red=failed, grey=idle) via `assemblyLines` mapping.
-      Polling follows the open panel only (rate-hygiene).
-- [x] Run list: conclusion, duration, event, deep link per `factory--*` run
-      — jobs drill-down + log-zip (fflate) view deferred to backlog
-- [x] Dashboard: total runs, success rate, in-progress, p50 duration (global). Per-line
-      status is the machine LEDs; per-line stat *rows* (`statsByLine` exists, tested) = backlog.
+- [x] Runs polling with ETag conditional requests (304s are free); status LEDs on machines (green=success, amber=running, red=failed, grey=idle) via `assemblyLines` mapping. Polling follows the open panel only (rate-hygiene).
+- [x] Run list: conclusion, duration, event, deep link per `factory--*` run — jobs drill-down + log-zip (fflate) view deferred to backlog
+- [x] Dashboard: total runs, success rate, in-progress, p50 duration (global). Per-line status is the machine LEDs; per-line stat *rows* (`statsByLine` exists, tested) = backlog.
 
 ## Phase 5 — Prompt Studio (seeds/05) — ✅ (ADR-016)
 - [x] Prompt list/edit/diff; PR-by-default writes (branch `factory/prompts-*`); frontmatter form
@@ -51,42 +46,18 @@ Phases mirror `seeds/` (the bootstrap era, now closed). A phase is done when its
 - [ ] Red-team pass on §8 (comment-loop + prompt-injection tool-escape) — **parked** (needs a live scratch repo)
 
 ## Phase 7 — GitHub App (seeds/07) — **parked: device flow needs the optional worker (CORS)**
-- [ ] Device-flow auth — GitHub's `login/device/code` sends no CORS headers to a browser origin,
-      so a pure-static SPA can't run it without the Phase-2 worker (ADR-004/016). PAT stays the path.
+- [ ] Device-flow auth — GitHub's `login/device/code` sends no CORS headers to a browser origin, so a pure-static SPA can't run it without the Phase-2 worker (ADR-004/016). PAT stays the path.
 - [x] Multi-repo factory switcher — shipped as the Settings/Fleet connection switcher (Fleet B below).
 
 ## Fleet / plug-and-play (apply GitFactory to any repo, multi-repo, cross-repo)
 Goal: point GitFactory at *various* repos, *multiple* at once, and see automation *between* repos — grounded in the real lifehacker.dev fleet (see ADR-011/012).
-- [x] **A — Observe mode.** Reverse-import any repo's `.github/workflows/*.yml` into a
-      read-only fleet map: one node per workflow, `workflow_run` belts, cross-repo `--repo`
-      belts to external-repo stations, live telemetry LEDs. Generalized run polling beyond
-      `factory--*`. Validated against `bamr87/lifehacker.dev` (14 workflows, `pipeline` hub →
-      `auto-*`, cross-repo to `zer0-mistakes` + `it-journey`). (ADR-011)
-- [x] **B — Multi-repo fleet switcher.** Fleet tab observes any repo via a repo-chip switcher +
-      arbitrary owner/name box; `settings.recentRepos` persists slugs (never tokens); `switchRepo`
-      re-points the session; live telemetry per observed repo. (ADR-016)
+- [x] **A — Observe mode.** Reverse-import any repo's `.github/workflows/*.yml` into a read-only fleet map: one node per workflow, `workflow_run` belts, cross-repo `--repo` belts to external-repo stations, live telemetry LEDs. Generalized run polling beyond `factory--*`. Validated against `bamr87/lifehacker.dev` (14 workflows, `pipeline` hub → `auto-*`, cross-repo to `zer0-mistakes` + `it-journey`). (ADR-011)
+- [x] **B — Multi-repo fleet switcher.** Fleet tab observes any repo via a repo-chip switcher + arbitrary owner/name box; `settings.recentRepos` persists slugs (never tokens); `switchRepo` re-points the session; live telemetry per observed repo. (ADR-016)
 - [x] **C — Cross-repo edges.** `sink.cross_repo_issue` machine matching the proven `gh … --repo`
       + scoped-PAT pattern (authorable + deployable). Still parked: `repository_dispatch` trigger
       + inter-repo belts drawn on a *combined* fleet canvas. (ADR-016)
-- [x] **Fleet Ops — the fleet-wide cockpit (ADR-020).** A Fleet-tab **Command** mode (the
-      single-repo map is now the **Observe** toggle) that scans a *roster* of repos and renders
-      four game-like boards to monitor/review/analyze/align/improve their Actions org-wide.
-      Three pure engines: `fleet/facts.ts` (deep per-workflow facts — resolves the `claude-run`
-      composite AI path, kill switches, cross-repo/token-chain privilege, dormant crons,
-      provenance headers; 21 archetypes + dash cost type), `fleet/metrics.ts` (an exact port of
-      the dash's `actions_analytics.py` — cost/effectiveness/waste/p95/flags/priority — plus
-      **rework** (`run_attempt>1`) and **queue latency**), and `fleet/audit.ts` (14 alignment
-      rules → 0–100 score + S–D certification grade). Roster imports from a hub's `.gitmodules`
-      (`fleet/manifest.ts`); the first **multi-repo** store (`state/fleetops.ts`, concurrency-3
-      user-driven scan, slugs-only persistence). Cockpit boards: **Districts** (LED-wall repo
-      cards + grades), **Rankings** (offender/slowest/rework/hall-of-fame leaderboards),
-      **Audit** (certification + one-click work-order issue filing with a dedup marker),
-      **Schedule** (24h cron congestion + armed/disarmed kill switches + dormant automation).
-      Validated against the real `zer0-mistakes` + `lifehacker.dev` fleets (19 verbatim fixtures)
-      and live in-browser; adversarially reviewed; 370 tests / 34 files.
-- [x] **Adapt to the #1 consumer + a management surface (ADR-021).** Turned Fleet Ops on
-      `it-journey` (44% of fleet minutes, 31 workflows) and closed a full survey's gaps. Facts:
-      an **`agentic-engine`** runner (it-journey's biggest, previously-invisible AI cost center)
+- [x] **Fleet Ops — the fleet-wide cockpit (ADR-020).** A Fleet-tab **Command** mode (the single-repo map is now the **Observe** toggle) that scans a *roster* of repos and renders four game-like boards to monitor/review/analyze/align/improve their Actions org-wide. Three pure engines: `fleet/facts.ts` (deep per-workflow facts — resolves the `claude-run` composite AI path, kill switches, cross-repo/token-chain privilege, dormant crons, provenance headers; 21 archetypes + dash cost type), `fleet/metrics.ts` (an exact port of the dash's `actions_analytics.py` — cost/effectiveness/waste/p95/flags/priority — plus **rework** (`run_attempt>1`) and **queue latency**), and `fleet/audit.ts` (14 alignment rules → 0–100 score + S–D certification grade). Roster imports from a hub's `.gitmodules` (`fleet/manifest.ts`); the first **multi-repo** store (`state/fleetops.ts`, concurrency-3 user-driven scan, slugs-only persistence). Cockpit boards: **Districts** (LED-wall repo cards + grades), **Rankings** (offender/slowest/rework/hall-of-fame leaderboards), **Audit** (certification + one-click work-order issue filing with a dedup marker), **Schedule** (24h cron congestion + armed/disarmed kill switches + dormant automation). Validated against the real `zer0-mistakes` + `lifehacker.dev` fleets (19 verbatim fixtures) and live in-browser; adversarially reviewed; 370 tests / 34 files.
+- [x] **Adapt to the #1 consumer + a management surface (ADR-021).** Turned Fleet Ops on `it-journey` (44% of fleet minutes, 31 workflows) and closed a full survey's gaps. Facts: an **`agentic-engine`** runner (it-journey's biggest, previously-invisible AI cost center)
       + `maxCostUsd`/`matrixDynamic`/`localWorkflowCalls`/`waitBound` + github-script sinks;
       **7 new archetypes** (agent-gatekeeper, issue-to-content, agentic-validator, perfection-loop,
       pr-gate, pr-editor, autonomy-loop) → 28 total. Audit: a real self-retrigger `loop-safety`
@@ -104,34 +75,19 @@ facts-parser recursion into composite actions + reusable workflows (≈90% of AI
 
 ## Phase 8 — Headless CMS + feedback loops (ADR-017)
 Goal: configure an autonomous, configurable, headless content management system with AI integrations and feedback loops — grounded in the real `lifehacker.dev` fleet (a research subagent reverse-engineered its 16 workflows, `claude-run` composite action, OODA dispatcher, and `loop-tuner` before any machine was designed). Runtime stays `claude-code-action@v1`; lifehacker's *patterns* are adopted as machines + app concepts.
-- [x] **`gate.enablement`** — default-OFF repo-variable kill switch (a `gate` job + `needs`/`if`);
-      instant arm/disarm with no redeploy; a compromised agent can't re-arm itself.
-- [x] **`processor.feedback_controller`** — the loop-tuner: measures the factory's own telemetry,
-      verifies the last change against an improvements ledger, makes the smallest upstream fix,
-      opens ONE PR, **never merges** (no-self-merge invariant).
-- [x] **Dry-run/apply duality** — plan-first manual trigger (`apply` input); schedule applies,
-      manual plans unless ticked. Deterministic steps gate on it; agents flip to report-only.
-- [x] **Central config + backlog** — `.factory/config.yml` + `.factory/backlog.yml` (pure
-      parse/serialize + starvation detection) with a new **Content tab** cockpit (config form +
-      backlog table + kill-switch toggles); repo-variable client methods.
+- [x] **`gate.enablement`** — default-OFF repo-variable kill switch (a `gate` job + `needs`/`if`); instant arm/disarm with no redeploy; a compromised agent can't re-arm itself.
+- [x] **`processor.feedback_controller`** — the loop-tuner: measures the factory's own telemetry, verifies the last change against an improvements ledger, makes the smallest upstream fix, opens ONE PR, **never merges** (no-self-merge invariant).
+- [x] **Dry-run/apply duality** — plan-first manual trigger (`apply` input); schedule applies, manual plans unless ticked. Deterministic steps gate on it; agents flip to report-only.
+- [x] **Central config + backlog** — `.factory/config.yml` + `.factory/backlog.yml` (pure parse/serialize + starvation detection) with a new **Content tab** cockpit (config form + backlog table + kill-switch toggles); repo-variable client methods.
 - [x] **Headless CMS template** — daily writer (kill-switched, rate-limited → PR a human merges)
       + weekly loop-tuner (kill-switched).
-- [x] **Docs Gardener** (ADR-018) — a demonstrable daily factory on gitorio: cron + plan-first
-      manual → enablement gate → rate limiter → agent → open PR; scans `_docs`, improves
-      `itemsPerRun` items using the configured review criteria + skill specializations. Dogfooded
-      (template + prompt + config + standalone blueprint + compiled `factory--docs-gardener.yml`),
-      default-OFF via `DOCS_GARDENER_ENABLED`.
-- [x] **Docs view on Pages** (ADR-018) — `_docs/*.md` bundled + rendered in the app (a Docs tab)
-      with a dependency-free Markdown renderer; the visible content loop (improve → merge → deploy).
-- [x] **Skill specializations + doc config** (ADR-018) — `skills`, `reviewCriteria`, `docsDir`,
-      `itemsPerRun` in `.factory/config.yml`, editable from the Content tab.
+- [x] **Docs Gardener** (ADR-018) — a demonstrable daily factory on gitorio: cron + plan-first manual → enablement gate → rate limiter → agent → open PR; scans `_docs`, improves `itemsPerRun` items using the configured review criteria + skill specializations. Dogfooded (template + prompt + config + standalone blueprint + compiled `factory--docs-gardener.yml`), default-OFF via `DOCS_GARDENER_ENABLED`.
+- [x] **Docs view on Pages** (ADR-018) — `_docs/*.md` bundled + rendered in the app (a Docs tab) with a dependency-free Markdown renderer; the visible content loop (improve → merge → deploy).
+- [x] **Skill specializations + doc config** (ADR-018) — `skills`, `reviewCriteria`, `docsDir`, `itemsPerRun` in `.factory/config.yml`, editable from the Content tab.
 - [x] **Compiler `blueprintPath`** — header override for standalone/named blueprints.
-- [ ] Backlog: table rendering in the Markdown view; per-line names for multi-line blueprints
-      (would let the docs gardener live in the main blueprint instead of a standalone file).
-- [ ] **OODA dispatcher + computed-matrix fan-out** (`processor.dispatcher`, `matrix: fromJSON(plan)`)
-      — **parked** (heaviest/most novel; needs compiler matrix support + a deterministic planner).
-- [ ] Work-leasing (git-ref CAS mutex), diff-classifier router, multi-tier job DAG within a line,
-      shared knowledge store + brand linter — **parked** supporting machinery (see ADR-017 brief).
+- [ ] Backlog: table rendering in the Markdown view; per-line names for multi-line blueprints (would let the docs gardener live in the main blueprint instead of a standalone file).
+- [ ] **OODA dispatcher + computed-matrix fan-out** (`processor.dispatcher`, `matrix: fromJSON(plan)`) — **parked** (heaviest/most novel; needs compiler matrix support + a deterministic planner).
+- [ ] Work-leasing (git-ref CAS mutex), diff-classifier router, multi-tier job DAG within a line, shared knowledge store + brand linter — **parked** supporting machinery (see ADR-017 brief).
 
 ## Maps — archify as the renderer (ADR-034)
 
@@ -149,8 +105,7 @@ Goal: configure an autonomous, configurable, headless content management system 
 
 > **Migrated 2026-08-16 (ADR-022):** the live backlog moved to `BACKLOG.md` at the repo root. Every still-open item below — including the Fleet-track FF-list and the Phase 6/7/8 parked boxes — was carried over as a `BL-20260816-NN` entry (undo/redo excluded: shipped in ADR-016). This section is frozen history, kept append-only for the audit trail; add new items to `BACKLOG.md`, never here.
 
-- Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode;
-  webhook worker + SSE live belts; multi-repo train stations.
+- Undo/redo; touch drag; blueprint marketplace; SHA-pinned actions mode; webhook worker + SSE live belts; multi-repo train stations.
 - **Deterministic label-gated merge line (ADR-015)**: a `pull_request:[labeled]` trigger
 option + filter + terminal merge sink, so "merge anything a human/agent labelled `dep:safe-to-merge`" compiles to YAML instead of living as prose the agent could override. Terminal-sink guard relaxation already permits the bot-labeler case.
 
@@ -164,22 +119,17 @@ Correctness (compiler):
 Test coverage (golden rule #3):
 - **5 of 13 machine types have zero invariant tests** — `compile.test.ts` now also covers
 `issue_labeled` + `pr_opened` (added with the ADR-009 guard fix). Still untested: `trigger.manual, filter.condition, sink.create_issue, sink.open_pr, sink.commit_files`.
-- **Drift-guard test**: assert `MACHINES.map(m => m.type)` deep-equals the schema `type`
-  enum and the compiler's `TRIGGERS`/`SINKS` sets (single source of truth for machine types).
+- **Drift-guard test**: assert `MACHINES.map(m => m.type)` deep-equals the schema `type` enum and the compiler's `TRIGGERS`/`SINKS` sets (single source of truth for machine types).
 
 Lower priority:
-- Per-type `oneOf` config subschemas in `schema/blueprint.schema.json` (config is bare
-  `object` today — registry field/required constraints go unenforced).
+- Per-type `oneOf` config subschemas in `schema/blueprint.schema.json` (config is bare `object` today — registry field/required constraints go unenforced).
 - Committed regen script for `examples/compiled/*` + a golden anchor for a no-agent
 (deterministic `gh`) line and a PR-triggered line; strip hand-written comments that cause spurious regenerate-and-diff drift.
 - UI polish (`app/src/App.tsx`): `download()` revokes the blob URL before download starts;
 flash `say()` doesn't clear the prior timer. `Inspector.tsx`: numeric fields use `Number('') === 0`, so a field can't be blanked. Add a React error boundary + store tests.
 
 Foundation follow-ups (not done this session):
-- Lint/format: ESLint flat config (`typescript-eslint` + `react-hooks`) + Prettier; add
-  `npm run lint` to CI.
-- `.claude/settings.json` permission allowlist (blocked from auto-generation this session
-  — run `/fewer-permission-prompts` to create it).
+- Lint/format: ESLint flat config (`typescript-eslint` + `react-hooks`) + Prettier; add `npm run lint` to CI.
+- `.claude/settings.json` permission allowlist (blocked from auto-generation this session — run `/fewer-permission-prompts` to create it).
 - LICENSE (intentionally deferred — decide MIT vs Apache-2.0).
-- Gate `deploy-pages.yml` on CI success (`workflow_run`/`needs`) so a failing-test push
-  doesn't spawn an independent deploy.
+- Gate `deploy-pages.yml` on CI success (`workflow_run`/`needs`) so a failing-test push doesn't spawn an independent deploy.

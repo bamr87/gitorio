@@ -102,13 +102,9 @@ Never edit an applied file — it is tracked by name in `_migrations` and will n
 
 `getSql()` normalizes result types so both backends return identical, JSON-safe shapes: `bigint`/`count(*)` → `number`, `date` → `'YYYY-MM-DD'` string, `interval` → text, `numeric` → string. Remaining differences to respect:
 
-- **`bigint` past 2^53 loses precision** as a number — cast `::text` if you
-  ever need huge integers (row counts are fine).
+- **`bigint` past 2^53 loses precision** as a number — cast `::text` if you ever need huge integers (row counts are fine).
 - **Preview DB is in-memory**: wiped on dev-server restart, single-connection
 (no lock contention or concurrent-write conflicts), and loads **no extensions** — do not `create extension`; stick to core Postgres.
-- **Neon's pooled endpoint keeps no session state** — don't rely on `SET`,
-  `LISTEN/NOTIFY`, or session advisory locks.
-- **Keep `user_id` columns `text`** — preview uses `'dev-user'`, production uses
-  Better Auth's text ids; a `uuid` column breaks preview inserts.
-- Deployed Neon queries traverse the network (and may cold-resume) — avoid
-  N+1 query patterns that feel free against the in-process preview DB.
+- **Neon's pooled endpoint keeps no session state** — don't rely on `SET`, `LISTEN/NOTIFY`, or session advisory locks.
+- **Keep `user_id` columns `text`** — preview uses `'dev-user'`, production uses Better Auth's text ids; a `uuid` column breaks preview inserts.
+- Deployed Neon queries traverse the network (and may cold-resume) — avoid N+1 query patterns that feel free against the in-process preview DB.

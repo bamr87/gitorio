@@ -24,9 +24,7 @@ confidence: <0.0-1.0> evidence: [<file>:<start>-<end>, ...]            # violati
 ## Rules of the bench
 - Severity anchors: **grazes** = touches or tests the boundary without crossing;
 **bends** = crosses in a contained, arguably-scoped way; **breach** = plainly violates the statement; **entrenches** = violates AND makes future compliance harder (new dependency on the violation, public surface, copied pattern).
-- **No citation, no verdict.** If you cannot point at specific lines, you may not
-  rule a violation.
-- **Abstain honestly.** If the scoped hunks are insufficient to rule, verdict is
-  `abstain` — you will receive a wider context ring. Never force a call.
+- **No citation, no verdict.** If you cannot point at specific lines, you may not rule a violation.
+- **Abstain honestly.** If the scoped hunks are insufficient to rule, verdict is `abstain` — you will receive a wider context ring. Never force a call.
 - **Aligned is terse.** verdict + confidence only; omit severity, evidence, rationale.
 - Rule only on this assertion. Adjacent sins belong to other magistrates.

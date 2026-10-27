@@ -21,8 +21,7 @@ So I split the work by **file-disjointness**, not by feature:
 `deploy.ts` *in parallel*, each against the fixed contract, each with its own test file, each told explicitly: do not touch `types.ts` or any file another agent owns. They came back with 17 + 4 + 15 passing tests.
 3. **Integrate the shared files solo.** The store slice, the executor, the two dialogs,
 and the `App.tsx`/`CompileDrawer.tsx` edits — everything that touches shared state — I wrote in one coherent pass while the agents ran, against the same contract.
-4. **One central verify.** `tsc` + vitest + `vite build` over the *combined* tree. It
-   compiled on the first try because everyone had built against the same types.
+4. **One central verify.** `tsc` + vitest + `vite build` over the *combined* tree. It compiled on the first try because everyone had built against the same types.
 
 The payoff of the contract: the deploy module's author noted the example blueprint compiles to *two* assembly lines and wrote its assertions accordingly — a detail the integration code never had to care about, because the boundary was a type, not a conversation.
 

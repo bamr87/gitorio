@@ -1,10 +1,12 @@
 # GitFactory — Backlog
 
-> **Append-only** register of follow-ups discovered during implementation. Every `/implement` cycle MUST append discovered work here in addition to closing the current task. Items graduate from this list into `specs/NNN-*/` via `/specify`. Adopted from law-ai's AO-SDLC (ADR-022, golden rule #11); the pre-existing prose backlog in `docs/ROADMAP.md § Backlog` was migrated here on 2026-08-16 and is now frozen history.
->
-> **Format**: One bullet per item, kebab-case ID, status, brief context, link to the spec/PR/ROADMAP section that surfaced it.
->
-> Not to be confused with `.factory/backlog.yml` — that is the *product's* content work queue read by deployed agents; this file is the *repo's* engineering work register.
+> The repo's append-only engineering work register: every `BL-*` item, open, claimed by a spec, or done.
+
+**Append-only** register of follow-ups discovered during implementation. Every `/implement` cycle MUST append discovered work here in addition to closing the current task. Items graduate from this list into `specs/NNN-*/` via `/specify`. Adopted from law-ai's AO-SDLC (ADR-022, golden rule #11); the pre-existing prose backlog in `docs/ROADMAP.md § Backlog` was migrated here on 2026-08-16 and is now frozen history.
+
+**Format**: One bullet per item, kebab-case ID, status, brief context, link to the spec/PR/ROADMAP section that surfaced it.
+
+Not to be confused with `.factory/backlog.yml` — that is the *product's* content work queue read by deployed agents; this file is the *repo's* engineering work register.
 
 ## Conventions
 
@@ -25,6 +27,11 @@
 ---
 
 ## Open
+
+- **BL-20261022-02** — *doc-gap, low* — Two decision logs: the repo's ADRs live in `docs/DECISIONS.md` (ADR-001…039; golden rule #10; ADR-022 explicitly rejected a `docs/adr/` directory), but the sdlc kit seeded `docs/adr/` (ADR 0001 only) and `.github/sdlc.yml` declares `adr_path: docs/adr`. Pick one home in a dated ADR — point `adr_path` at the log that is actually used, or migrate — and update AGENTS.md § Conventions, golden rule #10 and `/session-log` to match. _Surfaced in:_ the 2026-10-22 docs harmonization (BL-20261022-01).
+- **BL-20261022-03** — *doc-gap, low* — `_docs/machines-and-belts.md`, the app's user-facing machine tour, names 18 of the 27 machine types; `trigger.issue_labeled`, `trigger.repository_dispatch`, `processor.dependabot_meta`, `gate.approval`, `processor.ledger`, `gate.budget`, `processor.evidence`, `gate.verified_fix` and `sink.repository_dispatch` are missing (the generated `docs/reference/machines.md` lists all of them). Extend the page by hand or let the Docs Gardener pick it up. _Surfaced in:_ the 2026-10-22 docs harmonization (BL-20261022-01).
+- **BL-20261022-04** — *infra, low* — `app/node_modules` is committed as a symlink (mode 120000) to `/Users/bamr87/github/gitorio/app/node_modules`; `npm install` replaces it with a real directory and leaves a tracked deletion in every checkout. Remove it from the index (`git rm --cached app/node_modules`) and keep `node_modules` ignored. _Surfaced in:_ the 2026-10-22 docs harmonization (BL-20261022-01).
+- **BL-20261022-05** — *infra, low* — `tools/unwrap-prose.py` differs from the bamr87 hub copy (conformance UPS-AGENT-22), so this repo's prose gate is not the fleet's; re-vendor it with the hub's prose kit (`tools/fanout.sh --kit prose`) rather than editing it here. _Surfaced in:_ the 2026-10-22 docs harmonization (BL-20261022-01).
 
 - **BL-20261003-01** — *feature, med* — Compiler bounds the agent lines still lack: a per-job `timeout-minutes`, a cost/turn budget advisory per line, and a `concurrency` singleton for scheduled lines (today the group falls back to `github.run_id`, so overlapping cron/manual runs never serialize). Deliberately left out of the ADR-039 safety fix to keep it focused. _Surfaced in:_ the 2026-10-03 review of 6f81800 (ADR-039).
 - **BL-20261003-02** — *infra, med* — Diagnose Factory 2 (nightly gardener): 19 consecutive scheduled failures since 2026-09-15 — the late-September runs never started (Actions billing/spending limit), the latest ones exhaust `--max-turns 12` ("Reached maximum number of turns"). Fix the prompt/turn budget, then re-arm with the `NIGHTLY_GARDENER_ENABLED` repo variable (default-OFF since ADR-039). _Surfaced in:_ ADR-039.
@@ -101,6 +108,8 @@
 - **BL-20260828-03** — *feature, high* — Adopt tt-a1i/archify as GitFactory's visualization layer and design language: vendored pinned renderer, a pure Blueprint/Fleet → archify IR compiler, generated maps served with the app, a CI diagram gate, then the design-token migration and in-app Map surfaces as companion specs (claimed-by:specs/010-archify-maps). _Surfaced in:_ the 2026-08-27 archify adoption plan (ADR-034).
 
 ## Done
+
+- **BL-20261022-01** — *doc-gap, med* — Harmonize the documentation to the fleet docs framework (bamr87/bamr87 `specs/DOCS.md`): AGENTS.md in the six-heading kit shape under the 2,000-word budget, with the "Current state" history log replaced by a short status that points at ROADMAP and DECISIONS; the README in the portfolio skeleton; a one-line summary on every indexed document and a generated `docs/README.md` index (`tools/docs_index.py`, vendored from the hub); and the machine reference generated from the registry (`docs/reference/machines.md`, `cd app && npm run reference`, freshness test in `npm test`). _Surfaced in:_ the 2026-10-22 fleet documentation harmonization. _Done:_ shipped in PR docs/harmonize-docs.
 
 - **BL-20261003-05** — *feature, high* — Agents never merge: the compiler refuses a `sink.merge_pr` downstream of an agent and any merge-capable agent grant; Factory 3 (Dependency Warden) loses its merge, the merge moves to a deterministic human-label-gated line (Factory 4); kill switches + rate limits on Factories 2 and 3, crons off the top of the hour (done). _Surfaced in:_ the 2026-10-03 review of 6f81800 (ADR-039).
 - **BL-20260902-09** — *feature, high* — Harness health engine: a pure TypeScript port of the hub's `dash-gen harness` (six-layer scorecard + the six trip wires, the hub's `fleet.yml harness:` thresholds as defaults, the same output shape as `_data/harness_health.yml`) with a golden test that reproduces the hub's committed health file from its committed inputs, plus a live adapter over Fleet Ops scans so the same numbers come out of a live fleet. _Surfaced in:_ the 2026-09-02 request to match the hub's `/harness/` page and tightly integrate GitFactory with the bamr87 monorepo. _Done:_ shipped in specs/014 — `app/src/harness/` (health port + golden fixtures, signals, lanes, readiness, HarnessCard, hubread) + `state/hub.ts` + the Harness tab + demo hub (ADR-036).

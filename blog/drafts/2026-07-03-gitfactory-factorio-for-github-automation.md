@@ -31,8 +31,7 @@ The scaffold is built to be **constructed by Claude Code, session by session**:
 rules (the compiler is pure and tested; least privilege always; verify upstream action inputs before templating; every session ends with a blog draft).
 - `seeds/00–07` — ordered session prompts, each with context files, tasks, explicit
 acceptance criteria, and an out-of-scope line. Canvas MVP → compiler → GitHub I/O → telemetry → prompt studio → agent patterns → GitHub App auth.
-- `.claude/commands/` — `/add-machine` (a definition-of-done checklist for new
-  machine types), `/compile-check` (drift + upstream verification), `/session-log`.
+- `.claude/commands/` — `/add-machine` (a definition-of-done checklist for new machine types), `/compile-check` (drift + upstream verification), `/session-log`.
 - A runnable canvas MVP (React Flow, industrial control-room theme, copper belts),
 a working compiler with 13 passing invariant tests, and a dogfood blueprint whose compiled output is checked in as a *verified* reference example.
 

@@ -12,12 +12,9 @@ An autonomous factory should get *better* over time, not just repeat. GitFactory
 
 A loop-tuner runs on a schedule and carries a built-in contract:
 
-1. **Measure** the factory's own telemetry over a window: workflow run outcomes and
-   durations, throughput, and time-to-merge.
-2. **Verify the last change** against an *improvements ledger* — for every `pending` entry,
-   re-measure the metric it claimed to move and mark it `verified` or `regressed`.
-3. **Diagnose** the upstream cause of any weak signal and make the *smallest* change to a
-   prompt or a config value — never a fix that helps only one item.
+1. **Measure** the factory's own telemetry over a window: workflow run outcomes and durations, throughput, and time-to-merge.
+2. **Verify the last change** against an *improvements ledger* — for every `pending` entry, re-measure the metric it claimed to move and mark it `verified` or `regressed`.
+3. **Diagnose** the upstream cause of any weak signal and make the *smallest* change to a prompt or a config value — never a fix that helps only one item.
 4. **Record** a new `pending` entry so the next run can verify it.
 5. **Ship** exactly one pull request. It never merges its own work.
 

@@ -23,8 +23,7 @@ Pair with **`building-games`** (loop, camera, 3D orientation) and **`building-ga
 
 ## 0. Hard rules (fail the build if broken)
 
-1. **Player-visible left/right is law.** From a **chase / behind** camera while
-   the craft moves **forward**:
+1. **Player-visible left/right is law.** From a **chase / behind** camera while the craft moves **forward**:
    - **A / ←** → nose (or bank) turns **left on screen**
    - **D / →** → nose (or bank) turns **right on screen**
 2. **Never reuse FPS strafe as vehicle steer.** FPS “D → +right vector” is
@@ -113,15 +112,13 @@ If you already wrote `KeyA → steer--`, either **swap the key mapping** or **ne
 - **A/D are not strafe** and not “ground steer with FPS signs.”
 - Apply roll in the craft’s **local forward axis** with a sign that matches
 **bank left on A**. If the mesh banks the wrong way, flip **one** sign on the roll apply (or on the A/D → roll mapping), not the whole basis.
-- Coordinated turn: positive bank should produce a turn that matches the bank
-  direction under the chase/external cam.
+- Coordinated turn: positive bank should produce a turn that matches the bank direction under the chase/external cam.
 
 ### 2d. Heli / drone / 6DOF
 
 Document the scheme on a start overlay. Minimum:
 
-- Throttle/altitude on discrete keys must **not** stick “always up” after one
-  press (use held state or explicit up/down).
+- Throttle/altitude on discrete keys must **not** stick “always up” after one press (use held state or explicit up/down).
 - Strafe/yaw: **A left, D right** in the craft’s horizontal frame (player-visible).
 
 ### 2e. 2D side-scroller / platformer
@@ -132,10 +129,8 @@ Document the scheme on a start overlay. Minimum:
 
 ## 3. Camera must agree
 
-- Chase cam: `desired = craftPos + up*height + forward*(-followDist)`; lerp;
-  `lookAt(craft)`.
-- Compute `forward` **once** for both movement and camera — do not rebuild with
-  opposite yaw sign in the camera path.
+- Chase cam: `desired = craftPos + up*height + forward*(-followDist)`; lerp; `lookAt(craft)`.
+- Compute `forward` **once** for both movement and camera — do not rebuild with opposite yaw sign in the camera path.
 - Debug order: (1) keys register → (2) signs correct (§5) → (3) camera agrees.
 
 ---
@@ -144,8 +139,7 @@ Document the scheme on a start overlay. Minimum:
 
 - Track keys with a `Set` on `keydown`/`keyup` using **`event.code`**; clear on
 `blur` / `visibilitychange`. Move in the game loop with **dt**, not in the key handler.
-- Unify keyboard + touch + gamepad into **actions** (`throttle`, `steer`,
-  `pitch`, `roll`, …). See `building-games/references/input.md`.
+- Unify keyboard + touch + gamepad into **actions** (`throttle`, `steer`, `pitch`, `roll`, …). See `building-games/references/input.md`.
 - Touch: left stick = move/steer, right = actions; ≥44px targets.
 
 ---
@@ -220,8 +214,7 @@ The hold sits **inside** one `eval`: spread across commands it lasts however lon
 
 - Do **not** only test “D increases some internal variable.”
 - Do **not** use FPS “D → +X when facing −Z” as the vehicle pass condition.
-- Do **not** flip mesh bank, camera, and steer all at once when fixing — change
-  **one** sign, retest.
+- Do **not** flip mesh bank, camera, and steer all at once when fixing — change **one** sign, retest.
 
 ---
 
@@ -232,7 +225,6 @@ The hold sits **inside** one `eval`: spread across commands it lasts however lon
 - [ ] Chase-cam A/D player-visible test **passed** (§5a).
 - [ ] `window.__controlsTest` (or equivalent) available in dev/QA and used once.
 - [ ] No inverted bank mesh relative to roll/steer input.
-- [ ] Keys are held-state + dt-scaled; no sticky thrust from a single Space tap
-      unless intentional and labeled.
+- [ ] Keys are held-state + dt-scaled; no sticky thrust from a single Space tap unless intentional and labeled.
 
 If any box is unchecked, the game is **not** done.

@@ -1,5 +1,7 @@
 # .claude/ — Claude Code project tooling
 
+> What each slash command, agent and hook in `.claude/` does.
+
 | Path | Role |
 |---|---|
 | `commands/add-machine.md` | Machine-type DoD checklist (golden rule #8) |

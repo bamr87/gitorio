@@ -1,8 +1,8 @@
 # PRD — gitorio (GitFactory)
 
-> Product requirements for [`bamr87/gitorio`](https://github.com/bamr87/gitorio).
-> Derived from the README, agent docs, config and code in this repo. Anything not
-> stated in those sources is marked **TBD**; success metrics are proposals.
+> The product requirements for GitFactory: the problem, target users, goals, scope and proposed success measures.
+
+Product requirements for [`bamr87/gitorio`](https://github.com/bamr87/gitorio), derived from the README, agent docs, config and code in this repo. Anything not stated in those sources is marked **TBD**; success metrics are proposals.
 
 ## 1. Overview / problem
 
