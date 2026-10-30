@@ -71,3 +71,48 @@ features:
     surface: infra
     link: ".vscode/tasks.json"
     docs: "README.md"
+  - id: GITORIO-007
+    title: "Harness Studio live map (Observe over fleetgraph/v1)"
+    description: "Fleet-wide live map of loops and harnesses with per-node status, Passport and Finder, read-only. Proposed in docs/proposals/redesign-harness-studio.md."
+    implemented: false
+    status: planned
+    prd: [FR4, FR7]
+    surface: ui
+    link: "app/src/map"
+    docs: "docs/proposals/redesign-harness-studio.md"
+  - id: GITORIO-008
+    title: "Design fragments from the blueprint editor"
+    description: "Deploy also emits JEV design fragments (registry entry, pipeline node, feature) as a PR, with needs-assessment and prior-art fields."
+    implemented: false
+    status: planned
+    prd: [FR5, FR8]
+    surface: ui
+    link: "app/src/canvas"
+    docs: "docs/proposals/redesign-harness-studio.md"
+  - id: GITORIO-009
+    title: "Manage via confirm-gated hub console ops"
+    description: "Map actions become op intents executed by the hub console behind its confirm; no hub write credential in the app; never through an MCP tunnel; cost labelled API-equivalent (estimate)."
+    implemented: false
+    status: planned
+    prd: [FR6, NFR4]
+    surface: ui
+    link: "app/src/fleet"
+    docs: "docs/proposals/redesign-harness-studio.md"
+  - id: GITORIO-010
+    title: "Console embed of the live map"
+    description: "The hub harness console hosts the static bundle and feeds status over its SSE stream."
+    implemented: false
+    status: planned
+    prd: [FR9, NFR5]
+    surface: ui
+    link: "app/src/state"
+    docs: "docs/proposals/redesign-harness-studio.md"
+  - id: GITORIO-011
+    title: "JEV numbering and main-only generated files"
+    description: "Feature, requirement and amendment ids assigned at merge from fragments; generated files regenerated on main (hub amendment 0002 fan-out step 4)."
+    implemented: false
+    status: planned
+    prd: [FR8]
+    surface: infra
+    link: "features"
+    docs: "docs/proposals/redesign-harness-studio.md"

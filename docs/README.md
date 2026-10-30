@@ -34,6 +34,12 @@ This index covers the root documents of record and everything under `docs/`. The
 | [`docs/adr/`](adr/README.md) | The fleet-format ADR directory (UPS-WORK-04): the file format, the status values and the index; the repo's ADR-001…042 history is in DECISIONS.md. |
 | [`docs/amendments/`](amendments/README.md) | The append-only log of changes to [the constitution](constitution.md). |
 
+### `docs/proposals/`
+
+| Document | What it covers |
+| --- | --- |
+| [`docs/proposals/redesign-harness-studio.md`](proposals/redesign-harness-studio.md) | A design proposal (no implementation) to redefine gitorio from "a factory builder that also observes" into the fleet's one interactive surface for harnesses and loops: a live map (observe), a blueprint editor (design) and confirm-gated… |
+
 ### `docs/reference/`
 
 | Document | What it covers |

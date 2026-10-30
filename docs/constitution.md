@@ -10,6 +10,8 @@
 
 GitFactory (working title) is a Factorio-style factory builder for GitHub automation: users drag machines (triggers, Claude Code agents, actions) onto a canvas, connect them with belts, and Deploy compiles the blueprint into readable GitHub Actions workflows on their own repos. No servers: the frontend is static and GitHub is the database, event bus and compute layer.
 
+GitFactory is also the fleet's Harness Studio: it observes every loop and harness live, designs new ones as reviewable blueprints, and manages them only through confirm-gated hub operations — read-only by default, over a graph schema shared with the hub and numbered and generated under JEV. _(proposed, [amendment 0002](amendments/0002-harness-studio-mission.md))_
+
 _Source: [PRD.md](../PRD.md)._
 
 ## 2. Invariants (non-negotiable)
