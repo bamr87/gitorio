@@ -10,3 +10,4 @@ The append-only log of changes to [the constitution](../constitution.md). Proces
 | # | Title | Status | Affects |
 | --- | --- | --- | --- |
 | [0001](0001-ratify-constitution.md) | Ratify the constitution | ratified on merge | whole constitution |
+| [0002](0002-harness-studio-mission.md) | Harness Studio mission (production/community-ready open harness tool; schema + engine/API; plugins; Jev foundation) | proposed | §1; FR4–FR12, NFR4–NFR7; GITORIO-007…014 |
