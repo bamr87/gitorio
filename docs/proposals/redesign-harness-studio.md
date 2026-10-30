@@ -5,12 +5,24 @@
 - **Status:** proposed (design only — nothing in `app/` changes in this PR)
 - **Date:** 2026-10-30
 - **Proposed by:** Grok Bot (agent), at Amr's request; ratification is the maintainer's merge
-- **Affects:** constitution §1 (mission) via [amendment 0002](../amendments/0002-harness-studio-mission.md); PRD FR4–FR9, NFR4–NFR5 (proposed); features GITORIO-007…GITORIO-011 (planned)
+- **Affects:** constitution §1 (mission) via [amendment 0002](../amendments/0002-harness-studio-mission.md); PRD FR4–FR12, NFR4–NFR7 (proposed); features GITORIO-007…GITORIO-014 (planned)
 - **Related (hub):** roadmap issue [bamr87/bamr87#479 — "Roadmap: harness console live interactive map of loops and harnesses (Gitorio-style)"](https://github.com/bamr87/bamr87/issues/479) · proposed amendment PR [bamr87/bamr87#480 — "docs(governance): propose amendment — prior-art research before harness/loop design"](https://github.com/bamr87/bamr87/pull/480) · hub [`docs/JEV.md`](https://github.com/bamr87/bamr87/blob/main/docs/JEV.md) and amendment 0002 (conflict-free numbering) · gitorio ADR-011, ADR-034, ADR-035, ADR-036, ADR-038 · BL-20260902-13…18 · BL-20261022-02
 
 ## 0. Summary
 
 Gitorio already holds most of the parts: a workflow parser (`app/src/fleet/parse.ts`), the archify IR (`app/src/archify/ir.ts`), a placed SVG map (`app/src/map/layout.ts` → `MapView.tsx`) with Passport and Finder, ETag-polled telemetry (`app/src/state/telemetry.ts`), a harness engine ported value-for-value from the hub (`app/src/harness/`, ADR-036), `fleet/v1` lanes, Fleet Command's confirm-gated run/arm/cancel, and the `@xyflow/react` blueprint canvas. The hub holds the rest: `diagrams/pipeline-map/pipeline.json` + `tools/pipeline_map.py` (live per-node status that the console does not show), the harness console (`tools/console`, `/api/live/stream` SSE, the workflow atlas, 11 loops, 49 ops), `_data/harness_registry.yml`, and JEV (`tools/jev/`: ids assigned at merge from fragments, main-only generated files, a tiered conflict engine). What is missing is one contract tying them together. This proposal names that contract — a **fleet graph schema (`fleetgraph/v1`)** generated on the hub under JEV's rules — and reorganises gitorio around three modes over it: **Observe**, **Design**, **Manage**. The research below finds no existing tool worth adopting wholesale; it recommends adopting two libraries (`elkjs` for layout of un-placed graphs, keeping `@xyflow/react` for editing) and borrowing UI patterns from Temporal, Dagster, Argo, LangGraph Studio and Langfuse.
+
+## Goals
+
+Amr's stated goals for the redesign. Every layer (§ 3.2) and phase (§ 5) maps to them; each goal has measurable success criteria checked at the phase that delivers it.
+
+| Goal | Statement | Success criteria (measurable) |
+| --- | --- | --- |
+| **G1** | A robust, full-featured harness and loop design and configuration system | Every hub loop in `_data/harness_registry.yml` (11 today) and every gitorio blueprint line can be designed, configured and validated in the studio; 100% of the hub's six harness layers and twelve readiness checks are editable and graded; a studio-designed loop lands as a reviewable PR with zero hand edits (P6) |
+| **G2** | A front end abstracted from the back end: a versioned graph/config schema (`fleetgraph/v1`) plus an engine/API layer that any UI consumes | `fleetgraph/v1` has a published JSON Schema with a version field and a compatibility test suite; the Gitorio app and the hub console both render from the same engine/API package with no UI-specific graph code; a schema change that breaks v1 fixtures fails CI (P2, P7) |
+| **G3** | Highly configurable and extensible: plugin node types, adapters for GitHub Actions, the local runner and other engines, and config-driven behavior | Node types are registered through a plugin API, not core edits (at least one built-in type migrated to a plugin as proof); at least three adapters ship behind one adapter interface — GitHub Actions, the fleet local runner, and one other engine; behavior toggles live in config files validated by schema, not code branches (P8) |
+| **G4** | Overarching: a production-ready, community-ready, full-fledged open harness tool for creating agentic workflows | A 1.0 release with: packaged artifacts (npm package for the engine/API + static app build) published by release-please; semver with a documented extension-API stability policy (deprecations survive one minor release); a docs site; `CONTRIBUTING.md`, a `CODE_OF_CONDUCT.md` (missing today), `LICENSE`, `SECURITY.md` with a written security model; CI green on tests, typecheck, lint, build and gates, with engine coverage ≥ 80%; a newcomer can install, run the demo and add a plugin node from the docs alone (P9) |
+| **G5** | Jev is a core foundation, not an optional integration | Jev numbering is enforced in gitorio CI (`number lint` gating, `generated guard` on PRs) before any schema or engine work merges; every graph node id in `fleetgraph/v1` is a Jev-assigned id; design fragments are Jev fragments (P1, P2, P6) |
 
 ## 1. Needs assessment (per the proposed hub rule, bamr87/bamr87#480)
 
@@ -67,14 +79,15 @@ The factory builder stays — it becomes the Design mode, not the whole product.
 
 ### 3.2 Layer model (bottom to top)
 
-| Layer | Owner | What it is |
-| --- | --- | --- |
-| L0 **JEV** — ids, fragments, generated files | hub `tools/jev/` | Every new loop, harness, feature, requirement and amendment enters as a fragment with a `*-NEW` placeholder and is numbered at merge on `main` under `concurrency: jev-number`; generated files (the graph, catalogs) are main-only and regenerated, never merged; the conflict engine handles what is left (tier 0 free first, never merges, never force-pushes). Gitorio adopts it as fan-out step 4 of hub amendment 0002. |
-| L1 **`fleetgraph/v1`** — the shared graph schema | hub (generated) | One JSON document: nodes (loop, harness, workflow, job, op, trip wire), edges (triggers, dispatch belts, writes), each node keyed by its stable JEV-assigned id plus its source (registry entry, `pipeline.json` node, `fleet.manifest.yml` lane, blueprint line). Generated on the hub from `_data/harness_registry.yml`, `diagrams/pipeline-map/pipeline.json` and fleet manifests, as a JEV main-only file. Borrowing Backstage's `kind`/`relations` shape. |
-| L2 **Status** | hub + gitorio | Per-node status from one computation: `pipeline_map.py`'s status rules, either served by the console SSE (`/api/live/stream`) or recomputed client-side by a TypeScript port with a golden-file parity test (the ADR-036 pattern). |
-| L3 **IR + layout** | gitorio | `fleetgraph/v1` → archify IR (`archify/ir.ts`); placed by archify where the IR is placed, by `elkjs` (lazy) where it is not. |
-| L4 **Modes** | gitorio | Observe (SVG `MapView`), Design (`@xyflow/react` canvas), Manage (op intents → hub console). |
-| L5 **Hosts** | gitorio Pages + hub console | The same static bundle, deep-linked (`?tab=`, `?roster=`, new `?graph=`), embeddable in the console. |
+| Layer | Owner | What it is | Goals |
+| --- | --- | --- | --- |
+| L0 **JEV** — ids, fragments, generated files | hub `tools/jev/` | Every new loop, harness, feature, requirement and amendment enters as a fragment with a `*-NEW` placeholder and is numbered at merge on `main` under `concurrency: jev-number`; generated files (the graph, catalogs) are main-only and regenerated, never merged; the conflict engine handles what is left (tier 0 free first, never merges, never force-pushes). Gitorio adopts it as fan-out step 4 of hub amendment 0002. | G5, G4 |
+| L1 **`fleetgraph/v1`** — the shared graph schema | hub (generated) | One JSON document: nodes (loop, harness, workflow, job, op, trip wire), edges (triggers, dispatch belts, writes), each node keyed by its stable JEV-assigned id plus its source (registry entry, `pipeline.json` node, `fleet.manifest.yml` lane, blueprint line). Generated on the hub from `_data/harness_registry.yml`, `diagrams/pipeline-map/pipeline.json` and fleet manifests, as a JEV main-only file. Borrowing Backstage's `kind`/`relations` shape. | G2, G5 |
+| L2 **Status** | hub + gitorio | Per-node status from one computation: `pipeline_map.py`'s status rules, either served by the console SSE (`/api/live/stream`) or recomputed client-side by a TypeScript port with a golden-file parity test (the ADR-036 pattern). | G2, G1 |
+| L2b **Engine/API** | gitorio package (`@gitorio/engine`, proposed name) | The pure, UI-free layer: schema types and validation, graph→IR, status rules, compiler, harness grading, op-intent builders, the plugin registry and the adapter interface. Both the app and the console consume it; nothing in it imports React. | G2, G3, G4 |
+| L3 **IR + layout** | gitorio | `fleetgraph/v1` → archify IR (`archify/ir.ts`); placed by archify where the IR is placed, by `elkjs` (lazy) where it is not. | G2 |
+| L4 **Modes** | gitorio | Observe (SVG `MapView`), Design (`@xyflow/react` canvas), Manage (op intents → hub console). | G1, G3 |
+| L5 **Hosts** | gitorio Pages + hub console | The same static bundle, deep-linked (`?tab=`, `?roster=`, new `?graph=`), embeddable in the console. | G2, G4 |
 
 ### 3.3 The three modes
 
@@ -103,17 +116,20 @@ Option A (recommended first): the console links to Pages with `?graph=<hub-url>&
 
 ## 5. Migration phases
 
-| Phase | Scope | Exit criteria |
-| --- | --- | --- |
-| P0 Ratify | Merge this proposal + amendment 0002 (mission); hub #480 ratified; hub #479 scoped | Maintainer merges; no code change |
-| **P1 Integrate JEV (early, foundational)** | Take hub amendment 0002 fan-out step 4 for gitorio: `features/features.d/`, `docs/amendments/proposed/`, `.gitattributes` merge drivers, main-only generated files, `number lint` in CI; keep release-please for `CHANGELOG.md` (so no `changelog.d/`, per fan-out step 5) | Next feature/amendment lands numbered at merge; `jev generated guard` green on PRs |
-| P2 Schema | Define `fleetgraph/v1` on the hub (generated, JEV main-only) from registry + `pipeline.json` + manifests; a TS reader + fixture in gitorio | Golden fixture round-trips; schema doc in hub |
-| P3 Live map | Observe renders `fleetgraph/v1`; status via ETag poll; `pipeline_map.py` status ported with parity test; `elkjs` lazy | Fleet-wide map at `?graph=`; demo fixture; bundle budget held |
-| P4 Console embed | `StatusSource` SSE; console hosts the bundle (option B) | hub #479 acceptance met |
-| P5 Manage | Op intents → console ops with confirms; cost labels | No write path exists outside console ops / user PAT on non-hub repos |
-| P6 Design fragments | Deploy emits JEV design fragments + needs-assessment fields | A new loop designed in the studio lands as a hub PR |
+| Phase | Scope | Exit criteria | Goals |
+| --- | --- | --- | --- |
+| P0 Ratify | Merge this proposal + amendment 0002 (mission); hub #480 ratified; hub #479 scoped | Maintainer merges; no code change | G1–G5 (agreed) |
+| **P1 Integrate JEV (early, foundational)** | Take hub amendment 0002 fan-out step 4 for gitorio: `features/features.d/`, `docs/amendments/proposed/`, `.gitattributes` merge drivers, main-only generated files, `number lint` in CI; keep release-please for `CHANGELOG.md` (so no `changelog.d/`, per fan-out step 5) | Next feature/amendment lands numbered at merge; `jev generated guard` green on PRs | G5, G4 |
+| P2 Schema | Define `fleetgraph/v1` on the hub (generated, JEV main-only) from registry + `pipeline.json` + manifests; a TS reader + fixture in gitorio | Golden fixture round-trips; schema doc in hub | G2, G5 |
+| P3 Live map | Observe renders `fleetgraph/v1`; status via ETag poll; `pipeline_map.py` status ported with parity test; `elkjs` lazy | Fleet-wide map at `?graph=`; demo fixture; bundle budget held | G1, G2 |
+| P4 Console embed | `StatusSource` SSE; console hosts the bundle (option B) | hub #479 acceptance met | G2 |
+| P5 Manage | Op intents → console ops with confirms; cost labels | No write path exists outside console ops / user PAT on non-hub repos | G1, G4 |
+| P6 Design fragments | Deploy emits JEV design fragments + needs-assessment fields | A new loop designed in the studio lands as a hub PR | G1, G5 |
+| P7 Engine/API extraction | Move schema, graph→IR, status, compiler, harness grading and op intents into a UI-free engine/API package with a versioned public surface; app and console consume it | App has no graph logic outside the package; console renders from it; API docs generated | G2, G4 |
+| P8 Plugin SDK + adapters | Plugin API for node types; adapter interface with GitHub Actions, local runner and one other engine; config-driven behavior validated by schema | One built-in node type moved to a plugin; three adapters pass a shared conformance suite | G3, G1 |
+| P9 Community release 1.0 | Packaging and release-please releases, semver + extension-API stability policy, docs site, `CODE_OF_CONDUCT.md`, security model in `SECURITY.md`, contribution guide refresh, coverage target | 1.0 tagged; G4 checklist all green | G4 |
 
-Each phase enters as a `BL-*` item and a `specs/NNN-*` package (AO-SDLC).
+Ordering: P7 can start once P2 lands and runs in parallel with P3–P5; P8 needs P7; P9 needs P1–P8. Each phase enters as a `BL-*` item and a `specs/NNN-*` package (AO-SDLC).
 
 ## 6. Risks
 
@@ -135,4 +151,4 @@ Each phase enters as a `BL-*` item and a `specs/NNN-*` package (AO-SDLC).
 
 ## 8. Requirement and feature placeholders
 
-Added in this PR as **planned** entries (see `features/features.yml` GITORIO-007…011 and PRD § 5 FR4–FR9, NFR4–NFR5, marked *proposed*). Once P1 lands, new ones are written as JEV fragments instead and numbered at merge.
+Added in this PR as **planned** entries (see `features/features.yml` GITORIO-007…014 and PRD § 5 FR4–FR12, NFR4–NFR7, marked *proposed*). Once P1 lands, new ones are written as JEV fragments instead and numbered at merge.
