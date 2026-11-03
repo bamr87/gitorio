@@ -49,6 +49,14 @@ Every user-facing capability has a stable id in the feature catalog [`features/f
 | [GITORIO-004](features/features.yml) | Fleet Ops cockpit and telemetry views | shipped | [`app/src/fleet`](app/src/fleet) · [`README.md`](README.md) | TBD |
 | [GITORIO-005](features/features.yml) | Packages absorbed under packages/ | shipped | [`packages`](packages) · [`README.md`](README.md) | TBD |
 | [GITORIO-006](features/features.yml) | Docker and VS Code task/debug workflows | shipped | [`.vscode/tasks.json`](.vscode/tasks.json) · [`README.md`](README.md) | TBD |
+| [GITORIO-007](features/features.yml) | Harness Studio live map (Observe over fleetgraph/v1) | planned | [`app/src/map`](app/src/map) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR4, FR7, FR12 |
+| [GITORIO-008](features/features.yml) | Design fragments from the blueprint editor | planned | [`app/src/canvas`](app/src/canvas) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR5, FR8 |
+| [GITORIO-009](features/features.yml) | Manage via confirm-gated hub console ops | planned | [`app/src/fleet`](app/src/fleet) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR6, NFR4 |
+| [GITORIO-010](features/features.yml) | Console embed of the live map | planned | [`app/src/state`](app/src/state) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR9, NFR5 |
+| [GITORIO-011](features/features.yml) | JEV numbering and main-only generated files | planned | [`features`](features) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR8 |
+| [GITORIO-012](features/features.yml) | Engine/API layer over fleetgraph/v1 | planned | [`app/src`](app/src) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR10, NFR6 |
+| [GITORIO-013](features/features.yml) | Plugin SDK: node types, engine adapters, config-driven behavior | planned | [`app/src/machines`](app/src/machines) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR11, FR12 |
+| [GITORIO-014](features/features.yml) | Community release 1.0 | planned | [`release-please-config.json`](release-please-config.json) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | NFR6, NFR7 |
 
 **Requirement → feature trace**
 
@@ -58,6 +66,19 @@ Every user-facing capability has a stable id in the feature catalog [`features/f
 | FR1 | GITORIO-002 |
 | FR3 | GITORIO-003 |
 | FR2 | GITORIO-003 |
+| FR4 | GITORIO-007 |
+| FR7 | GITORIO-007 |
+| FR12 | GITORIO-007, GITORIO-013 |
+| FR5 | GITORIO-008 |
+| FR8 | GITORIO-008, GITORIO-011 |
+| FR6 | GITORIO-009 |
+| NFR4 | GITORIO-009 |
+| FR9 | GITORIO-010 |
+| NFR5 | GITORIO-010 |
+| FR10 | GITORIO-012 |
+| NFR6 | GITORIO-012, GITORIO-014 |
+| FR11 | GITORIO-013 |
+| NFR7 | GITORIO-014 |
 <!-- features:end -->
 
 ## 5. Requirements
@@ -67,12 +88,25 @@ Every user-facing capability has a stable id in the feature catalog [`features/f
 - FR1: Compile produces valid, readable workflow YAML for each blueprint
 - FR2: Deploy writes workflows to the user's repo via their token
 - FR3: Demo mode makes no network calls
+- FR4 (proposed, G1/G2): Observe renders the fleet graph (`fleetgraph/v1`) live with per-node status, read-only
+- FR5 (proposed): Design emits reviewable artifacts — compiled workflows and JEV design fragments opened as PRs, never committed to `main`
+- FR6 (proposed): Manage sends op intents to confirm-gated hub console ops; the app holds no hub write credential and never acts through an MCP tunnel
+- FR7 (proposed): A shared graph schema with the hub registry and pipeline map, with a parity-tested status computation
+- FR8 (proposed, G5): New features, requirements and amendments are numbered at merge by JEV
+- FR9 (proposed): The live map embeds in the hub harness console
+- FR10 (proposed, G2): A UI-free engine/API package over a versioned `fleetgraph/v1` schema is the only graph logic both the app and the hub console consume
+- FR11 (proposed, G3): Node types register through a plugin API; execution targets plug in through an adapter interface (GitHub Actions, the local runner, at least one other engine)
+- FR12 (proposed, G1/G3): Harness and loop behavior is configured in schema-validated config files, and every hub loop and harness layer can be designed and configured in the studio
 
 **Non-functional**
 
 - NFR1: Static hosting only; Node 22 pinned (`.nvmrc`)
 - NFR2: Typecheck, lint, test and build pass in CI
 - NFR3: Token handled client-side only (storage policy: TBD)
+- NFR4 (proposed, G1/G2): Every cost figure is labelled "API-equivalent (estimate)" and separates estimated from reported spend
+- NFR5 (proposed): Live-map additions stay lazy-loaded within the first-paint bundle budget
+- NFR6 (proposed, G4): Releases follow semver; the extension API has a published stability and deprecation policy; schema versions carry compatibility tests
+- NFR7 (proposed, G4): Community-ready: license, contribution guide, code of conduct, security model, docs site, packaged releases and green CI with engine coverage ≥ 80%
 
 ## 6. Success metrics (proposed — not defined in sources)
 
