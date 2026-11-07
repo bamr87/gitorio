@@ -198,7 +198,7 @@ Added 2026-10-30 at Amr's request. Facts below were read from the repository REA
 - **Learner (§3–§6): none.** The learner is stdlib arithmetic. TE matters only for the bar-exam re-judging of golden samples. Those judgments must run with TE **off**, or with a pinned TE state hashed into the manifest, so calibration is not confounded by a changing judge context (§5 "Deterministic and reproducible").
 - **Loop-guard events as a weak signal.** A `tend` turn that TE flags as stuck is evidence about the *finding*: an unfixable or ill-posed finding. Record it as a feature of the finding (count only, no transcript). It is never a reward label.
 - **Cost line.** The per-cycle "API-equivalent (estimate)" (§5) adds TE's own judge/redirect spend from `te status`.
-- **Phase E-TE (before v2.1 ships):** shadow A/B on `tend` over at least 20 sessions, TE off vs on (tool pruning + loop guard). Keep TE on only if mean cost drops by 10% or more with no loss in PR acceptance rate. Report both numbers in the cycle report.
+- **Phase E-TE (before v2.1 ships):** shadow A/B on `tend` over at least 20 sessions, TE off vs on (tool pruning + loop guard). Keep TE on only if mean cost drops by 10% or more with no loss in PR acceptance rate. Report both numbers in the cycle report. The 10% threshold is **proposed, not ratified**: it takes effect only when a maintainer ratifies it (ADR or amendment record) before the phase starts; until then TE stays default OFF.
 
 
 ## Counterbalance contract (shared section — identical in both proposals)
