@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.1](https://github.com/bamr87/gitorio/compare/v0.2.0...v0.2.1) (2026-11-05)
+
+
+### Documentation
+
+* **governance:** add proposed amendment record ([19b169b](https://github.com/bamr87/gitorio/commit/19b169bf6c9978f5f7164dacf7102ca6704455b9))
+* **governance:** propose amendment — agent merge of mergeable PRs + review gate ([5b8c627](https://github.com/bamr87/gitorio/commit/5b8c6271ddd3631c1c27ca558ed65725cb8d74ae))
+* **governance:** propose amendment — agent merge of mergeable PRs and a review gate (conforms to hub § 12) ([6b531b0](https://github.com/bamr87/gitorio/commit/6b531b001b9e980d2c2b8ab002a0bc6b53f765d1))
+* **gwtp:** propose RL drift learning — offline outcome calibration across history phases (design only) ([b5c96ac](https://github.com/bamr87/gitorio/commit/b5c96ac179c0a3332893b88384955beb9f2e1443))
+* **gwtp:** propose RL drift learning across history phases (design only) ([b59ea37](https://github.com/bamr87/gitorio/commit/b59ea37a4f00ccafdd16e2d3265df4c574b92ed5))
+* **proposal:** adopt microsoft/TokenEconomizer for agent-loop token cost control (§8.1) ([43a0aa7](https://github.com/bamr87/gitorio/commit/43a0aa7a87cc6fa115349f24b4fea3fdb4faed1a))
+
 ## [0.2.0](https://github.com/bamr87/gitorio/compare/v0.1.0...v0.2.0) (2026-10-30)
 
 
