@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/bamr87/gitorio/compare/v0.2.1...v0.2.2) (2026-11-12)
+
+
+### Documentation
+
+* **proposal:** mark the TokenEconomizer 10% keep-threshold as unratified ([c3bcd53](https://github.com/bamr87/gitorio/commit/c3bcd53a81031122d327725f4c092b074279fa78))
+
 ## [0.2.1](https://github.com/bamr87/gitorio/compare/v0.2.0...v0.2.1) (2026-11-05)
 
 
