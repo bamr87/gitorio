@@ -23,9 +23,8 @@ jobs:
         env:
           ENABLED: ${{ vars.ISSUE_FACTORY_ENABLED }}
           OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |-
-          if [ "$ENABLED" = "true" ] && { [ -n "$OAUTH" ] || [ -n "$KEY" ]; }; then
+          if [ "$ENABLED" = "true" ] && [ -n "$OAUTH" ]; then
             echo "go=true" >> "$GITHUB_OUTPUT"
           else
             echo "gate closed — set the 'ISSUE_FACTORY_ENABLED' variable to true and provision Claude auth to arm this line."
@@ -54,7 +53,6 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}
           prompt: |-
             REPO: ${{ github.repository }}
             MAX_GROUP_SIZE: 4

@@ -58,10 +58,10 @@ describe('compile: integrated agent line (trigger → agent → sinks)', () => {
     expect(wf.yaml).not.toContain('allowed_tools:');
   });
 
-  it('defaults agent auth to Claude Code OAuth token with an ANTHROPIC_API_KEY fallback', () => {
+  it('authenticates agents with the Claude Code OAuth token only (API-key fallback disabled, ADR-043)', () => {
     expect(wf.yaml).toContain('claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}');
-    // API key is the fallback, passed only when the OAuth secret is unset
-    expect(wf.yaml).toContain("secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY");
+    expect(wf.yaml).not.toContain('anthropic_api_key');
+    expect(wf.yaml).not.toContain('ANTHROPIC_API_KEY');
   });
 
   it('references the repo prompt file instead of inlining it', () => {
@@ -583,8 +583,11 @@ describe('gate.enablement — default-OFF repo-variable kill switch', () => {
     expect(wf.yaml).toContain('gate:');
     expect(wf.yaml).toContain('go: ${{ steps.check.outputs.go }}');
     expect(wf.yaml).toContain('ENABLED: ${{ vars.CONTENT_FACTORY_ENABLED }}');
-    // agent line ⇒ the gate also requires Claude auth to be provisioned
-    expect(wf.yaml).toContain('[ -n "$OAUTH" ]');
+    // agent line ⇒ the gate also requires Claude auth (the OAuth token, ADR-043) to be provisioned
+    expect(wf.yaml).toContain('OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}');
+    expect(wf.yaml).toContain('if [ "$ENABLED" = "true" ] && [ -n "$OAUTH" ]; then');
+    expect(wf.yaml).not.toContain('KEY: ${{ secrets.ANTHROPIC_API_KEY }}');
+    expect(wf.yaml).not.toContain('$KEY');
     // the line waits on the gate and only runs when it says go
     expect(wf.yaml).toContain('needs: gate');
     expect(wf.yaml).toContain("needs.gate.outputs.go == 'true'");

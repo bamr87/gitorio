@@ -1,6 +1,6 @@
 // Alignment-audit rules engine — Fleet Ops' "certification" pass. Grades one repo's
 // reverse-engineered WorkflowFacts against the real bamr87 fleet conventions
-// (ground-truthed by survey): OAuth-first Claude auth, default-OFF vars.*_ENABLED
+// (ground-truthed by survey): OAuth-only Claude auth, default-OFF vars.*_ENABLED
 // kill switches on scheduled AI, loop guards on event-triggered writers, near-universal
 // concurrency blocks, least-privilege permissions, plan/apply duality on mutating
 // crons, sticky-marker dedup on issue-filing crons, and the standard trio (a CI
@@ -177,11 +177,13 @@ function selfRetriggerSinks(f: WorkflowFacts): SinkKind[] {
 const RULES: readonly AuditRule[] = [
   wfRule(
     {
+      // The id predates the OAuth-only switch and stays stable; the convention it grades
+      // is now OAuth only (ADR-043, 2026-11-15: the ANTHROPIC_API_KEY fallback is disabled for now).
       id: 'auth-oauth-first',
-      title: 'OAuth-first Claude auth',
+      title: 'OAuth-only Claude auth',
       severity: 'warn',
       standard:
-        'AI workflows authenticate with CLAUDE_CODE_OAUTH_TOKEN first and keep ANTHROPIC_API_KEY only as the fallback.',
+        'AI workflows authenticate with CLAUDE_CODE_OAUTH_TOKEN only; the ANTHROPIC_API_KEY fallback is disabled for now.',
     },
     (f) => f.ai.present,
     (f) =>
@@ -189,8 +191,8 @@ const RULES: readonly AuditRule[] = [
         ? [
             {
               message:
-                'uses ANTHROPIC_API_KEY only; fleet convention is OAuth-first (CLAUDE_CODE_OAUTH_TOKEN with API-key fallback)',
-              fix: 'Pass claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }} first and keep anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }} as the fallback.',
+                'uses ANTHROPIC_API_KEY only; fleet convention is OAuth only (CLAUDE_CODE_OAUTH_TOKEN; the API-key fallback is disabled for now)',
+              fix: 'Pass claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }} and drop anthropic_api_key / secrets.ANTHROPIC_API_KEY.',
             },
           ]
         : [],

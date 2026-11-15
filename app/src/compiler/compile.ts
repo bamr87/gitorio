@@ -1086,11 +1086,13 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
         name: `${isFeedback ? '🔁 feedback_controller' : isBatcher ? '🗂 issue_batcher' : '⚙ agent.claude'} (${agent.id})`,
         uses: pinRef('anthropics/claude-code-action@v1', pinActions),
         with: {
-          // Power: default to the Claude Code OAuth token (`claude setup-token`), fall back
-          // to ANTHROPIC_API_KEY. The expression passes the API key ONLY when the OAuth
-          // secret is unset, so exactly one input is ever non-empty (no precedence ambiguity).
+          // Power: OAuth only for now — the Claude Code OAuth token (`claude setup-token`).
+          // The ANTHROPIC_API_KEY fallback is disabled (2026-11-15, ADR-043): no
+          // `anthropic_api_key` input is emitted. To restore it, re-add
+          //   anthropic_api_key: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}"
+          // (key passed only when the OAuth secret is unset), restore KEY in the enablement
+          // gate below, flip the auth tests (compile.test.ts, templates/catalog.test.ts) and regenerate.
           claude_code_oauth_token: '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}',
-          anthropic_api_key: "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN == '' && secrets.ANTHROPIC_API_KEY || '' }}",
           prompt,
           claude_args: claudeArgs,
         },
@@ -1244,19 +1246,20 @@ export function compile(bp: Blueprint, opts: CompileOptions = {}): CompileResult
     };
 
     // The enablement gate is a tiny default-OFF job: it only lets the line proceed when the
-    // repo variable is "true" — and, for agent lines, when Claude auth is provisioned. An
-    // unset variable reads as idle (never as "safe to run"). Flipping the variable arms or
-    // disarms the whole line with no redeploy; a compromised agent can't re-arm itself.
+    // repo variable is "true" — and, for agent lines, when Claude auth (the OAuth token) is
+    // provisioned. An unset variable reads as idle (never as "safe to run"). Flipping the
+    // variable arms or disarms the whole line with no redeploy; a compromised agent can't re-arm itself.
     const jobs: Record<string, unknown> = {};
     if (enableVar) {
       const needsAuth = agents.length > 0;
       const gateEnvVars: Record<string, string> = { ENABLED: `\${{ vars.${enableVar} }}` };
       if (needsAuth) {
+        // OAuth only for now (ADR-043): the API key is not read. To restore the fallback, add
+        // KEY: ${{ secrets.ANTHROPIC_API_KEY }} and test `{ [ -n "$OAUTH" ] || [ -n "$KEY" ]; }`.
         gateEnvVars.OAUTH = '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}';
-        gateEnvVars.KEY = '${{ secrets.ANTHROPIC_API_KEY }}';
       }
       const gateRun = needsAuth
-        ? 'if [ "$ENABLED" = "true" ] && { [ -n "$OAUTH" ] || [ -n "$KEY" ]; }; then\n' +
+        ? 'if [ "$ENABLED" = "true" ] && [ -n "$OAUTH" ]; then\n' +
           '  echo "go=true" >> "$GITHUB_OUTPUT"\n' +
           'else\n' +
           `  echo "gate closed — set the '${enableVar}' variable to true and provision Claude auth to arm this line."\n` +

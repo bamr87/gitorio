@@ -53,4 +53,12 @@ describe('template catalog', () => {
       expect(workflows.length).toBeGreaterThan(0);
     }
   });
+
+  it('no template compiles to a line that reads ANTHROPIC_API_KEY (OAuth only, ADR-043)', () => {
+    for (const t of TEMPLATES) {
+      for (const wf of compile(t.blueprint).workflows) {
+        expect(wf.yaml, `${t.id} → ${wf.filename}`).not.toContain('ANTHROPIC_API_KEY');
+      }
+    }
+  });
 });
