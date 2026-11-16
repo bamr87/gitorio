@@ -1,6 +1,6 @@
 # ⚙ GitFactory
 
-> Factorio-style factory builder for GitHub automation: blueprints compile to Actions workflows running Claude Code.
+> GitFactory's direction is to become the ultimate open home for all things GitHub automation: data, tools, resources and transparency, with visual blueprints that compile to auditable Actions workflows, a confirm-gated Harness Studio, and inspectable source for everyone ([constitution](docs/constitution.md) §1).
 
 [![CI](https://github.com/bamr87/gitorio/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/gitorio/actions/workflows/ci.yml) [![Live site](https://img.shields.io/badge/live-bamr87.github.io%2Fgitorio-2ea44f)](https://bamr87.github.io/gitorio/) [![License](https://img.shields.io/github/license/bamr87/gitorio)](LICENSE)
 
