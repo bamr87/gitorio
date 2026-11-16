@@ -187,6 +187,42 @@ body {
   flex-direction: column;
   height: 100%;
 }
+/* The one <main> landmark (UPS-FE-10): every view renders inside it, so it takes the height
+   the top bar and banners leave and passes it on (the floor's canvas still fills the window). */
+.shell__main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+/* It takes focus only from the skip link (tabindex -1): a landmark, not a control, so no ring. */
+.shell__main:focus {
+  outline: none;
+}
+/* The skip link (UPS-FE-11): the first focusable element, parked above the viewport until it
+   takes focus, then shown top-left on the skip-link layer (UPS-FE-04's 1100, over every dialog). */
+.skip-link {
+  position: fixed;
+  top: var(--sp-sm);
+  left: var(--sp-sm);
+  z-index: 1100;
+  padding: var(--sp-sm) var(--sp-lg);
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: var(--r-control);
+  font-family: var(--chrome);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(calc(-100% - var(--sp-lg)));
+  transition: transform var(--motion);
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  transform: none;
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
 .workspace {
   display: flex;
   flex: 1;

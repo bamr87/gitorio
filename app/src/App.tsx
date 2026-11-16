@@ -94,6 +94,9 @@ const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
 ];
 const VIEW_IDS = new Set<string>(TABS.map((t) => t.id));
 
+/** The one `<main>` landmark's id — the skip link's target (UPS-FE-10/11). */
+const MAIN_ID = 'main-content';
+
 /** The viewer's theme toggle, three-state so the `system` preference survives (specs/011). */
 const THEME_NEXT: Record<ThemePref, ThemePref> = { system: 'dark', dark: 'light', light: 'system' };
 const THEME_ICON: Record<ThemePref, string> = { system: '◐', dark: '●', light: '○' };
@@ -129,6 +132,7 @@ export default function App() {
   const passportOpen = useUiStore((s) => s.blueprintPassportOpen);
   const setPassportOpen = useUiStore((s) => s.setBlueprintPassportOpen);
   const fileRef = useRef<HTMLInputElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const flashTimer = useRef<number | undefined>(undefined);
   const [flash, setFlash] = useState<string | null>(null);
   const [dialog, setDialog] = useState<null | 'connect' | 'deploy' | 'templates'>(null);
@@ -252,6 +256,19 @@ export default function App() {
 
   return (
     <div className="shell">
+      {/* UPS-FE-11: the first focusable element jumps past the tab bar and toolbar to the one
+          <main id="main-content"> (UPS-FE-10). The handler moves focus itself, so the address
+          bar never gains a `#main-content` fragment a shared link would carry. */}
+      <a
+        className="skip-link"
+        href={`#${MAIN_ID}`}
+        onClick={(e) => {
+          e.preventDefault();
+          mainRef.current?.focus();
+        }}
+      >
+        Skip to content
+      </a>
       <header className="topbar" role="banner">
         <span className="topbar__logo">
           <span className="pulse" aria-hidden /> GITFACTORY
@@ -315,74 +332,76 @@ export default function App() {
 
       {demo && <DemoBanner />}
 
-      {view === 'build' && drift.length > 0 && (
-        <div className="banner banner--drift">
-          ⚠ {drift.length} deployed workflow{drift.length > 1 ? 's were' : ' was'} hand-edited since
-          the last blueprint.
-          <button type="button" className="btn" onClick={() => setDialog('deploy')}>
-            Review &amp; redeploy
-          </button>
-          <button type="button" className="btn" onClick={clearDrift}>
-            Dismiss
-          </button>
-        </div>
-      )}
+      <main id={MAIN_ID} ref={mainRef} tabIndex={-1} className="shell__main">
+        {view === 'build' && drift.length > 0 && (
+          <div className="banner banner--drift">
+            ⚠ {drift.length} deployed workflow{drift.length > 1 ? 's were' : ' was'} hand-edited
+            since the last blueprint.
+            <button type="button" className="btn" onClick={() => setDialog('deploy')}>
+              Review &amp; redeploy
+            </button>
+            <button type="button" className="btn" onClick={clearDrift}>
+              Dismiss
+            </button>
+          </div>
+        )}
 
-      {view === 'build' && (
-        <>
-          <BuildToolbar
-            onTemplates={() => setDialog('templates')}
-            onImportFile={() => fileRef.current?.click()}
-            onImportString={importString}
-            onExport={() =>
-              download(
-                `${meta.name || 'blueprint'}.blueprint.json`,
-                JSON.stringify(toBlueprint(), null, 2),
-              )
-            }
-            onCopyString={() => {
-              void navigator.clipboard.writeText(encodeBlueprintString(toBlueprint()));
-              say('Blueprint string copied — share it like a Factorio blueprint.');
-            }}
-            onDeploy={() => setDialog('deploy')}
-            canDeploy={canDeploy}
-            loggedIn={!!login}
-            showTelemetry={showTelemetry}
-            onToggleTelemetry={toggleTelemetry}
-            mode={buildMode}
-            onMode={setBuildMode}
-            finderOpen={finderOpen}
-            onFinder={() => setFinderOpen(!finderOpen)}
-            passportOpen={passportOpen}
-            onPassport={() => setPassportOpen(!passportOpen)}
-          />
-          {buildMode === 'floor' ? (
-            <>
-              <div className="workspace">
-                <FactoryCanvas />
-                {finderOpen && <MachineFinder onClose={() => setFinderOpen(false)} />}
-                <Inspector />
-              </div>
-              <CompileDrawer />
-            </>
-          ) : (
-            <Suspense fallback={<p className="tabpane__empty">Drawing the maps…</p>}>
-              <LineMaps />
-            </Suspense>
-          )}
-        </>
-      )}
-      {view === 'prompts' && <PromptStudio />}
-      {view === 'content' && <ContentPanel />}
-      {view === 'docs' && <DocsView />}
-      {view === 'monitor' && <MonitorPanel />}
-      {view === 'fleet' && <FleetView />}
-      {view === 'harness' && (
-        <Suspense fallback={<p className="tabpane__empty">Reading the harness…</p>}>
-          <HarnessPanel />
-        </Suspense>
-      )}
-      {view === 'settings' && <SettingsPanel />}
+        {view === 'build' && (
+          <>
+            <BuildToolbar
+              onTemplates={() => setDialog('templates')}
+              onImportFile={() => fileRef.current?.click()}
+              onImportString={importString}
+              onExport={() =>
+                download(
+                  `${meta.name || 'blueprint'}.blueprint.json`,
+                  JSON.stringify(toBlueprint(), null, 2),
+                )
+              }
+              onCopyString={() => {
+                void navigator.clipboard.writeText(encodeBlueprintString(toBlueprint()));
+                say('Blueprint string copied — share it like a Factorio blueprint.');
+              }}
+              onDeploy={() => setDialog('deploy')}
+              canDeploy={canDeploy}
+              loggedIn={!!login}
+              showTelemetry={showTelemetry}
+              onToggleTelemetry={toggleTelemetry}
+              mode={buildMode}
+              onMode={setBuildMode}
+              finderOpen={finderOpen}
+              onFinder={() => setFinderOpen(!finderOpen)}
+              passportOpen={passportOpen}
+              onPassport={() => setPassportOpen(!passportOpen)}
+            />
+            {buildMode === 'floor' ? (
+              <>
+                <div className="workspace">
+                  <FactoryCanvas />
+                  {finderOpen && <MachineFinder onClose={() => setFinderOpen(false)} />}
+                  <Inspector />
+                </div>
+                <CompileDrawer />
+              </>
+            ) : (
+              <Suspense fallback={<p className="tabpane__empty">Drawing the maps…</p>}>
+                <LineMaps />
+              </Suspense>
+            )}
+          </>
+        )}
+        {view === 'prompts' && <PromptStudio />}
+        {view === 'content' && <ContentPanel />}
+        {view === 'docs' && <DocsView />}
+        {view === 'monitor' && <MonitorPanel />}
+        {view === 'fleet' && <FleetView />}
+        {view === 'harness' && (
+          <Suspense fallback={<p className="tabpane__empty">Reading the harness…</p>}>
+            <HarnessPanel />
+          </Suspense>
+        )}
+        {view === 'settings' && <SettingsPanel />}
+      </main>
 
       {flash && <div className="flash">{flash}</div>}
       {view === 'build' && showTelemetry && <TelemetryPanel onClose={toggleTelemetry} />}
