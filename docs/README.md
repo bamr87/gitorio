@@ -13,7 +13,7 @@ This index covers the root documents of record and everything under `docs/`. The
 
 | Document | What it covers |
 | --- | --- |
-| [`AGENTS.md`](../AGENTS.md) | gitorio is GitFactory: a static, Factorio-style factory builder whose blueprints compile to GitHub Actions workflows that run Claude Code agents against real repositories. |
+| [`AGENTS.md`](../AGENTS.md) | GitFactory's direction is to become the ultimate open home for all things GitHub automation: data, tools, resources and transparency, with visual blueprints that compile to auditable Actions workflows, a confirm-gated Harness Studio, and… |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | How to propose a change: the session workflow, the local gates, and what a pull request needs — with the rules themselves kept in AGENTS.md. |
 | [`CHANGELOG.md`](../CHANGELOG.md) | Release history: the notable changes in each version, newest first. |
 | [`SECURITY.md`](../SECURITY.md) | How to report a vulnerability privately, and a summary of the security invariants every compiled workflow keeps. |
