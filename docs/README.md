@@ -13,7 +13,7 @@ This index covers the root documents of record and everything under `docs/`. The
 
 | Document | What it covers |
 | --- | --- |
-| [`AGENTS.md`](../AGENTS.md) | gitorio is GitFactory: a static, Factorio-style factory builder whose blueprints compile to GitHub Actions workflows that run Claude Code agents against real repositories. |
+| [`AGENTS.md`](../AGENTS.md) | GitFactory's direction is to become the ultimate open home for all things GitHub automation: data, tools, resources and transparency, with visual blueprints that compile to auditable Actions workflows, a confirm-gated Harness Studio, and… |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | How to propose a change: the session workflow, the local gates, and what a pull request needs — with the rules themselves kept in AGENTS.md. |
 | [`CHANGELOG.md`](../CHANGELOG.md) | Release history: the notable changes in each version, newest first. |
 | [`SECURITY.md`](../SECURITY.md) | How to report a vulnerability privately, and a summary of the security invariants every compiled workflow keeps. |
@@ -27,11 +27,11 @@ This index covers the root documents of record and everything under `docs/`. The
 | [`docs/AO-SDLC.md`](AO-SDLC.md) | How work moves from BACKLOG.md through spec packages to merged code: the stages, the slash commands, the three mechanical gates and the autonomy invariants. |
 | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) | The full design — components, auth phases, the blueprint model, how each machine compiles, the compiler spec, telemetry, prompts, Fleet Ops, maps, the harness and the security model. |
 | [`docs/constitution.md`](constitution.md) | The rules every change to this repo must satisfy, whoever makes it — a human or an AI agent. Agents read this before [AGENTS.md](../AGENTS.md) conventions, the [PRD](../PRD.md), or the [feature catalog](../features/features.yml). Ratified… |
-| [`docs/DECISIONS.md`](DECISIONS.md) | The append-only log of every architecture and process decision (ADR-001…042) — what was decided, why, and the alternatives rejected. |
+| [`docs/DECISIONS.md`](DECISIONS.md) | The append-only log of every architecture and process decision (ADR-001…043) — what was decided, why, and the alternatives rejected. |
 | [`docs/DOCUMENTATION-MAP.md`](DOCUMENTATION-MAP.md) | Which of the four prose directories — `docs/`, `_docs/`, `specs/` and `blog/` — a piece of writing belongs in, who reads each one, and how long it lives. |
 | [`docs/GENERATED-FILES.md`](GENERATED-FILES.md) | Which files in this repo are generated, from what and by which command, and the header, determinism and action-pinning guarantees that compiled workflows carry. |
 | [`docs/ROADMAP.md`](ROADMAP.md) | The product phases and their acceptance history, from the bootstrap seeds through Fleet Ops, maps and the harness; open work lives in BACKLOG.md. |
-| [`docs/adr/`](adr/README.md) | The fleet-format ADR directory (UPS-WORK-04): the file format, the status values and the index; the repo's ADR-001…042 history is in DECISIONS.md. |
+| [`docs/adr/`](adr/README.md) | The fleet-format ADR directory (UPS-WORK-04): the file format, the status values and the index; the repo's ADR-001…043 history is in DECISIONS.md. |
 | [`docs/amendments/`](amendments/README.md) | The append-only log of changes to the constitution: numbering, status and the process for amending it. |
 
 ### `docs/proposals/`

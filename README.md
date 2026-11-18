@@ -1,6 +1,6 @@
 # ⚙ GitFactory
 
-> Factorio-style factory builder for GitHub automation: blueprints compile to Actions workflows running Claude Code.
+> GitFactory's direction is to become the ultimate open home for all things GitHub automation: data, tools, resources and transparency, with visual blueprints that compile to auditable Actions workflows, a confirm-gated Harness Studio, and inspectable source for everyone ([constitution](docs/constitution.md) §1).
 
 [![CI](https://github.com/bamr87/gitorio/actions/workflows/ci.yml/badge.svg)](https://github.com/bamr87/gitorio/actions/workflows/ci.yml) [![Live site](https://img.shields.io/badge/live-bamr87.github.io%2Fgitorio-2ea44f)](https://bamr87.github.io/gitorio/) [![License](https://img.shields.io/github/license/bamr87/gitorio)](LICENSE)
 
@@ -76,7 +76,7 @@ The `.vscode/` folder follows the fleet convention (see [`.vscode/README.md`](.v
 
 ### Powering a deployed factory
 
-A deployed factory needs a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
+A deployed factory needs a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`. Compiled agent lines are OAuth only for now; the `ANTHROPIC_API_KEY` fallback is disabled (ADR-043).
 
 ## Why this shape
 
