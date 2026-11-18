@@ -10,7 +10,7 @@ Automation that can write to your repository and run an AI agent is powerful, so
 
 ## Power
 
-*Power* is the Claude auth secret on the target repo — `CLAUDE_CODE_OAUTH_TOKEN` by default, with `ANTHROPIC_API_KEY` as a fallback. A generated agent step references the OAuth token first and passes the API key only when the OAuth secret is unset, so exactly one auth input is ever non-empty. Without power, agent machines are greyed out.
+*Power* is the Claude auth secret on the target repo — `CLAUDE_CODE_OAUTH_TOKEN`, from `claude setup-token`. Generated agent steps are OAuth only for now: they pass the OAuth token and never read `ANTHROPIC_API_KEY` (the API-key fallback is disabled), so provision the OAuth token even if the repo already has an API key. Without power, agent machines are greyed out.
 
 Secrets never touch the blueprint, the code, or `localStorage`. A personal access token lives in `sessionStorage` at most; the Claude secret is only ever referenced as `${{ secrets.* }}` in generated YAML or provisioned through the encrypted-secret API.
 

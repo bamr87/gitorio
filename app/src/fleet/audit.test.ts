@@ -88,16 +88,29 @@ describe('AUDIT_RULES', () => {
 // ── workflow-scoped rules ────────────────────────────────────────────────────
 
 describe('auth-oauth-first', () => {
-  it('fires on api-key-only auth and passes on oauth-first', () => {
+  it('fires on api-key-only auth and passes on oauth-only and oauth-first', () => {
     const hit = ofRule(auditWorkflow(makeFacts({ ai: aiIn('api-key-only') })), 'auth-oauth-first');
     expect(hit).toHaveLength(1);
     expect(hit[0].severity).toBe('warn');
     expect(hit[0].message).toContain('ANTHROPIC_API_KEY only');
-    expect(hit[0].message).toContain('OAuth-first');
-    expect(hit[0].fix).toContain('CLAUDE_CODE_OAUTH_TOKEN');
+    expect(hit[0].message).toContain('OAuth only');
+    expect(hit[0].fix).toContain('claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}');
+    expect(hit[0].fix).toContain('drop anthropic_api_key');
 
-    const ok = auditWorkflow(makeFacts({ ai: aiIn('oauth-first') }));
-    expect(ofRule(ok, 'auth-oauth-first')).toHaveLength(0);
+    for (const mode of ['oauth-only', 'oauth-first'] as const) {
+      const ok = auditWorkflow(makeFacts({ ai: aiIn(mode) }));
+      expect(ofRule(ok, 'auth-oauth-first'), mode).toHaveLength(0);
+    }
+  });
+
+  it('publishes the OAuth-only standard, never the API-key fallback (ADR-043)', () => {
+    const rule = AUDIT_RULES.find((r) => r.id === 'auth-oauth-first')!;
+    expect(rule.title).toBe('OAuth-only Claude auth');
+    expect(rule.standard).toContain('CLAUDE_CODE_OAUTH_TOKEN only');
+    expect(rule.standard).not.toMatch(/keep ANTHROPIC_API_KEY|as the fallback/);
+    const hit = ofRule(auditWorkflow(makeFacts({ ai: aiIn('api-key-only') })), 'auth-oauth-first')[0];
+    expect(hit.message).not.toContain('with API-key fallback');
+    expect(hit.fix).not.toMatch(/keep anthropic_api_key|as the fallback/);
   });
 });
 

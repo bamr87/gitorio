@@ -42,7 +42,7 @@ The batcher creates missing labels itself (`gh label create`).
 
 1. **Prompts** — copy `prompts/issue-batcher.md` and `prompts/issue-fixer.md` to `.factory/prompts/` in lifehacker.dev (or paste them via the app's Prompt Studio tab, which opens a PR).
 2. **Blueprint + workflows** — either open the GitFactory app → Templates → *Issue Factory* → Deploy to `bamr87/lifehacker.dev`, or copy `issue-factory.blueprint.json` to `.factory/issue-factory.blueprint.json` and the two files under `workflows/` to `.github/workflows/`.
-3. **Power** — provision Claude auth as a repo secret: `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY`. The app's Settings tab can seal it in directly (libsodium sealed box).
+3. **Power** — provision Claude auth as a repo secret: `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`). The compiled lines are OAuth only for now (ADR-043), so `ANTHROPIC_API_KEY` alone leaves them idle. The app's Settings tab can seal it in directly (libsodium sealed box).
 4. **Dry-run first** — Actions → *Factory: Issue Factory 1* → Run workflow, leaving **apply** unchecked. The batcher reports exactly which issues it would batch and why, writing nothing. Same lever on *Issue Factory 2* for the fixer.
 5. **Arm it** — set the repo Actions variable `ISSUE_FACTORY_ENABLED=true` (Settings → Secrets and variables → Actions → Variables, or the app's Content tab toggle). Unset or anything ≠ `true` keeps both lines idle: the factory is **default-OFF**.
 

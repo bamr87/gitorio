@@ -76,7 +76,7 @@ The `.vscode/` folder follows the fleet convention (see [`.vscode/README.md`](.v
 
 ### Powering a deployed factory
 
-A deployed factory needs a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token` by default, or `ANTHROPIC_API_KEY` as the fallback.
+A deployed factory needs a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`. Compiled agent lines are OAuth only for now; the `ANTHROPIC_API_KEY` fallback is disabled (ADR-043).
 
 ## Why this shape
 

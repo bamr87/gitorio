@@ -59,7 +59,7 @@ Regenerate with `cd app && npm run maps` (maps), `npm run reference` (machine re
 
 - **Backlog of record:** [`BACKLOG.md`](BACKLOG.md) — append-only `BL-YYYYMMDD-NN` items (mint with `python3 tools/next_backlog_id.py`), declared as `backlog.mode: file` in `.github/sdlc.yml`. Items move Open → Claimed → Done, never deleted. Not to be confused with `.factory/backlog.yml`, the product's content queue.
 - **Definition of Done:** the checklist in [`.github/pull_request_template.md`](.github/pull_request_template.md) plus golden rule #8 for a new machine type.
-- **Decisions:** ADR-lite entries appended to [`docs/DECISIONS.md`](docs/DECISIONS.md) (ADR-001…042; date, decision, why, alternatives). The fleet-format ADR directory `docs/adr/` (the `adr_path` in `.github/sdlc.yml`) holds ADR 0001 and its index.
+- **Decisions:** ADR-lite entries appended to [`docs/DECISIONS.md`](docs/DECISIONS.md) (ADR-001…043; date, decision, why, alternatives). The fleet-format ADR directory `docs/adr/` (the `adr_path` in `.github/sdlc.yml`) holds ADR 0001 and its index.
 - **Session workflow:** pick work with `python3 tools/pick_backlog_item.py` (or file the user's request as a `BL-*` item), run `/specify` → `/clarify` → `/plan` → `/tasks` → `/implement` one task at a time (or `/evolve` for a whole cycle), work to the acceptance criteria and nothing more, then `/session-log`. [`docs/AO-SDLC.md`](docs/AO-SDLC.md) has the stages and gates.
 - **Commits:** Conventional Commits (`feat fix docs style refactor test chore perf ci build`). **Branches:** `feature/`, `fix/`, `docs/`, `refactor/`, `test/` or `chore/` off `main`.
 - **Changelog:** `CHANGELOG.md` is written by release-please (`.github/workflows/release.yml`); don't edit it by hand.
@@ -89,7 +89,7 @@ Regenerate with `cd app && npm run maps` (maps), `npm run reference` (machine re
 1. Static React app (Vite + `@xyflow/react`) — deployable to GitHub Pages, zero backend.
 2. The canvas edits a **Blueprint** (JSON, schema in `schema/blueprint.schema.json`).
 3. The **compiler** (`app/src/compiler/compile.ts`) is a pure function: Blueprint → `{filename, yaml, diagnostics}[]`.
-4. Compiled workflows use **`anthropics/claude-code-action@v1`**, authenticated by `CLAUDE_CODE_OAUTH_TOKEN` with `ANTHROPIC_API_KEY` as fallback.
+4. Compiled workflows use **`anthropics/claude-code-action@v1`**, authenticated by `CLAUDE_CODE_OAUTH_TOKEN` only for now — the `ANTHROPIC_API_KEY` fallback is disabled (ADR-043).
 5. Downstream sinks of an agent become its **obligations** (prompt contract) plus scoped `--allowedTools` grants.
 6. Trigger→sink chains with no agent compile to deterministic `gh` CLI steps.
 7. The app reads and writes blueprints, prompts and workflow files in target repos through the GitHub REST API (fine-grained PAT; GitHub App device flow is parked).
