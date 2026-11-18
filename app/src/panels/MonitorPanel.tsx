@@ -79,6 +79,9 @@ export function MonitorPanel() {
     const m = new Map<string, WorkflowFacts>();
     for (const wf of compile(toBlueprint()).workflows) m.set(wf.filename, describeWorkflow(wf.yaml));
     return m;
+    // nodes/edges/meta are intentional invalidation triggers: toBlueprint is a stable store
+    // function that reads the current state, so without them this memo would never recompute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges, meta, toBlueprint]);
 
   // Poll only while the tab is mounted + connected.
@@ -112,6 +115,8 @@ export function MonitorPanel() {
         inProgress,
       };
     });
+    // nodes/edges/meta are intentional invalidation triggers (toBlueprint is a stable function).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges, meta, runs, toBlueprint]);
 
   // Overlap heuristic: two lines whose next-5 fire minutes collide.
