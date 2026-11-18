@@ -25,9 +25,15 @@
     />
     <meta property="og:url" content="https://bamr87.github.io/gitorio/" />
     <meta name="twitter:card" content="summary" />
+    <!-- Feedback capture buffer (UPS-FB-04): first so it sees load-time errors. -->
+    <script src="/fleet-feedback-capture.js"></script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Universal "Improve this page" widget (UPS-FB-01 / UPS-FE-13). Default `url` mode: it opens a
+         prefilled GitHub issue in a new tab and makes no request of its own. -->
+    <script src="/fleet-feedback.js" defer></script>
+    <fleet-feedback repo="bamr87/gitorio" branch="main" source="app/src/App.tsx" app-version="gitorio"></fleet-feedback>
   </body>
 </html>
