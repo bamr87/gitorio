@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.3.0](https://github.com/bamr87/gitorio/compare/v0.2.2...v0.3.0) (2026-11-18)
+
+
+### Added
+
+* **app:** add a skip link and the one &lt;main&gt; landmark to the shell ([945300d](https://github.com/bamr87/gitorio/commit/945300d9d6faca36225d04ab8b52b7717711a4a4)), closes [#166](https://github.com/bamr87/gitorio/issues/166)
+* **app:** add description, canonical, Open Graph and Twitter meta to index.html ([a08ea5a](https://github.com/bamr87/gitorio/commit/a08ea5a85888a09ccb40f6b8f4b20277ec24d236)), closes [#167](https://github.com/bamr87/gitorio/issues/167)
+* **app:** mount the fleet feedback widget (UPS-FB-01, UPS-FE-13) ([9b16ac9](https://github.com/bamr87/gitorio/commit/9b16ac9f1971f572867dd2bb6d89f58c6413afdb))
+* **app:** mount the fleet feedback widget (UPS-FB-01, UPS-FE-13) ([221e1dd](https://github.com/bamr87/gitorio/commit/221e1dda0ccba920233e00108a8c7e356e275cf0))
+* **app:** skip link, &lt;main&gt; landmark and head/meta block (UPS-FE-11, UPS-FE-25) ([c34a672](https://github.com/bamr87/gitorio/commit/c34a672873f092709f60948ccafdd49a171cf3a0))
+
+
+### Fixed
+
+* **factory:** give the triage line 12 turns instead of 8 ([e8fe263](https://github.com/bamr87/gitorio/commit/e8fe26358c8b897756b0dfdeee72d1909a37b471))
+* **factory:** give the triage line 12 turns instead of 8 ([6d23a89](https://github.com/bamr87/gitorio/commit/6d23a895f7cadb28d8ac803bb3e1c4c43c628154))
+* **verify:** point smoke-home scenario at GITORIO-001 ([ea66b8d](https://github.com/bamr87/gitorio/commit/ea66b8d08216c05654eecfb697e761f2d5f2c633))
+* **verify:** point smoke-home scenario at GITORIO-001 ([f2b417f](https://github.com/bamr87/gitorio/commit/f2b417f378ed1160c22266ff26cef39dde3e2c13))
+
+
+### Documentation
+
+* **constitution:** state the missions in §1 (amendment 0003) ([c7a984a](https://github.com/bamr87/gitorio/commit/c7a984a57379248cdf3fac1311f2550c3be5b13f))
+* **constitution:** state the missions in §1 (amendment 0003) ([287c7aa](https://github.com/bamr87/gitorio/commit/287c7aac9ed26b20ff7c9b41bd99648369b4f676))
+* deep dive cycle 1 day 17 — backlog entries and amendments summary ([5e3b357](https://github.com/bamr87/gitorio/commit/5e3b35776c2a426774dd65003040315e3602fbff))
+* deep dive cycle 1 day 17 — backlog entries and amendments summary line ([7f755de](https://github.com/bamr87/gitorio/commit/7f755decaef4ac0f01d281ed8bf71a787184f4e6))
+
 ## [0.2.2](https://github.com/bamr87/gitorio/compare/v0.2.1...v0.2.2) (2026-11-12)
 
 
