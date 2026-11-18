@@ -77,5 +77,7 @@ export function useBlueprintDiagnostics(): BlueprintDiagnostics {
   const edges = useFactoryStore((s) => s.edges);
   const meta = useFactoryStore((s) => s.meta);
   const toBlueprint = useFactoryStore((s) => s.toBlueprint);
+  // nodes/edges/meta are intentional invalidation triggers: toBlueprint is a stable store function.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => diagnosticsFor(toBlueprint()), [nodes, edges, meta, toBlueprint]);
 }
