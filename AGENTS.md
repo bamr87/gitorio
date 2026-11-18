@@ -2,7 +2,7 @@
 
 # gitorio
 
-> gitorio is GitFactory: a static, Factorio-style factory builder whose blueprints compile to GitHub Actions workflows that run Claude Code agents against real repositories.
+> GitFactory's direction is to become the ultimate open home for all things GitHub automation: data, tools, resources and transparency, with visual blueprints that compile to auditable Actions workflows, a confirm-gated Harness Studio, and inspectable source for everyone ([constitution](docs/constitution.md) §1).
 
 ## What this repo is
 

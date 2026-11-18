@@ -8,6 +8,22 @@ Product requirements for [`bamr87/gitorio`](https://github.com/bamr87/gitorio), 
 
 GitFactory (working title) is a Factorio-style factory builder for GitHub automation: users drag machines (triggers, Claude Code agents, actions) onto a canvas, connect them with belts, and Deploy compiles the blueprint into readable GitHub Actions workflows on their own repos. No servers: the frontend is static and GitHub is the database, event bus and compute layer.
 
+## 1.1 Missions
+
+GitFactory's direction is to become the ultimate open home for all things GitHub automation — data, tools, resources and transparency, gathered in one place that anyone can inspect and reuse.
+
+1. **Provide data, tools, resources and transparency for all stakeholders, automation engineers and practitioners, and the general public.** Maintainers, harness authors, agent builders and anyone automating a repository are first-class audiences. The aim is a shared, inspectable commons: the same blueprints, the same compiled workflows, and the same trail of configuration for everyone.
+2. **Let anyone design, compile and share visual blueprints that become readable, auditable GitHub Actions workflows on their own repos, with no hosted backend.** Users arrange triggers, Claude Code agents and actions on a canvas, connect them, and Deploy compiles the blueprint into workflow YAML that works without GitFactory. GitHub remains the database, event bus and compute layer; blueprints and prompts stay versioned in the repo.
+3. **Be the fleet's Harness Studio: observe every loop and harness live, design and configure new ones as reviewable blueprints, and manage them only through confirm-gated operations — read-only by default.** A versioned graph and config schema, and an engine and API any UI can consume, keep the front end independent of the back end; the studio stays extensible through plugin node types, engine adapters and config-driven behavior, with Jev as the foundation for numbering, fragments and generated files.
+
+These missions set the course; they do not claim the work is finished. They serve the PRD goals: compiling visual blueprints into auditable Actions YAML, versioned and shareable blueprints, guarded agent contracts, and factory-floor status from the Actions API.
+
+**Requirement**
+
+- MR1: Constitution §1 states one direction statement and exactly three numbered missions, and the README and AGENTS.md taglines match that direction and link to constitution §1.
+
+Feature [GITORIO-015](features/features.yml) traces to requirement MR1.
+
 ## 2. Target users
 
 - Developers/maintainers who want AI-driven repo automation (triage, review, gardening) without running infrastructure
@@ -57,6 +73,7 @@ Every user-facing capability has a stable id in the feature catalog [`features/f
 | [GITORIO-012](features/features.yml) | Engine/API layer over fleetgraph/v1 | planned | [`app/src`](app/src) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR10, NFR6 |
 | [GITORIO-013](features/features.yml) | Plugin SDK: node types, engine adapters, config-driven behavior | planned | [`app/src/machines`](app/src/machines) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | FR11, FR12 |
 | [GITORIO-014](features/features.yml) | Community release 1.0 | planned | [`release-please-config.json`](release-please-config.json) · [`docs/proposals/redesign-harness-studio.md`](docs/proposals/redesign-harness-studio.md) | NFR6, NFR7 |
+| [GITORIO-015](features/features.yml) | Constitution missions | planned | [`docs/constitution.md`](docs/constitution.md) · [`PRD.md`](PRD.md) | MR1 |
 
 **Requirement → feature trace**
 
@@ -79,6 +96,7 @@ Every user-facing capability has a stable id in the feature catalog [`features/f
 | NFR6 | GITORIO-012, GITORIO-014 |
 | FR11 | GITORIO-013 |
 | NFR7 | GITORIO-014 |
+| MR1 | GITORIO-015 |
 <!-- features:end -->
 
 ## 5. Requirements
