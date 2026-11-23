@@ -16,4 +16,15 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  {
+    // The React adapter for <fleet-assist> is seeded by the hub's assistant kit (bamr87/bamr87
+    // templates/assistant) and kept as the kit wrote it. Its `declare module 'react' { namespace
+    // JSX … }` is the one augmentation that compiles on React 18 and 19, so declaration
+    // namespaces are allowed in that file only; every other rule still applies to it. Matched by
+    // name, the way the fan-out finds it.
+    files: ['src/**/AssistBridge.tsx'],
+    rules: {
+      '@typescript-eslint/no-namespace': ['error', { allowDeclarations: true }],
+    },
+  },
 ]);
