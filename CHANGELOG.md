@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/bamr87/gitorio/compare/v0.3.0...v0.4.0) (2026-11-27)
+
+
+### Added
+
+* **assist:** adopt the fleet page bridge (kit v0.1.1) ([23c7fd5](https://github.com/bamr87/gitorio/commit/23c7fd59411828cda97fa7b761d63dd13f65074c))
+* **assist:** mount the page bridge in the app shell ([1cc9840](https://github.com/bamr87/gitorio/commit/1cc98409412d70f191981409c0cd1aaf9b7c8d90))
+
+
+### Fixed
+
+* **deps:** resync app lockfile with typescript-eslint 8.73's @typescript/native peer ([9892129](https://github.com/bamr87/gitorio/commit/9892129a5ec5e9c73e7af264069d151192578cf7))
+
 ## [0.3.0](https://github.com/bamr87/gitorio/compare/v0.2.2...v0.3.0) (2026-11-18)
 
 
