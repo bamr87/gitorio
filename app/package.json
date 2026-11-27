@@ -21,7 +21,7 @@
     "reference:check": "vite-node scripts/gen-reference.ts --check"
   },
   "dependencies": {
-    "@xyflow/react": "^12.12.1",
+    "@xyflow/react": "^13.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tweetnacl": "^1.0.3",
