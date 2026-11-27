@@ -18,6 +18,7 @@ import { DocsView } from './panels/DocsView';
 import { MonitorPanel } from './panels/MonitorPanel';
 import { SettingsPanel } from './panels/SettingsPanel';
 import { TemplateGallery } from './panels/TemplateGallery';
+import { AssistBridge } from './panels/AssistBridge';
 import { useFactoryStore } from './state/store';
 import { useGithubStore } from './state/github';
 import { useTelemetryStore } from './state/telemetry';
@@ -93,6 +94,11 @@ const TABS: { id: AppView; label: string; icon: string; title: string }[] = [
   { id: 'settings', label: 'Settings', icon: '⚙', title: 'Connections and preferences' },
 ];
 const VIEW_IDS = new Set<string>(TABS.map((t) => t.id));
+
+/** The site map an assistant session is handed (`<fleet-assist>`, development only). The app has
+    no client router: a view is the `?tab=` deep link (state/deeplink.ts), so the bridge gets no
+    `navigate` and a session changes view by loading one of these, or by clicking a tab. */
+const assistPages = () => TABS.map((t) => `${t.label} /?tab=${t.id}`);
 
 /** The one `<main>` landmark's id — the skip link's target (UPS-FE-10/11). */
 const MAIN_ID = 'main-content';
@@ -408,6 +414,24 @@ export default function App() {
       {dialog === 'connect' && <ConnectDialog onClose={() => setDialog(null)} />}
       {dialog === 'deploy' && <DeployModal onClose={() => setDialog(null)} />}
       {dialog === 'templates' && <TemplateGallery onClose={() => setDialog(null)} />}
+
+      {/* The fleet's page bridge (UPS-AST): a tool for whoever runs the app, so it is on in
+          development only. Guarded by import.meta.env.DEV like the other dev-only code, so a
+          production build drops the adapter with the branch: no tag, no script, no code. Both
+          addresses follow the Vite base (`/` locally, `/gitorio/` on Pages). On the right because
+          the Build tab's Compile button owns the bottom-left corner. */}
+      {import.meta.env.DEV && (
+        <AssistBridge
+          enabled={import.meta.env.DEV}
+          repo="bamr87/gitorio"
+          source="app/src/App.tsx"
+          route={`/?tab=${view}`}
+          base={import.meta.env.BASE_URL}
+          scriptSrc={`${import.meta.env.BASE_URL}fleet-assist.js`}
+          pages={assistPages}
+          position="right"
+        />
+      )}
     </div>
   );
 }

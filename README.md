@@ -74,6 +74,12 @@ The `.vscode/` folder follows the fleet convention (see [`.vscode/README.md`](.v
 - **Debug: app in Edge (Docker :5173)** — starts the dev server in Docker, then opens Edge with source-mapped breakpoints; the **(host :5173)** variant uses local Node.
 - **Debug: Vitest (all)** / **Debug: Vitest (current file)** — breakpoint-debug the test suite.
 
+### The assistant panel (development only)
+
+The dev server mounts the fleet's page bridge, `<fleet-assist>`: the **Assistant** button (bottom right) shares the tab with the Harness Console on your machine (`tools/dash up` in the bamr87 hub) and shows a code that pairs a Claude Code session, which can then read the page and, as far as you allow, use it. The console answers only the dev address the hub registers for this repo (port 5113 in its `_data/ports.yml`), so serve on that port: `npm run dev -- --port 5113`, or `GITORIO_DEV_PORT=5113 docker compose up dev`.
+
+It is mounted once, in `app/src/App.tsx` through `app/src/panels/AssistBridge.tsx`, behind `import.meta.env.DEV`, so a production build renders no tag and loads no script. `app/public/fleet-assist.js` is the hub's vendored payload ([`templates/assistant`](https://github.com/bamr87/bamr87/tree/main/templates/assistant)), held byte-identical by the hub's drift check: never edit it here.
+
 ### Powering a deployed factory
 
 A deployed factory needs a Claude auth Actions secret on the target repo (the app calls this "connecting power") — `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`. Compiled agent lines are OAuth only for now; the `ANTHROPIC_API_KEY` fallback is disabled (ADR-043).
